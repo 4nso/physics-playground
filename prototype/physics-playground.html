@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Physics Playground 3D</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  html,body{margin:0;height:100%;overflow:hidden;background:#a8d8ff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:none;overscroll-behavior:none}
+  canvas{display:block;touch-action:none}
+  #hud{position:fixed;top:calc(10px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));display:flex;gap:6px;flex-wrap:wrap;pointer-events:none;z-index:5}
+  .pill{background:rgba(15,25,40,.62);color:#fff;padding:6px 11px;border-radius:999px;font-size:13px;font-weight:600;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  .pill.done{background:rgba(30,150,80,.85)}
+  #keys{position:fixed;bottom:calc(10px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);color:#fff;background:rgba(15,25,40,.55);padding:7px 14px;border-radius:10px;font-size:12px;pointer-events:none;white-space:nowrap;z-index:5}
+  #cross{position:fixed;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;pointer-events:none;z-index:5}
+  #cross:before,#cross:after{content:"";position:absolute;background:rgba(255,255,255,.9);box-shadow:0 0 2px rgba(0,0,0,.6)}
+  #cross:before{left:10px;top:3px;width:2px;height:16px}
+  #cross:after{top:10px;left:3px;height:2px;width:16px}
+  #cross.can:before,#cross.can:after{background:#ffd54a}
+  #cross.hold{border:2px solid #ffd54a;border-radius:50%}
+  #msg{position:fixed;left:50%;top:22%;transform:translate(-50%,-50%) scale(.9);color:#fff;font-size:26px;font-weight:800;text-shadow:0 2px 10px rgba(0,0,0,.45);opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;text-align:center;z-index:6}
+  #msg.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  #joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.4);pointer-events:none;display:none;z-index:5}
+  #knob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,255,255,.55)}
+  #btns{position:fixed;right:calc(14px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));width:190px;height:190px;display:none;z-index:6}
+  #btns button,#top button{position:absolute;border:none;border-radius:50%;color:#fff;font-weight:700;font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;touch-action:none;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+  #btns button span{font-size:22px;line-height:1}
+  #bFire{right:0;bottom:0;width:84px;height:84px;background:rgba(230,70,70,.82)}
+  #bJump{right:96px;bottom:0;width:66px;height:66px;background:rgba(60,140,240,.82)}
+  #bGrab{right:0;bottom:96px;width:66px;height:66px;background:rgba(240,170,40,.88)}
+  #bBoom{right:84px;bottom:84px;width:58px;height:58px;background:rgba(150,70,220,.85)}
+  #btns button:active,#top button:active{filter:brightness(1.25);transform:scale(.94)}
+  #bGrab.on{background:rgba(60,190,90,.92)}
+  #top{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));width:96px;height:44px;z-index:6}
+  #top button{position:absolute;top:0;width:44px;height:44px;font-size:20px;background:rgba(15,25,40,.6)}
+  #bCrate{right:52px}#bReset{right:0}
+  #start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,rgba(30,60,110,.55),rgba(5,10,25,.82));z-index:20;padding:20px}
+  .card{max-width:420px;width:100%;background:rgba(255,255,255,.96);border-radius:20px;padding:24px 22px;box-shadow:0 20px 60px rgba(0,0,0,.35);color:#1b2433}
+  .card h1{margin:0 0 4px;font-size:26px}
+  .card p.sub{margin:0 0 14px;color:#5a6577;font-size:14px}
+  .card ul{margin:0 0 16px;padding-left:18px;font-size:14px;line-height:1.55}
+  .card b{color:#d2452f}
+  #play{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#ff7a45,#e8403a);color:#fff;font-size:18px;font-weight:800;cursor:pointer}
+  #err{display:none;position:fixed;inset:0;background:#1b2433;color:#fff;align-items:center;justify-content:center;text-align:center;padding:30px;font-size:16px;z-index:30}
+</style>
+</head>
+<body>
+<div id="hud"><div class="pill" id="pTower">🏗️ Torre 0/14</div><div class="pill" id="pDom">🁢 Domino 0/22</div></div>
+<div id="cross"></div>
+<div id="msg"></div>
+<div id="joy"><div id="knob"></div></div>
+<div id="btns">
+  <button id="bFire"><span>●</span>Lancia</button>
+  <button id="bJump"><span>⤒</span>Salta</button>
+  <button id="bGrab"><span>✋</span>Afferra</button>
+  <button id="bBoom"><span>💥</span></button>
+</div>
+<div id="top"><button id="bCrate" title="Nuova cassa">📦</button><button id="bReset" title="Ricomincia">↺</button></div>
+<div id="keys">WASD muovi · Mouse guarda · Clic lancia · E / tasto destro afferra · F boom · Q cassa · Spazio salta · R reset</div>
+<div id="start"><div class="card">
+  <h1>Physics Playground 3D</h1>
+  <p class="sub">Un piccolo mondo dove tutto ha peso, attrito e rimbalzo.</p>
+  <ul id="howto"></ul>
+  <button id="play">Gioca</button>
+</div></div>
+<div id="err"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+if (!window.THREE || !window.CANNON) {
+  const e = $('err'); e.style.display = 'flex';
+  e.textContent = 'Non riesco a caricare il motore 3D. Controlla la connessione e ricarica la pagina.';
+  return;
+}
+
+const isTouch = matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
+$('howto').innerHTML = isTouch
+  ? '<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Lancia</b> palline o l\'oggetto che tieni in mano</li><li><b>Afferra</b> casse, palle e la palla demolitrice</li><li><b>💥</b> esplosione dove miri · <b>📦</b> nuova cassa</li><li>Obiettivo: abbatti la <b>torre</b> e fai cadere tutti i <b>domino</b>!</li>'
+  : '<li><b>WASD</b> muovi · <b>Mouse</b> guarda · <b>Shift</b> corri · <b>Spazio</b> salta</li><li><b>Clic</b>: lancia una pallina (o l\'oggetto in mano)</li><li><b>E</b> o <b>tasto destro</b>: afferra / lascia</li><li><b>F</b> esplosione · <b>Q</b> nuova cassa · <b>R</b> ricomincia</li><li>Obiettivo: abbatti la <b>torre</b> e fai cadere tutti i <b>domino</b>!</li>';
+if (isTouch) { $('btns').style.display = 'block'; $('keys').style.display = 'none'; }
+
+/* ---------------- Renderer & scena ---------------- */
+const renderer = new THREE.WebGLRenderer({ antialias: !isTouch || devicePixelRatio < 2, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.75 : 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+document.body.prepend(renderer.domElement);
+const canvas = renderer.domElement;
+
+const scene = new THREE.Scene();
+const SKY = 0xa8d8ff;
+scene.background = new THREE.Color(SKY);
+scene.fog = new THREE.Fog(SKY, 35, 95);
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 200);
+camera.rotation.order = 'YXZ';
+
+scene.add(new THREE.HemisphereLight(0xe4f3ff, 0x5a7a3a, 0.8));
+const sun = new THREE.DirectionalLight(0xfff1dc, 1.0);
+sun.castShadow = true;
+const SM = isTouch ? 1024 : 2048;
+sun.shadow.mapSize.set(SM, SM);
+Object.assign(sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 90 });
+sun.shadow.camera.updateProjectionMatrix();
+sun.shadow.bias = -0.0006;
+scene.add(sun); scene.add(sun.target);
+
+function canvasTex(w, h, draw, rep) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep); }
+  return t;
+}
+const groundTex = canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#86b94f'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#7aad46'; g.fillRect(0, 0, w / 2, h / 2); g.fillRect(w / 2, h / 2, w / 2, h / 2);
+  for (let i = 0; i < 700; i++) {
+    g.fillStyle = `rgba(${40 + Math.random() * 40 | 0},${100 + Math.random() * 60 | 0},35,0.35)`;
+    g.fillRect(Math.random() * w, Math.random() * h, 2, 4);
+  }
+}, 100);
+const crateTex = canvasTex(128, 128, (g, w, h) => {
+  for (let i = 0; i < 5; i++) { g.fillStyle = i % 2 ? '#a8743a' : '#bf8b48'; g.fillRect(0, i * h / 5, w, h / 5); }
+  g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 1;
+  for (let i = 1; i < 5; i++) { g.beginPath(); g.moveTo(0, i * h / 5); g.lineTo(w, i * h / 5); g.stroke(); }
+  g.strokeStyle = '#6e4520'; g.lineWidth = 12; g.strokeRect(6, 6, w - 12, h - 12);
+  g.lineWidth = 10; g.beginPath(); g.moveTo(12, 12); g.lineTo(w - 12, h - 12); g.stroke();
+});
+const stoneTex = canvasTex(128, 64, (g, w, h) => {
+  g.fillStyle = '#cfc5b4'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#a99f8e'; g.lineWidth = 2;
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) g.strokeRect((c * 48 + (r ? 24 : 0)) % w - 2, r * 32 + 1, 46, 30);
+}, 0);
+stoneTex.wrapS = stoneTex.wrapT = THREE.RepeatWrapping;
+
+const M = {
+  ground: new THREE.MeshStandardMaterial({ map: groundTex, roughness: 1 }),
+  crate: new THREE.MeshStandardMaterial({ map: crateTex, roughness: 0.85 }),
+  stone: new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.95 }),
+  ramp: new THREE.MeshStandardMaterial({ color: 0x5d8fc9, roughness: 0.6 }),
+  metal: new THREE.MeshStandardMaterial({ color: 0x3b4250, roughness: 0.4, metalness: 0.6 }),
+  wreck: new THREE.MeshStandardMaterial({ color: 0x2a2d33, roughness: 0.25, metalness: 0.85 }),
+  rope: new THREE.MeshStandardMaterial({ color: 0x8a6b45, roughness: 1 }),
+};
+const ballMats = ['#ff5a4e', '#ffb627', '#2fbf71', '#3d8bff', '#b45cff', '#ff6fb5'].map(col =>
+  new THREE.MeshStandardMaterial({ roughness: 0.35, map: canvasTex(64, 32, (g, w, h) => {
+    g.fillStyle = col; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.fillRect(0, h * 0.42, w, h * 0.16);
+  }) }));
+const sphereGeo = new THREE.SphereGeometry(1, 24, 16);
+const unitBox = new THREE.BoxGeometry(1, 1, 1);
+
+/* ---------------- Fisica ---------------- */
+const world = new CANNON.World();
+world.gravity.set(0, -9.82, 0);
+world.broadphase = new CANNON.SAPBroadphase(world);
+world.solver.iterations = 12;
+world.allowSleep = true;
+const mGround = new CANNON.Material('ground'), mObj = new CANNON.Material('obj'),
+      mBall = new CANNON.Material('ball'), mPlayer = new CANNON.Material('player');
+const CM = (a, b, f, r) => world.addContactMaterial(new CANNON.ContactMaterial(a, b, { friction: f, restitution: r }));
+CM(mGround, mObj, 0.5, 0.12); CM(mObj, mObj, 0.45, 0.08);
+CM(mBall, mGround, 0.4, 0.6); CM(mBall, mObj, 0.35, 0.45); CM(mBall, mBall, 0.3, 0.7);
+CM(mPlayer, mGround, 0, 0); CM(mPlayer, mObj, 0, 0); CM(mPlayer, mBall, 0, 0.3);
+const removeBody = b => (world.removeBody || world.remove).call(world, b);
+
+/* ---------------- Audio (urti) ---------------- */
+let actx = null, lastSnd = 0;
+function initAudio() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) { actx = null; } }
+function thud(vol, freq) {
+  if (!actx) return;
+  const t = actx.currentTime; if (t - lastSnd < 0.035) return; lastSnd = t;
+  try {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq * 0.5, t + 0.12);
+    g.gain.setValueAtTime(Math.min(0.35, vol), t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t + 0.16);
+  } catch (e) {}
+}
+function boomSound() {
+  if (!actx) return;
+  try {
+    const t = actx.currentTime, len = actx.sampleRate * 0.6;
+    const buf = actx.createBuffer(1, len, actx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+    const s = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    s.buffer = buf; f.type = 'lowpass'; f.frequency.value = 700; g.gain.value = 0.7;
+    s.connect(f).connect(g).connect(actx.destination); s.start(t);
+  } catch (e) {}
+}
+function attachSound(body, freq) {
+  body.addEventListener('collide', e => {
+    const v = Math.abs(e.contact.getImpactVelocityAlongNormal());
+    if (v > 1.5) thud(v * 0.03, freq * (0.85 + Math.random() * 0.3));
+  });
+}
+
+/* ---------------- Mondo statico ---------------- */
+const pickables = [];
+function staticBox(size, pos, mat, rotX) {
+  const b = new CANNON.Body({ mass: 0, material: mGround });
+  b.addShape(new CANNON.Box(new CANNON.Vec3(size[0] / 2, size[1] / 2, size[2] / 2)));
+  b.position.set(pos[0], pos[1], pos[2]);
+  if (rotX) b.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), rotX);
+  world.addBody(b);
+  const m = new THREE.Mesh(new THREE.BoxGeometry(size[0], size[1], size[2]), mat);
+  m.position.copy(b.position); m.quaternion.copy(b.quaternion);
+  m.castShadow = m.receiveShadow = true;
+  scene.add(m); pickables.push(m);
+  return b;
+}
+const groundBody = new CANNON.Body({ mass: 0, material: mGround });
+groundBody.addShape(new CANNON.Plane());
+groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+world.addBody(groundBody);
+const groundMesh = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), M.ground);
+groundMesh.rotation.x = -Math.PI / 2; groundMesh.receiveShadow = true;
+scene.add(groundMesh); pickables.push(groundMesh);
+
+// Mura perimetrali
+const wallMat = M.stone.clone(); wallMat.map = stoneTex.clone(); wallMat.map.needsUpdate = true; wallMat.map.repeat.set(30, 1.2);
+staticBox([61, 2.5, 1], [0, 1.25, -30.5], wallMat); staticBox([61, 2.5, 1], [0, 1.25, 30.5], wallMat);
+const wallMat2 = M.stone.clone(); wallMat2.map = stoneTex.clone(); wallMat2.map.needsUpdate = true; wallMat2.map.repeat.set(30, 1.2);
+staticBox([1, 2.5, 61], [-30.5, 1.25, 0], wallMat2); staticBox([1, 2.5, 61], [30.5, 1.25, 0], wallMat2);
+// Piedistallo della torre
+staticBox([4, 1, 4], [0, 0.5, -8], M.stone);
+// Rampa + piattaforma
+staticBox([4, 0.4, 8], [12, 1.0, 8], M.ramp, 0.3);
+staticBox([4, 2.3, 4], [12, 1.15, 2.2], M.stone);
+// Portale della palla demolitrice
+staticBox([0.3, 7.3, 0.3], [4, 3.65, -11.6], M.metal);
+staticBox([0.3, 7.3, 0.3], [4, 3.65, -4.4], M.metal);
+{ const bar = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 7.6), M.metal); bar.position.set(4, 7.3, -8); bar.castShadow = true; scene.add(bar); }
+const anchor = new CANNON.Body({ mass: 0 }); anchor.position.set(4, 7.15, -8); world.addBody(anchor);
+// Qualche decorazione: colline lontane
+for (let i = 0; i < 14; i++) {
+  const a = i / 14 * Math.PI * 2, r = 60 + Math.random() * 20;
+  const hill = new THREE.Mesh(new THREE.SphereGeometry(10 + Math.random() * 8, 16, 10), new THREE.MeshStandardMaterial({ color: 0x6f9f48, roughness: 1 }));
+  hill.position.set(Math.cos(a) * r, -4, Math.sin(a) * r); hill.scale.y = 0.6; scene.add(hill);
+}
+
+/* ---------------- Oggetti dinamici ---------------- */
+let objects = [], constraints = [], tower = [], dominos = [], thrown = [], wreck = null, ropeMesh = null;
+function addObj(body, mesh, kind) {
+  world.addBody(body); scene.add(mesh);
+  mesh.castShadow = mesh.receiveShadow = true;
+  const o = { body, mesh, kind };
+  mesh.userData.obj = o; objects.push(o); pickables.push(mesh);
+  return o;
+}
+function removeObj(o) {
+  removeBody(o.body); scene.remove(o.mesh);
+  objects.splice(objects.indexOf(o), 1);
+  const pi = pickables.indexOf(o.mesh); if (pi >= 0) pickables.splice(pi, 1);
+  if (held === o) setHeld(null);
+}
+function makeCrate(x, y, z, size) {
+  size = size || 1;
+  const b = new CANNON.Body({ mass: size * size * size, material: mObj });
+  b.addShape(new CANNON.Box(new CANNON.Vec3(size / 2, size / 2, size / 2)));
+  b.position.set(x, y, z); b.angularDamping = 0.1;
+  attachSound(b, 140);
+  const m = new THREE.Mesh(unitBox, M.crate); m.scale.setScalar(size);
+  return addObj(b, m, 'crate');
+}
+let ballIdx = 0;
+function makeBall(x, y, z, r, mass) {
+  const b = new CANNON.Body({ mass, material: mBall });
+  b.addShape(new CANNON.Sphere(r));
+  b.position.set(x, y, z); b.linearDamping = 0.05; b.angularDamping = 0.25;
+  attachSound(b, 320 / Math.max(0.3, r * 2));
+  const m = new THREE.Mesh(sphereGeo, ballMats[ballIdx++ % ballMats.length]); m.scale.setScalar(r);
+  return addObj(b, m, 'ball');
+}
+
+function buildLevel() {
+  // Torre a piramide (9 + 4 + 1 casse)
+  tower = [];
+  for (let L = 0; L < 3; L++) {
+    const n = 3 - L;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++)
+      tower.push(makeCrate((i - (n - 1) / 2) * 1.02, 1.5 + L * 1.0, -8 + (j - (n - 1) / 2) * 1.02));
+  }
+  // Domino ad arco
+  dominos = [];
+  const dGeo = new THREE.BoxGeometry(0.2, 1.2, 0.6);
+  const N = 22, cx = -11, cz = -2, R = 6;
+  for (let k = 0; k < N; k++) {
+    const a = -1.0 + k * 0.125;
+    const b = new CANNON.Body({ mass: 0.5, material: mObj });
+    b.addShape(new CANNON.Box(new CANNON.Vec3(0.1, 0.6, 0.3)));
+    b.position.set(cx + R * Math.cos(a), 0.6, cz + R * Math.sin(a));
+    b.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), -a - Math.PI / 2);
+    attachSound(b, 520);
+    const col = new THREE.Color().setHSL(k / N, 0.75, 0.55);
+    const m = new THREE.Mesh(dGeo, new THREE.MeshStandardMaterial({ color: col, roughness: 0.4 }));
+    dominos.push(addObj(b, m, 'domino'));
+  }
+  // Pallone grande in cima alla piattaforma
+  for (let i = 0; i < 4; i++) makeBall(11 + (i % 2) * 1.6, 2.9 + Math.floor(i / 2) * 0.2, 1.4 + Math.floor(i / 2) * 1.6, 0.5, 0.6);
+  // Casse sparse vicino alla partenza
+  makeCrate(-3, 0.5, 4); makeCrate(3, 0.5, 4); makeCrate(3, 1.5, 4); makeCrate(-6, 0.4, 9, 0.8); makeCrate(6, 0.75, 10, 1.5);
+  // Palla demolitrice
+  const wb = new CANNON.Body({ mass: 6, material: mObj });
+  wb.addShape(new CANNON.Sphere(0.7)); wb.position.set(4, 2.15, -8); wb.linearDamping = 0.02; wb.angularDamping = 0.3;
+  attachSound(wb, 90);
+  wreck = addObj(wb, new THREE.Mesh(sphereGeo, M.wreck), 'wreck'); wreck.mesh.scale.setScalar(0.7);
+  const c = new CANNON.PointToPointConstraint(wb, new CANNON.Vec3(0, 5, 0), anchor, new CANNON.Vec3(0, 0, 0));
+  world.addConstraint(c); constraints.push(c);
+  ropeMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1, 6), M.rope);
+  ropeMesh.castShadow = true; scene.add(ropeMesh);
+  towerDone = domDone = false;
+}
+function clearLevel() {
+  setHeld(null);
+  objects.slice().forEach(removeObj);
+  constraints.forEach(c => world.removeConstraint(c)); constraints = [];
+  if (ropeMesh) { scene.remove(ropeMesh); ropeMesh = null; }
+  thrown = [];
+}
+
+/* ---------------- Giocatore ---------------- */
+const player = new CANNON.Body({ mass: 5, material: mPlayer });
+player.addShape(new CANNON.Sphere(0.45));
+player.addShape(new CANNON.Sphere(0.4), new CANNON.Vec3(0, 0.75, 0));
+player.fixedRotation = true; player.allowSleep = false; player.updateMassProperties();
+world.addBody(player);
+let yaw = 0, pitch = -0.08, grounded = false, jumpReq = false;
+function resetPlayer() {
+  player.position.set(0, 0.6, 9); player.velocity.set(0, 0, 0);
+  yaw = 0; pitch = -0.08;
+}
+function resetAll() { clearLevel(); buildLevel(); resetPlayer(); flash('Si ricomincia!'); }
+
+/* ---------------- Input ---------------- */
+const keys = {};
+const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 }, look = { id: null, x: 0, y: 0 };
+let mouseDrag = null, running = false;
+const locked = () => document.pointerLockElement === canvas;
+
+addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (!running) return;
+  if (e.code === 'Space') { jumpReq = true; e.preventDefault(); }
+  if (e.code === 'KeyE') toggleGrab();
+  if (e.code === 'KeyF') boom();
+  if (e.code === 'KeyQ') spawnCrate();
+  if (e.code === 'KeyR') resetAll();
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+canvas.addEventListener('pointerdown', e => {
+  if (!running) return;
+  initAudio();
+  if (e.pointerType === 'mouse') {
+    if (locked()) { if (e.button === 0) fire(); else if (e.button === 2) toggleGrab(); return; }
+    try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (err) {}
+    mouseDrag = { x: e.clientX, y: e.clientY, moved: 0, button: e.button };
+    return;
+  }
+  if (e.clientX < innerWidth * 0.45 && joy.id === null) {
+    joy.id = e.pointerId; joy.ox = e.clientX; joy.oy = e.clientY; joy.x = joy.y = 0;
+    const j = $('joy'); j.style.left = e.clientX + 'px'; j.style.top = e.clientY + 'px'; j.style.display = 'block';
+    $('knob').style.transform = '';
+  } else if (look.id === null) {
+    look.id = e.pointerId; look.x = e.clientX; look.y = e.clientY;
+  }
+});
+addEventListener('pointermove', e => {
+  if (!running) return;
+  if (e.pointerType === 'mouse') {
+    if (locked()) { yaw -= e.movementX * 0.0022; pitch -= e.movementY * 0.0022; }
+    else if (mouseDrag) {
+      const dx = e.clientX - mouseDrag.x, dy = e.clientY - mouseDrag.y;
+      mouseDrag.moved += Math.abs(dx) + Math.abs(dy);
+      yaw -= dx * 0.005; pitch -= dy * 0.005; mouseDrag.x = e.clientX; mouseDrag.y = e.clientY;
+    }
+  } else if (e.pointerId === joy.id) {
+    let dx = e.clientX - joy.ox, dy = e.clientY - joy.oy;
+    const d = Math.hypot(dx, dy), R = 55;
+    if (d > R) { dx *= R / d; dy *= R / d; }
+    joy.x = dx / R; joy.y = -dy / R;
+    $('knob').style.transform = `translate(${dx}px,${dy}px)`;
+  } else if (e.pointerId === look.id) {
+    yaw -= (e.clientX - look.x) * 0.0065; pitch -= (e.clientY - look.y) * 0.0065;
+    look.x = e.clientX; look.y = e.clientY;
+  }
+  pitch = Math.max(-1.5, Math.min(1.5, pitch));
+});
+function endPointer(e) {
+  if (e.pointerType === 'mouse') {
+    if (mouseDrag && !locked() && mouseDrag.moved < 6) { if (mouseDrag.button === 2) toggleGrab(); else fire(); }
+    mouseDrag = null; return;
+  }
+  if (e.pointerId === joy.id) { joy.id = null; joy.x = joy.y = 0; $('joy').style.display = 'none'; }
+  if (e.pointerId === look.id) look.id = null;
+}
+addEventListener('pointerup', endPointer);
+addEventListener('pointercancel', endPointer);
+
+function bindBtn(id, fn) {
+  $(id).addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); initAudio(); if (running) fn(); });
+}
+bindBtn('bFire', () => fire());
+bindBtn('bJump', () => { jumpReq = true; });
+bindBtn('bGrab', () => toggleGrab());
+bindBtn('bBoom', () => boom());
+bindBtn('bCrate', () => spawnCrate());
+bindBtn('bReset', () => resetAll());
+
+/* ---------------- Azioni ---------------- */
+const tmpV = new THREE.Vector3(), camDir = new THREE.Vector3();
+const ray = new THREE.Raycaster(), center = new THREE.Vector2(0, 0);
+function aim(maxDist) {
+  ray.setFromCamera(center, camera); ray.far = maxDist;
+  const hits = ray.intersectObjects(pickables, false);
+  return hits.length ? hits[0] : null;
+}
+let held = null, holdDist = 2.6;
+function setHeld(o) {
+  held = o;
+  $('bGrab').classList.toggle('on', !!o);
+  $('cross').classList.toggle('hold', !!o);
+}
+function toggleGrab() {
+  if (held) { setHeld(null); return; }
+  const h = aim(7);
+  if (h && h.object.userData.obj) {
+    const o = h.object.userData.obj;
+    setHeld(o); holdDist = Math.max(1.8, Math.min(3.5, h.distance + 0.3)); o.body.wakeUp();
+  }
+}
+function fire() {
+  camera.getWorldDirection(camDir);
+  if (held) {
+    const b = held.body; const s = held.kind === 'wreck' ? 8 : 16;
+    b.velocity.set(camDir.x * s, camDir.y * s + 1.5, camDir.z * s);
+    b.angularVelocity.set(Math.random() * 6 - 3, Math.random() * 6 - 3, Math.random() * 6 - 3);
+    setHeld(null); thud(0.15, 200); return;
+  }
+  const p = camera.position;
+  const o = makeBall(p.x + camDir.x * 0.8, p.y + camDir.y * 0.8 - 0.1, p.z + camDir.z * 0.8, 0.22, 1);
+  o.body.velocity.set(camDir.x * 22 + player.velocity.x, camDir.y * 22 + 1, camDir.z * 22 + player.velocity.z);
+  thrown.push(o);
+  if (thrown.length > 40) removeObj(thrown.shift());
+  thud(0.08, 600);
+}
+function spawnCrate() {
+  camera.getWorldDirection(camDir);
+  const h = aim(4); const d = h ? Math.max(1.4, h.distance - 0.8) : 3;
+  const p = camera.position;
+  const o = makeCrate(p.x + camDir.x * d, Math.max(0.6, p.y + camDir.y * d + 0.3), p.z + camDir.z * d);
+  o.body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), yaw);
+}
+const fx = [];
+const boomLight = new THREE.PointLight(0xffaa44, 0, 18); scene.add(boomLight);
+let shake = 0;
+function boom() {
+  camera.getWorldDirection(camDir);
+  const h = aim(40);
+  const p = h ? h.point.clone() : camera.position.clone().addScaledVector(camDir, 15);
+  const R = 6;
+  const affect = objects.map(o => o.body).concat([player]);
+  for (const b of affect) {
+    const dx = b.position.x - p.x, dy = b.position.y - p.y, dz = b.position.z - p.z;
+    const dist = Math.hypot(dx, dy, dz);
+    if (dist > R) continue;
+    const k = (1 - dist / R) * (b === player ? 9 : 14);
+    const len = Math.hypot(dx, dy + 0.8, dz) || 1;
+    b.wakeUp();
+    b.velocity.x += dx / len * k; b.velocity.y += (dy + 0.8) / len * k; b.velocity.z += dz / len * k;
+    if (b !== player) { b.angularVelocity.x += Math.random() * 10 - 5; b.angularVelocity.z += Math.random() * 10 - 5; }
+  }
+  const m = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: 0xffb347, transparent: true, opacity: 0.85, depthWrite: false }));
+  m.position.copy(p); m.scale.setScalar(0.1); scene.add(m);
+  fx.push({ m, t: 0 });
+  boomLight.position.copy(p); boomLight.intensity = 6;
+  shake = Math.max(0, 0.35 - camera.position.distanceTo(p) * 0.015);
+  boomSound();
+}
+
+/* ---------------- HUD ---------------- */
+let towerDone = false, domDone = false, msgTimer = 0;
+function flash(text) { const m = $('msg'); m.textContent = text; m.classList.add('show'); msgTimer = 2.4; }
+function updateHUD(dt) {
+  let tk = 0; for (const o of tower) if (!objects.includes(o) || o.body.position.y < 1.0) tk++;
+  let df = 0; for (const o of dominos) {
+    const q = o.body.quaternion; const upY = 1 - 2 * (q.x * q.x + q.z * q.z);
+    if (upY < 0.75 || !objects.includes(o)) df++;
+  }
+  $('pTower').textContent = `🏗️ Torre ${tk}/${tower.length}`;
+  $('pDom').textContent = `🁢 Domino ${df}/${dominos.length}`;
+  $('pTower').classList.toggle('done', tk === tower.length);
+  $('pDom').classList.toggle('done', df === dominos.length);
+  if (!towerDone && tk === tower.length) { towerDone = true; flash('🎉 Torre abbattuta!'); }
+  if (!domDone && df === dominos.length) { domDone = true; flash('🎉 Tutti i domino giù!'); }
+  if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) $('msg').classList.remove('show'); }
+}
+
+/* ---------------- Loop ---------------- */
+const upVec = new THREE.Vector3(0, 1, 0);
+function updatePlayer(dt) {
+  let f = joy.y, r = joy.x;
+  if (keys.KeyW || keys.ArrowUp) f += 1;
+  if (keys.KeyS || keys.ArrowDown) f -= 1;
+  if (keys.KeyD || keys.ArrowRight) r += 1;
+  if (keys.KeyA || keys.ArrowLeft) r -= 1;
+  const mag = Math.hypot(f, r); if (mag > 1) { f /= mag; r /= mag; }
+  const speed = (keys.ShiftLeft || keys.ShiftRight) ? 9 : 5.5;
+  const s = Math.sin(yaw), c = Math.cos(yaw);
+  const vx = (-s * f + c * r) * speed, vz = (-c * f - s * r) * speed;
+  const v = player.velocity, a = Math.min(1, (grounded ? 14 : 3) * dt);
+  v.x += (vx - v.x) * a; v.z += (vz - v.z) * a;
+  if (jumpReq && grounded) { v.y = 6.2; grounded = false; }
+  jumpReq = false;
+  if (player.position.y < -10) resetPlayer();
+}
+function updateHeld() {
+  if (!held) return;
+  camera.getWorldDirection(camDir);
+  const b = held.body, p = camera.position;
+  const tx = p.x + camDir.x * holdDist, ty = Math.max(0.35, p.y + camDir.y * holdDist), tz = p.z + camDir.z * holdDist;
+  const dx = tx - b.position.x, dy = ty - b.position.y, dz = tz - b.position.z;
+  if (Math.hypot(dx, dy, dz) > 6) { setHeld(null); return; }
+  const k = 12; let vx = dx * k, vy = dy * k, vz = dz * k;
+  const sp = Math.hypot(vx, vy, vz); if (sp > 20) { vx *= 20 / sp; vy *= 20 / sp; vz *= 20 / sp; }
+  b.velocity.set(vx, vy, vz);
+  b.angularVelocity.x *= 0.85; b.angularVelocity.y *= 0.85; b.angularVelocity.z *= 0.85;
+  b.wakeUp();
+}
+function checkGrounded() {
+  grounded = false;
+  for (const ct of world.contacts) {
+    let ny;
+    if (ct.bi === player) ny = -ct.ni.y; else if (ct.bj === player) ny = ct.ni.y; else continue;
+    if (ny > 0.5) { grounded = true; break; }
+  }
+}
+const ropeA = new THREE.Vector3(), ropeB = new THREE.Vector3();
+let last = performance.now();
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (running) {
+    updatePlayer(dt);
+    updateHeld();
+    world.step(1 / 60, dt, 4);
+    checkGrounded();
+  }
+  for (let i = objects.length - 1; i >= 0; i--) {
+    const o = objects[i];
+    if (o.body.position.y < -30) { removeObj(o); continue; }
+    o.mesh.position.copy(o.body.position); o.mesh.quaternion.copy(o.body.quaternion);
+  }
+  if (ropeMesh && wreck) {
+    ropeA.copy(anchor.position); ropeB.copy(wreck.body.position);
+    const len = ropeA.distanceTo(ropeB);
+    ropeMesh.position.copy(ropeA).add(ropeB).multiplyScalar(0.5);
+    ropeMesh.scale.set(1, Math.max(0.01, len - 0.6), 1);
+    ropeMesh.quaternion.setFromUnitVectors(upVec, tmpV.copy(ropeA).sub(ropeB).normalize());
+  }
+  camera.position.set(player.position.x, player.position.y + 1.1, player.position.z);
+  camera.rotation.set(pitch, yaw, 0);
+  if (shake > 0) { camera.position.x += (Math.random() - 0.5) * shake; camera.position.y += (Math.random() - 0.5) * shake; shake = Math.max(0, shake - dt * 0.8); }
+  sun.position.set(player.position.x + 15, 30, player.position.z + 12);
+  sun.target.position.set(player.position.x, 0, player.position.z);
+  for (let i = fx.length - 1; i >= 0; i--) {
+    const e = fx[i]; e.t += dt;
+    e.m.scale.setScalar(0.3 + e.t * 14); e.m.material.opacity = Math.max(0, 0.85 - e.t * 2.4);
+    if (e.t > 0.4) { scene.remove(e.m); e.m.material.dispose(); fx.splice(i, 1); }
+  }
+  boomLight.intensity = Math.max(0, boomLight.intensity - dt * 20);
+  if (running) {
+    const cross = $('cross');
+    if (!held) { const h = aim(7); cross.classList.toggle('can', !!(h && h.object.userData.obj)); }
+    updateHUD(dt);
+  }
+  renderer.render(scene, camera);
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+$('play').addEventListener('click', () => {
+  initAudio();
+  $('start').style.display = 'none'; running = true; last = performance.now();
+  if (!isTouch) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+  flash(isTouch ? 'Abbatti la torre!' : 'Abbatti la torre! (clic per catturare il mouse)');
+});
+
+buildLevel(); resetPlayer();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
