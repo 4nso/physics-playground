@@ -21,7 +21,7 @@ import { updatePickups } from './game/pickups.js';
 import { buildLevel } from './game/level.js';
 import { game, pauseGame, resumeGame, updateGame, showRecord, teamTargets, team } from './game/game.js';
 import { net } from './net/net.js';
-import { startMatch, openCreateRoom, openJoin, joinWithCode, leaveToMenu, netBeforePhysics, netUpdate } from './net/sync.js';
+import { startMatch, openCreateRoom, openJoin, joinWithCode, leaveToMenu, netBeforePhysics, netUpdate, shareInvite, joinFromLink } from './net/sync.js';
 import { hud } from './ui/hud.js';
 import { initSettings } from './ui/settings.js';
 import { initMobile } from './ui/mobile.js';
@@ -128,6 +128,7 @@ async function start() {
   $('toMenu').onclick = leaveToMenu;
   $('overMenu').onclick = leaveToMenu;
   $('lLeave').onclick = leaveToMenu;
+  $('lShare').onclick = shareInvite;
   $('create').onclick = () => { initAudio(); openCreateRoom(); };
   $('joinBtn').onclick = () => { initAudio(); openJoin(); };
   $('jGo').onclick = joinWithCode;
@@ -136,6 +137,7 @@ async function start() {
   $('openGallery').onclick = openGallery;
   initGallery((n) => { $('openGallery').textContent = `🙂 Galleria volti (${n})`; });
   hud.ready();
+  joinFromLink(); // aperto da un link d'invito: entra subito nella stanza
 }
 
 // Solo in sviluppo (npm run dev): oggetti utili per i test automatici. Non finisce nel sito pubblicato.

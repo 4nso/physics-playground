@@ -101,6 +101,9 @@ body.touch #wBar{position:absolute;left:12px;right:12px;bottom:3px;height:3px;ma
 
 /* Multiplayer */
 .code{font-size:44px;font-weight:900;letter-spacing:10px;text-align:center;margin:6px 0 10px;color:#e8403a;font-family:ui-monospace,Menlo,monospace}
+.btn.share{background:#2ec4b6;color:#fff;margin:0 0 6px}
+#lShareNote{text-align:center;user-select:text;-webkit-user-select:text;word-break:break-all}
+#lShareNote:empty{display:none}
 .players{list-style:none;padding:0;margin:0 0 6px}
 .players li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:#f1f4f8;margin-bottom:6px;font-weight:600}
 .players li i{width:14px;height:14px;border-radius:50%;display:inline-block}
