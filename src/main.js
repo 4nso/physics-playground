@@ -18,6 +18,8 @@ import { game, pauseGame, resumeGame, updateGame, showRecord, teamTargets } from
 import { net } from './net/net.js';
 import { startMatch, openCreateRoom, openJoin, joinWithCode, leaveToMenu, netBeforePhysics, netUpdate } from './net/sync.js';
 import { hud } from './ui/hud.js';
+import { initSettings } from './ui/settings.js';
+import { initMobile } from './ui/mobile.js';
 
 const $ = (id) => document.getElementById(id);
 let last = performance.now();
@@ -80,6 +82,8 @@ function loop(now) {
 
 async function start() {
   hud.init();
+  initSettings();
+  initMobile(() => { if (game.state === 'playing' && game.phase !== 'dead') pauseGame(); });
   showRecord();
   try {
     await initPhysics();

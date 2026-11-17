@@ -48,7 +48,23 @@ Note: il server pubblico di PeerJS serve solo a mettere in contatto i dispositiv
 (posizioni, colpi, volti) viaggiano direttamente tra loro. Funziona meglio sulla stessa rete Wi‑Fi.
 In multiplayer solo l'host può afferrare gli oggetti; la pausa non ferma la partita per gli altri.
 
+## Fase 4b – Controlli su telefono (da provare su un telefono vero)
+- [x] Pannello armi compatto: pillola piccola con le 3 armi e le munizioni, un tocco cambia arma
+- [x] Tutta la metà destra dello schermo serve a guardare; l'HUD non blocca i tocchi
+- [x] Pulsanti ad arco nell'angolo in basso a destra ("Spara" il più grande), safe area rispettate
+- [x] Impostazioni: dimensione dei pulsanti e sensibilità della visuale
+- [x] Sensibilità touch proporzionale allo schermo e visuale fluida; joystick sinistro rivisto
+- [x] Bloccati i gesti di Safari (zoom, doppio tocco, selezione, menu a pressione lunga, swipe indietro)
+- [x] Gioco installabile su Home (manifest PWA); in verticale compare "Ruota il telefono"
+- [x] HUD in alto a sinistra più piccolo sugli schermi piccoli
+- [x] Verificato con screenshot headless: iPhone 844×390 e 932×430, Android 915×412, iPad 1180×820
+- [ ] Provato su un telefono vero
+
+Note: la corsa su touch si attiva spingendo il joystick oltre il bordo. Su schermi molto larghi
+il campo visivo orizzontale è limitato a circa 100° per non deformare l'immagine.
+Impostazioni salvate in localStorage (menu principale e pausa → ⚙️ Impostazioni).
+
 ## Fase 5 – Rifinitura (idee)
 - [ ] Più arene, oggetti esplosivi, potenziamenti
-- [ ] Gioco installabile (PWA) e funzionamento offline
-- [ ] Impostazioni: sensibilità, volume, qualità grafica
+- [ ] Funzionamento offline (il gioco è già installabile dalla fase 4b)
+- [ ] Impostazioni: volume, qualità grafica (sensibilità e pulsanti fatti nella fase 4b)

@@ -1,5 +1,6 @@
 // HUD: round, nemici, punteggio, vita, mirino, arma, messaggi e schermate.
 import { isTouch } from '../core/renderer.js';
+import { onSettings } from './settings.js';
 
 const $ = (id) => document.getElementById(id);
 let msgTimer = 0, hurtT = 0, markT = 0;
@@ -8,20 +9,52 @@ let icons = [];
 const last = {};
 const setText = (id, text) => { if (last[id] !== text) { $(id).textContent = text; last[id] = text; } };
 
+// Su touch solo l'icona (pillola compatta), su desktop anche il tasto numerico.
+const slotLabel = (i, icon) => (isTouch ? icon : `${i + 1} ${icon}`);
+
+/**
+ * Pulsanti touch ad arco nell'angolo in basso a destra: "Spara" nell'angolo (il più grande),
+ * gli altri intorno a lui alla stessa distanza, così il pollice li raggiunge ruotando.
+ * La dimensione dipende dallo schermo e dall'impostazione "Dimensione dei pulsanti".
+ */
+let btnScale = 1;
+function layoutButtons(scale = btnScale) {
+  btnScale = scale;
+  const short = Math.min(innerWidth, innerHeight);
+  const F = Math.round(Math.max(72, Math.min(104, short * 0.22)) * scale); // diametro di "Spara"
+  const gap = Math.round(9 * scale);
+  const c = F / 2; // centro di "Spara" rispetto all'angolo
+  const place = (id, d, deg) => {
+    const el = $(id), a = (deg * Math.PI) / 180, r = c + gap + d / 2;
+    Object.assign(el.style, {
+      width: d + 'px', height: d + 'px',
+      right: Math.round(c - r * Math.cos(a) - d / 2) + 'px',
+      bottom: Math.round(c + r * Math.sin(a) - d / 2) + 'px',
+    });
+  };
+  Object.assign($('bFire').style, { width: F + 'px', height: F + 'px', right: '0px', bottom: '0px' });
+  place('bJump', Math.round(F * 0.7), 180);
+  place('bReload', Math.round(F * 0.6), 133);
+  place('bGrab', Math.round(F * 0.6), 87);
+  document.documentElement.style.setProperty('--bs', scale);
+}
+
 export const hud = {
   init() {
     $('howto').innerHTML = isTouch
-      ? "<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Spara</b>: tienilo premuto e trascina il dito per mirare</li><li>Tocca il <b>pannello dell'arma</b> per cambiarla · <b>⟳</b> ricarica</li><li>Mira alla <b>testa</b>: danno doppio!</li><li>Tra un round e l'altro raccogli <b>munizioni</b> e <b>vita</b></li>"
+      ? "<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Spara</b>: tienilo premuto e trascina il dito per mirare</li><li>Tocca le <b>icone delle armi</b> in alto a destra per cambiarla · <b>⟳</b> ricarica</li><li>Spingi il joystick <b>oltre il bordo</b> per correre</li><li>Mira alla <b>testa</b>: danno doppio!</li><li>Tra un round e l'altro raccogli <b>munizioni</b> e <b>vita</b></li>"
       : "<li><b>WASD</b> muovi · <b>Mouse</b> mira · <b>Shift</b> corri · <b>Spazio</b> salta</li><li><b>Clic</b> spara · <b>1/2/3</b> o <b>rotella</b> cambia arma · <b>R</b> ricarica</li><li><b>E</b>: afferra una cassa, poi <b>clic</b> per lanciarla sui nemici</li><li>Mira alla <b>testa</b>: danno doppio! · <b>Esc</b> pausa</li><li>Tra un round e l'altro raccogli <b>munizioni</b> e <b>vita</b></li>";
     if (isTouch) {
       document.body.classList.add('touch');
       $('btns').style.display = 'block';
+      onSettings((st) => layoutButtons(st.buttons));
+      addEventListener('resize', () => layoutButtons());
     }
     this.setPlaying(false);
   },
   /** Mostra o nasconde l'HUD di gioco (durante i menu resta nascosto). */
   setPlaying(on) {
-    for (const id of ['hud', 'health', 'cross', 'weapon', 'top', 'keys']) $(id).style.visibility = on ? '' : 'hidden';
+    for (const id of ['hud', 'health', 'cross', 'weapon', 'top', 'keys', 'joy']) $(id).style.visibility = on ? '' : 'hidden';
     $('btns').style.visibility = on ? '' : 'hidden';
   },
   show(id) { $(id).classList.remove('hidden'); },
@@ -71,12 +104,12 @@ export const hud = {
 
   buildWeaponSlots(list) {
     icons = list.map((w) => w.icon);
-    $('wSlots').innerHTML = list.map((w, i) => `<button data-w="${i}">${i + 1} ${w.icon}</button>`).join('');
+    $('wSlots').innerHTML = list.map((w, i) => `<button data-w="${i}" aria-label="${w.name}">${slotLabel(i, w.icon)}</button>`).join('');
   },
   setLocked(unlocked) {
     document.querySelectorAll('#wSlots button').forEach((b, i) => {
       b.style.opacity = unlocked[i] ? '' : '0.45';
-      b.textContent = `${i + 1} ${unlocked[i] ? icons[i] : '🔒'}`;
+      b.textContent = slotLabel(i, unlocked[i] ? icons[i] : '🔒');
     });
   },
   setWeapon(index, name, mag, reserve, reloading) {

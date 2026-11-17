@@ -86,7 +86,7 @@ function checkGrounded() {
 }
 
 export function updatePlayer(dt) {
-  const [lx, ly] = input.takeLook();
+  const [lx, ly] = input.takeLook(dt);
   player.lookDX = lx;
   player.lookDY = ly;
   if (!player.alive) return;
@@ -101,7 +101,7 @@ export function updatePlayer(dt) {
   if (k.KeyA || k.ArrowLeft) r -= 1;
   const mag = Math.hypot(f, r);
   if (mag > 1) { f /= mag; r /= mag; }
-  const speed = k.ShiftLeft || k.ShiftRight ? 9 : 5.5;
+  const speed = k.ShiftLeft || k.ShiftRight || input.run ? 9 : 5.5;
   const s = Math.sin(player.yaw), c = Math.cos(player.yaw);
   const vx = (-s * f + c * r) * speed, vz = (-c * f - s * r) * speed;
 

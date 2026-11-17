@@ -285,6 +285,7 @@ export function startGame(faceSets, members) {
 export function pauseGame() {
   if (game.state !== 'playing' || game.overlay) return;
   input.enabled = false;
+  input.reset();
   setTrigger(false);
   exitLock();
   if (net.mode === 'solo') game.state = 'paused';

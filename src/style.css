@@ -1,24 +1,30 @@
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-html,body{margin:0;height:100%;overflow:hidden;background:#a8d8ff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:none;overscroll-behavior:none}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+html,body{margin:0;height:100%;overflow:hidden;position:fixed;inset:0;width:100%;-webkit-text-size-adjust:100%;background:#a8d8ff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:none;overscroll-behavior:none}
 canvas{display:block;touch-action:none}
 #hud{position:fixed;top:calc(10px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));display:flex;gap:6px;flex-wrap:wrap;pointer-events:none;z-index:5}
-.pill{background:rgba(15,25,40,.62);color:#fff;padding:6px 11px;border-radius:999px;font-size:13px;font-weight:600;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.pill{background:rgba(15,25,40,.62);color:#fff;padding:6px 11px;border-radius:999px;font-size:13px;font-weight:600}
 .pill.hidden,.hidden{display:none!important}
 #pBreak{background:rgba(255,122,69,.9)}
 #keys{position:fixed;bottom:calc(10px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);color:#fff;background:rgba(15,25,40,.55);padding:7px 14px;border-radius:10px;font-size:12px;pointer-events:none;white-space:nowrap;z-index:5}
 #msg{position:fixed;left:50%;top:22%;transform:translate(-50%,-50%) scale(.9);color:#fff;font-size:26px;font-weight:800;text-shadow:0 2px 10px rgba(0,0,0,.45);opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;text-align:center;z-index:6}
 #msg.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
-#joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.4);pointer-events:none;display:none;z-index:5}
-#knob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,255,255,.55)}
-#btns{position:fixed;right:calc(14px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));width:190px;height:190px;display:none;z-index:6}
-#btns button,#top button{position:absolute;border:none;border-radius:50%;color:#fff;font-weight:700;font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;touch-action:none;box-shadow:0 3px 10px rgba(0,0,0,.25)}
-#btns button span{font-size:22px;line-height:1}
-#bFire{right:0;bottom:0;width:84px;height:84px;background:rgba(230,70,70,.82)}
-#bJump{right:96px;bottom:0;width:66px;height:66px;background:rgba(60,140,240,.82)}
-#bGrab{right:0;bottom:96px;width:66px;height:66px;background:rgba(240,170,40,.88)}
+/* Joystick: a riposo è un'ombra in basso a sinistra, quando appoggi il pollice compare lì */
+#joy{--jr:55px;position:fixed;left:calc(env(safe-area-inset-left) + 22px + var(--jr));top:calc(100% - 22px - var(--jr) - env(safe-area-inset-bottom));width:calc(var(--jr) * 2.1);height:calc(var(--jr) * 2.1);transform:translate(-50%,-50%);border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.3);pointer-events:none;display:none;z-index:5;opacity:.45}
+#joy.on{opacity:1;background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.45)}
+#joy.run{border-color:#ffb627}
+#joy.run #knob{background:rgba(255,182,39,.85)}
+body.touch #joy{display:block}
+#knob{position:absolute;left:50%;top:50%;width:calc(var(--jr) * .95);height:calc(var(--jr) * .95);margin:calc(var(--jr) * -.475) 0 0 calc(var(--jr) * -.475);border-radius:50%;background:rgba(255,255,255,.55)}
+/* Pulsanti touch: il contenitore è un punto nell'angolo, i pulsanti li dispone hud.js ad arco */
+#btns{--bs:1;position:fixed;right:max(10px, calc(env(safe-area-inset-right) + 2px));bottom:max(10px, calc(env(safe-area-inset-bottom) + 2px));width:0;height:0;display:none;z-index:6;pointer-events:none}
+#btns button,#top button{position:absolute;border:none;border-radius:50%;color:#fff;font-weight:700;font-size:calc(11px * var(--bs,1));font-family:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;touch-action:none;box-shadow:0 3px 10px rgba(0,0,0,.25);pointer-events:auto}
+#btns button span{font-size:1.9em;line-height:1}
+#bFire{right:0;bottom:0;width:86px;height:86px;background:rgba(230,70,70,.85);font-size:calc(13px * var(--bs,1))!important}
+#bJump{background:rgba(60,140,240,.82)}
+#bGrab{background:rgba(240,170,40,.88)}
 #btns button:active,#top button:active{filter:brightness(1.25);transform:scale(.94)}
 #bGrab.on{background:rgba(60,190,90,.92)}
-#top{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));width:44px;height:44px;z-index:6}
+#top{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));width:44px;height:44px;z-index:6;pointer-events:none}
 #top button{position:absolute;top:0;width:44px;height:44px;font-size:20px;background:rgba(15,25,40,.6)}
 #bPause{right:0}
 .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,rgba(30,60,110,.55),rgba(5,10,25,.82));z-index:20;padding:20px;overflow-y:auto;touch-action:pan-y}
@@ -66,9 +72,10 @@ canvas{display:block;touch-action:none}
 #cross.hold:before{content:"";position:absolute;left:-13px;top:-13px;width:22px;height:22px;border:2px solid #ffd54a;border-radius:50%}
 
 /* Pannello dell'arma */
-#weapon{position:fixed;right:calc(14px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));min-width:150px;background:rgba(15,25,40,.62);color:#fff;border-radius:14px;padding:8px 12px;z-index:6;text-align:right;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);touch-action:none}
+#weapon{position:fixed;right:calc(14px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));min-width:150px;background:rgba(15,25,40,.62);color:#fff;border-radius:14px;padding:8px 12px;z-index:6;text-align:right;display:flex;flex-direction:column;pointer-events:none}
+#wSlots{order:0}#wAmmo{order:1}#wName{order:2}#wBar{order:3}
 #wSlots{display:flex;gap:4px;justify-content:flex-end;margin-bottom:4px}
-#wSlots button{border:none;border-radius:8px;background:rgba(255,255,255,.14);color:#fff;font-size:12px;font-weight:700;padding:4px 7px;font-family:inherit;touch-action:none}
+#wSlots button{border:none;border-radius:8px;background:rgba(255,255,255,.14);color:#fff;font-size:12px;font-weight:700;padding:4px 7px;font-family:inherit;touch-action:none;pointer-events:auto}
 #wSlots button.on{background:#ff7a45}
 #wAmmo b{font-size:30px;line-height:1}
 #wAmmo span{font-size:15px;opacity:.8;margin-left:4px}
@@ -77,11 +84,19 @@ canvas{display:block;touch-action:none}
 #wBar{height:4px;border-radius:2px;background:rgba(255,255,255,.2);margin-top:5px;overflow:hidden;visibility:hidden}
 #wBar i{display:block;height:100%;width:0;background:#ffd54a}
 #weapon.reloading #wBar{visibility:visible}
-#bReload{right:84px;bottom:84px;width:58px;height:58px;background:rgba(40,170,160,.85)}
-#btns button#bReload span{font-size:20px}
-body.touch #weapon{bottom:calc(214px + env(safe-area-inset-bottom))}
+#bReload{background:rgba(40,170,160,.85)}
 body.touch #keys{display:none}
-body.touch #wSlots button{padding:8px 10px;font-size:13px}
+/* Touch: pillola compatta in alto a destra, accanto alla pausa. Solo le icone sono pulsanti. */
+body.touch #weapon{top:calc(10px + env(safe-area-inset-top));right:calc(62px + env(safe-area-inset-right));bottom:auto;min-width:0;height:44px;flex-direction:row;align-items:center;gap:6px;padding:0 4px 0 12px;border-radius:999px;background:rgba(15,25,40,.55);overflow:hidden}
+body.touch #wName{display:none}
+body.touch #wAmmo{order:0}body.touch #wSlots{order:1}
+body.touch #wAmmo{white-space:nowrap}
+body.touch #wAmmo b{font-size:19px}
+body.touch #wAmmo span{font-size:12px;margin-left:2px}
+body.touch #wSlots{margin:0;gap:3px}
+body.touch #wSlots button{width:36px;height:36px;padding:0;border-radius:50%;font-size:17px;line-height:36px;background:rgba(255,255,255,.1)}
+body.touch #wSlots button.on{background:#ff7a45}
+body.touch #wBar{position:absolute;left:12px;right:12px;bottom:3px;height:3px;margin:0}
 
 /* Multiplayer */
 .code{font-size:44px;font-weight:900;letter-spacing:10px;text-align:center;margin:6px 0 10px;color:#e8403a;font-family:ui-monospace,Menlo,monospace}
@@ -94,3 +109,47 @@ body.touch #wSlots button{padding:8px 10px;font-size:13px}
 #revive{position:fixed;left:50%;top:62%;transform:translateX(-50%);background:rgba(15,25,40,.72);color:#fff;padding:10px 16px;border-radius:14px;z-index:6;pointer-events:none;text-align:center;font-weight:700;font-size:14px;min-width:220px}
 #rBar{height:8px;border-radius:4px;background:rgba(255,255,255,.2);margin-top:6px;overflow:hidden}
 #rBar i{display:block;height:100%;width:0;background:#2ec4b6}
+
+/* Impostazioni */
+.set{display:block;margin:6px 0 14px;font-weight:600;font-size:15px}
+.set span{display:flex;justify-content:space-between;margin-bottom:6px}
+.set input{width:100%;touch-action:pan-x}
+body:not(.touch) .touchOnly{display:none}
+
+/* Telefono in verticale: "Ruota il telefono" */
+#rotate{display:none;position:fixed;inset:0;z-index:40;background:#1b2433;color:#fff;align-items:center;justify-content:center;text-align:center}
+#rotate b{display:block;font-size:22px;margin-top:10px}
+#rotate span{opacity:.75;font-size:14px}
+#rotate .phone{font-size:56px;animation:rot 1.6s ease-in-out infinite}
+@keyframes rot{0%,25%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+@media (orientation:portrait) and (max-width:700px){body.touch #rotate{display:flex}}
+
+/* Schermi bassi (telefono in orizzontale): HUD in alto a sinistra più piccolo */
+@media (max-height:500px){
+  #hud{gap:4px;top:calc(6px + env(safe-area-inset-top))}
+  .pill{font-size:11px;padding:4px 8px}
+  #health{top:calc(32px + env(safe-area-inset-top));padding:4px 9px;font-size:11px;gap:6px}
+  #hBar{width:76px;height:6px}
+  #top{top:calc(6px + env(safe-area-inset-top))}
+  #top,#top button{width:38px;height:38px}
+  #top button{font-size:17px}
+  body.touch #weapon{top:calc(6px + env(safe-area-inset-top));right:calc(54px + env(safe-area-inset-right));height:38px}
+  body.touch #wSlots button{width:31px;height:31px;font-size:15px;line-height:31px}
+  body.touch #wAmmo b{font-size:16px}
+  #msg{font-size:20px}
+  #revive{font-size:12px;min-width:180px;padding:7px 12px}
+  .screen{padding:10px}
+  .card{padding:16px 18px}
+  .card h1{font-size:22px}
+}
+
+/* Menu principale su telefono in orizzontale: due colonne, così non serve scorrere */
+@media (max-height:500px) and (min-width:640px){
+  #start .card{max-width:780px;display:grid;grid-template-columns:1.15fr 1fr;column-gap:20px;grid-auto-flow:dense;align-items:start}
+  #start .card>*{grid-column:2}
+  #start .card>h1,#start .card>.sub,#start #howto{grid-column:1}
+  #start #howto{grid-row:3/span 12;margin:0;font-size:13px;line-height:1.45}
+  #start .btn{padding:9px;margin-top:6px;font-size:15px}
+  #start .btn.big{padding:11px;font-size:17px}
+  #start .note{font-size:12px;margin:0 0 6px}
+}

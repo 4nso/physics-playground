@@ -53,8 +53,21 @@ export function followSun(x, z) {
   sun.position.copy(snapped).add(SUN_OFFSET);
 }
 
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
+/**
+ * Campo visivo: 70° in verticale, ma su schermi molto larghi (telefono in orizzontale)
+ * limitiamo quello orizzontale a circa 100°, altrimenti l'immagine sembra "a occhio di pesce".
+ */
+const VFOV = 70, HFOV_MAX = 100;
+function fitCamera() {
+  const aspect = innerWidth / innerHeight;
+  const deg = THREE.MathUtils.radToDeg;
+  const vMax = deg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(HFOV_MAX / 2)) / aspect));
+  camera.aspect = aspect;
+  camera.fov = Math.min(VFOV, vMax);
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
-});
+}
+fitCamera();
+addEventListener('resize', fitCamera);
+// su iPhone le misure nuove a volte arrivano un attimo dopo la rotazione
+addEventListener('orientationchange', () => setTimeout(fitCamera, 250));
