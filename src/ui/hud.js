@@ -1,57 +1,83 @@
-// HUD: contatori, messaggi, mirino, schermata iniziale.
+// HUD: round, nemici, punteggio, vita, mirino, arma, messaggi e schermate.
 import { isTouch } from '../core/renderer.js';
 
 const $ = (id) => document.getElementById(id);
-let msgTimer = 0;
-let lastTower = '', lastDom = '', lastGap = -1;
+let msgTimer = 0, hurtT = 0, markT = 0;
+let lastGap = -1;
+let icons = [];
+const last = {};
+const setText = (id, text) => { if (last[id] !== text) { $(id).textContent = text; last[id] = text; } };
 
 export const hud = {
   init() {
     $('howto').innerHTML = isTouch
-      ? "<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Spara</b>: tienilo premuto e trascina il dito per mirare</li><li>Tocca il <b>pannello dell'arma</b> per cambiarla · <b>⟳</b> ricarica</li><li><b>Afferra</b> e poi <b>Spara</b> per lanciare · <b>💥</b> esplosione · <b>📦</b> cassa</li><li>Obiettivo: abbatti la <b>torre</b> e fai cadere tutti i <b>domino</b>!</li>"
-      : "<li><b>WASD</b> muovi · <b>Mouse</b> mira · <b>Shift</b> corri · <b>Spazio</b> salta</li><li><b>Clic</b> spara · <b>1/2/3</b> o <b>rotella</b> cambia arma · <b>R</b> ricarica</li><li><b>E</b> o <b>tasto destro</b>: afferra, poi <b>clic</b> per lanciare</li><li><b>F</b> esplosione · <b>Q</b> nuova cassa · <b>⌫</b> ricomincia</li><li>Obiettivo: abbatti la <b>torre</b> e fai cadere tutti i <b>domino</b>!</li>";
+      ? "<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Spara</b>: tienilo premuto e trascina il dito per mirare</li><li>Tocca il <b>pannello dell'arma</b> per cambiarla · <b>⟳</b> ricarica</li><li>Mira alla <b>testa</b>: danno doppio!</li><li>Tra un round e l'altro raccogli <b>munizioni</b> e <b>vita</b></li>"
+      : "<li><b>WASD</b> muovi · <b>Mouse</b> mira · <b>Shift</b> corri · <b>Spazio</b> salta</li><li><b>Clic</b> spara · <b>1/2/3</b> o <b>rotella</b> cambia arma · <b>R</b> ricarica</li><li><b>E</b>: afferra una cassa, poi <b>clic</b> per lanciarla sui nemici</li><li>Mira alla <b>testa</b>: danno doppio! · <b>Esc</b> pausa</li><li>Tra un round e l'altro raccogli <b>munizioni</b> e <b>vita</b></li>";
     if (isTouch) {
       document.body.classList.add('touch');
       $('btns').style.display = 'block';
-      $('keys').style.display = 'none';
     }
+    this.setPlaying(false);
   },
+  /** Mostra o nasconde l'HUD di gioco (durante i menu resta nascosto). */
+  setPlaying(on) {
+    for (const id of ['hud', 'health', 'cross', 'weapon', 'top', 'keys']) $(id).style.visibility = on ? '' : 'hidden';
+    $('btns').style.visibility = on ? '' : 'hidden';
+  },
+  show(id) { $(id).classList.remove('hidden'); },
+  hide(id) { $(id).classList.add('hidden'); },
+
   /** Abilita il pulsante "Gioca" quando la fisica è pronta. */
-  ready(onPlay) {
+  ready() {
     const b = $('play');
     b.disabled = false;
     b.textContent = 'Gioca';
-    b.addEventListener('click', () => {
-      $('start').style.display = 'none';
-      onPlay();
-    });
   },
   error(text) {
     const e = $('err');
     e.style.display = 'flex';
     e.textContent = text;
   },
-  flash(text) {
+  flash(text, seconds = 2.4) {
     const m = $('msg');
-    m.textContent = text;
+    m.innerHTML = text;
     m.classList.add('show');
-    msgTimer = 2.4;
+    msgTimer = seconds;
   },
-  setCounters(tk, tn, df, dn) {
-    const t = `🏗️ Torre ${tk}/${tn}`, d = `🁢 Domino ${df}/${dn}`;
-    if (t !== lastTower) { $('pTower').textContent = t; $('pTower').classList.toggle('done', tn > 0 && tk === tn); lastTower = t; }
-    if (d !== lastDom) { $('pDom').textContent = d; $('pDom').classList.toggle('done', dn > 0 && df === dn); lastDom = d; }
+  setRound(n) { setText('pRound', `Round ${n}`); },
+  setEnemies(n) { setText('pEnemies', `👾 ${n}`); },
+  setScore(n) { setText('pScore', `★ ${n}`); },
+  /** Conto alla rovescia tra i round (null per nasconderlo). */
+  setBreak(seconds) {
+    $('pBreak').classList.toggle('hidden', seconds == null);
+    if (seconds != null) setText('pBreak', `Prossimo round tra ${Math.ceil(seconds)}`);
   },
-  setHolding(on) {
-    $('bGrab').classList.toggle('on', on);
-    $('cross').classList.toggle('hold', on);
-    if (on) $('cross').classList.remove('can');
+  setHealth(h, max) {
+    const v = Math.max(0, Math.round(h));
+    if (last.health === v) return;
+    last.health = v;
+    $('hNum').textContent = v;
+    $('hBar').firstChild.style.width = `${(v / max) * 100}%`;
   },
-  setCanGrab(on) {
-    $('cross').classList.toggle('can', on);
+  /** Bordo rosso quando il giocatore viene colpito. */
+  hurt(strength = 1) { hurtT = Math.min(1, 0.5 + strength * 0.5); },
+  /** Segno sul mirino quando si colpisce un nemico (rosso se muore). */
+  hitMarker(kill) {
+    const c = $('cross');
+    c.classList.toggle('kill', kill);
+    c.classList.add('hit');
+    markT = kill ? 0.25 : 0.12;
   },
+
   buildWeaponSlots(list) {
+    icons = list.map((w) => w.icon);
     $('wSlots').innerHTML = list.map((w, i) => `<button data-w="${i}">${i + 1} ${w.icon}</button>`).join('');
+  },
+  setLocked(unlocked) {
+    document.querySelectorAll('#wSlots button').forEach((b, i) => {
+      b.style.opacity = unlocked[i] ? '' : '0.45';
+      b.textContent = `${i + 1} ${unlocked[i] ? icons[i] : '🔒'}`;
+    });
   },
   setWeapon(index, name, mag, reserve, reloading) {
     document.querySelectorAll('#wSlots button').forEach((b, i) => b.classList.toggle('on', i === index));
@@ -70,10 +96,26 @@ export const hud = {
     const g = Math.round(Math.min(80, px));
     if (g !== lastGap) { $('cross').style.setProperty('--g', g + 'px'); lastGap = g; }
   },
+  setHolding(on) {
+    $('bGrab').classList.toggle('on', on);
+    $('cross').classList.toggle('hold', on);
+    if (on) $('cross').classList.remove('can');
+  },
+  setCanGrab(on) {
+    $('cross').classList.toggle('can', on);
+  },
   update(dt) {
     if (msgTimer > 0) {
       msgTimer -= dt;
       if (msgTimer <= 0) $('msg').classList.remove('show');
+    }
+    if (hurtT > 0) {
+      hurtT = Math.max(0, hurtT - dt * 1.6);
+      $('hurt').style.opacity = hurtT.toFixed(2);
+    }
+    if (markT > 0) {
+      markT -= dt;
+      if (markT <= 0) $('cross').classList.remove('hit', 'kill');
     }
   },
 };

@@ -67,18 +67,6 @@ export function makeBall(x, y, z, r, mass) {
   return addObj(desc, col, m, 'ball', 320 / Math.max(0.3, r * 2));
 }
 
-const dominoGeo = new THREE.BoxGeometry(0.2, 1.2, 0.6);
-const dominoMats = [];
-export function makeDomino(x, z, angle, k, n) {
-  const q = { x: 0, y: Math.sin(angle / 2), z: 0, w: Math.cos(angle / 2) };
-  const desc = RAPIER.RigidBodyDesc.dynamic().setTranslation(x, 0.6, z).setRotation(q);
-  const col = RAPIER.ColliderDesc.cuboid(0.1, 0.6, 0.3).setMass(0.5).setFriction(0.45).setRestitution(0.05);
-  if (!dominoMats[k]) {
-    dominoMats[k] = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(k / n, 0.75, 0.55), roughness: 0.4 });
-  }
-  return addObj(desc, col, new THREE.Mesh(dominoGeo, dominoMats[k]), 'domino', 520);
-}
-
 // Corda della palla demolitrice: un cilindro sottile tra l'aggancio e la palla.
 let wreck = null;
 const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1, 6), M.rope);

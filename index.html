@@ -8,7 +8,15 @@
 <title>Physics Playground 3D</title>
 </head>
 <body>
-<div id="hud"><div class="pill" id="pTower">🏗️ Torre 0/14</div><div class="pill" id="pDom">🁢 Domino 0/22</div></div>
+<!-- HUD di gioco -->
+<div id="hud">
+  <div class="pill" id="pRound">Round 1</div>
+  <div class="pill" id="pEnemies">👾 0</div>
+  <div class="pill" id="pScore">★ 0</div>
+  <div class="pill hidden" id="pBreak"></div>
+</div>
+<div id="health"><span>❤</span><div id="hBar"><i></i></div><b id="hNum">100</b></div>
+<div id="hurt"></div>
 <div id="cross"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i></div>
 <div id="weapon"><div id="wSlots"></div><div id="wAmmo"><b id="wMag">12</b><span id="wRes">/ ∞</span></div><div id="wName">Pistola</div><div id="wBar"><i></i></div></div>
 <div id="msg"></div>
@@ -17,17 +25,61 @@
   <button id="bFire"><span>✛</span>Spara</button>
   <button id="bJump"><span>⤒</span>Salta</button>
   <button id="bGrab"><span>✋</span>Afferra</button>
-  <button id="bBoom"><span>💥</span></button>
   <button id="bReload"><span>⟳</span>Ricarica</button>
 </div>
-<div id="top"><button id="bCrate" title="Nuova cassa">📦</button><button id="bReset" title="Ricomincia">↺</button></div>
-<div id="keys">WASD muovi · Mouse mira · Clic spara · 1/2/3 o rotella arma · R ricarica · E afferra · F boom · Q cassa · Spazio salta · ⌫ ricomincia</div>
-<div id="start"><div class="card">
+<div id="top"><button id="bPause" title="Pausa" aria-label="Pausa">⏸</button></div>
+<div id="keys">WASD muovi · Mouse mira · Clic spara · 1/2/3 o rotella arma · R ricarica · E afferra · Spazio salta · Esc pausa</div>
+
+<!-- Menu principale -->
+<div id="start" class="screen"><div class="card">
   <h1>Physics Playground 3D</h1>
-  <p class="sub">Un piccolo mondo dove tutto ha peso, attrito e rimbalzo.</p>
+  <p class="sub">Sopravvivi alle ondate di nemici. Le loro facce le scegli tu.</p>
   <ul id="howto"></ul>
-  <button id="play" disabled>Caricamento…</button>
+  <p id="record" class="note"></p>
+  <button id="play" class="btn primary big" disabled>Caricamento…</button>
+  <button id="openGallery" class="btn">🙂 Galleria volti</button>
 </div></div>
+
+<!-- Pausa -->
+<div id="pause" class="screen hidden"><div class="card">
+  <h1>Pausa</h1>
+  <p class="sub" id="pauseInfo"></p>
+  <button id="resume" class="btn primary big">Riprendi</button>
+  <button id="restart" class="btn">Ricomincia</button>
+  <button id="toMenu" class="btn">Menu principale</button>
+</div></div>
+
+<!-- Game over -->
+<div id="over" class="screen hidden"><div class="card">
+  <h1>Game over</h1>
+  <p class="sub" id="overInfo"></p>
+  <p id="overRecord" class="note"></p>
+  <button id="again" class="btn primary big">Rigioca</button>
+  <button id="overMenu" class="btn">Menu principale</button>
+</div></div>
+
+<!-- Galleria volti -->
+<div id="gallery" class="screen hidden"><div class="card wide">
+  <h1>Galleria volti</h1>
+  <p class="note">🔒 Le foto restano solo su questo dispositivo: non vengono mai caricate su internet.
+    Ogni nemico avrà uno di questi volti.</p>
+  <div id="gGrid"></div>
+  <p id="gEmpty" class="note">Nessun volto: i nemici avranno facce disegnate dal gioco.</p>
+  <label for="gFile" class="btn primary">＋ Aggiungi volti</label>
+  <input id="gFile" type="file" accept="image/*" multiple hidden>
+  <button id="gClear" class="btn danger">Elimina tutti</button>
+  <button id="gClose" class="btn">Chiudi</button>
+</div></div>
+
+<!-- Ritaglio del volto -->
+<div id="crop" class="screen hidden"><div class="card">
+  <h1>Centra il viso</h1>
+  <p class="note">Trascina per spostare, pizzica o usa la barra per lo zoom. <span id="cCount"></span></p>
+  <div id="cView"><canvas id="cCanvas" width="512" height="512"></canvas><div id="cGuide"></div></div>
+  <input id="cZoom" type="range" min="1" max="4" step="0.01" value="1" aria-label="Zoom">
+  <div class="row"><button id="cSkip" class="btn">Salta</button><button id="cSave" class="btn primary">Salva</button></div>
+</div></div>
+
 <div id="err"></div>
 <script type="module" src="/src/main.js"></script>
 </body>

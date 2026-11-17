@@ -10,6 +10,32 @@ const STEP = 1 / 60;
 const MAX_STEPS = 4;
 let acc = 0;
 
+/** Frazione (0..1) di passo fisico non ancora simulata: serve per interpolare le posizioni. */
+export let alpha = 0;
+
+/** Gruppi di collisione: [appartenenza << 16] | filtro. */
+const G = { STATIC: 1, PLAYER: 2, ENEMY: 4, OBJECT: 8, DEBRIS: 16 };
+const groups = (member, filter) => ((member & 0xffff) << 16) | (filter & 0xffff);
+export const GROUPS = {
+  player: groups(G.PLAYER, 0xffff),
+  enemy: groups(G.ENEMY, 0xffff),
+  // i pezzi dei nemici distrutti non ostacolano giocatore e nemici
+  debris: groups(G.DEBRIS, G.STATIC | G.OBJECT | G.DEBRIS),
+};
+
+const beforeStep = [];
+/** Funzione chiamata prima di ogni passo fisico (per ricordare le posizioni precedenti). */
+export function onBeforeStep(fn) { beforeStep.push(fn); }
+
+/** Collider (handle) → funzione(altroHandle) chiamata quando inizia un contatto. */
+export const contactHandlers = new Map();
+
+/** Velocità di un oggetto rumoroso un attimo prima dell'ultimo passo (0 se sconosciuto). */
+export function prevSpeed(handle) {
+  const s = sounding.get(handle);
+  return s ? Math.hypot(s.vx, s.vy, s.vz) : 0;
+}
+
 /** Collider (handle) → { body, freq }: chi fa rumore quando urta. */
 const sounding = new Map();
 
@@ -39,6 +65,9 @@ function rememberVelocities() {
 
 function onCollision(h1, h2, started) {
   if (!started) return;
+  const c1 = contactHandlers.get(h1), c2 = contactHandlers.get(h2);
+  if (c1) c1(h2);
+  if (c2) c2(h1);
   const a = sounding.get(h1), b = sounding.get(h2);
   const s = a || b;
   if (!s) return;
@@ -55,10 +84,12 @@ export function stepPhysics(dt) {
   let n = 0;
   while (acc >= STEP && n < MAX_STEPS) {
     rememberVelocities();
+    for (const fn of beforeStep) fn();
     world.step(eventQueue);
     eventQueue.drainCollisionEvents(onCollision);
     acc -= STEP;
     n++;
   }
   if (n === MAX_STEPS) acc = 0;
+  alpha = acc / STEP;
 }

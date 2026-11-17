@@ -1,11 +1,12 @@
-// Giocatore: corpo fisico a capsula, movimento, salto, telecamera in prima persona.
+// Giocatore: corpo fisico a capsula, movimento, salto, vita, telecamera in prima persona.
 import { camera } from '../core/renderer.js';
-import { world, RAPIER } from '../core/physics.js';
+import { world, RAPIER, GROUPS, onBeforeStep } from '../core/physics.js';
 import { input } from '../core/input.js';
 
 const RADIUS = 0.4, HALF = 0.4;        // capsula alta 1.6 m
 const EYE = 0.75;                       // occhi sopra il centro della capsula (≈1.55 m da terra)
 const SPAWN = { x: 0, y: HALF + RADIUS + 0.05, z: 9 };
+export const MAX_HEALTH = 100;
 
 export const player = {
   body: null,
@@ -15,12 +16,19 @@ export const player = {
   grounded: false,
   jumpReq: false,
   shake: 0,
-  speed: 0,      // velocità orizzontale (per oscillazione dell'arma e dispersione)
-  recoil: 0,     // rinculo della visuale verso l'alto, torna a zero da solo
+  speed: 0,        // velocità orizzontale (per oscillazione dell'arma e dispersione)
+  recoil: 0,       // rinculo della visuale verso l'alto (segue recoilTarget in modo morbido)
+  recoilTarget: 0,
   recoilYaw: 0,
-  lookDX: 0,     // rotazione della visuale in questo frame
+  recoilYawTarget: 0,
+  lookDX: 0,       // rotazione della visuale in questo frame
   lookDY: 0,
+  health: MAX_HEALTH,
+  alive: true,
+  /** Posizione interpolata tra due passi fisici: è quella da usare per disegnare. */
+  pos: { x: SPAWN.x, y: SPAWN.y, z: SPAWN.z },
 };
+const prev = { x: SPAWN.x, y: SPAWN.y, z: SPAWN.z };
 
 export function createPlayer() {
   player.body = world.createRigidBody(
@@ -35,16 +43,27 @@ export function createPlayer() {
       .setMass(5)
       .setFriction(0)
       .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min)
-      .setRestitution(0),
+      .setRestitution(0)
+      .setCollisionGroups(GROUPS.player),
     player.body,
   );
+  onBeforeStep(() => {
+    const t = player.body.translation();
+    prev.x = t.x; prev.y = t.y; prev.z = t.z;
+  });
 }
 
 export function resetPlayer() {
   player.body.setTranslation(SPAWN, true);
   player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+  Object.assign(prev, SPAWN);
+  Object.assign(player.pos, SPAWN);
   player.yaw = 0;
   player.pitch = -0.08;
+  player.recoil = player.recoilTarget = player.recoilYaw = player.recoilYawTarget = 0;
+  player.shake = 0;
+  player.health = MAX_HEALTH;
+  player.alive = true;
 }
 
 export function jump() { player.jumpReq = true; }
@@ -66,6 +85,7 @@ export function updatePlayer(dt) {
   const [lx, ly] = input.takeLook();
   player.lookDX = lx;
   player.lookDY = ly;
+  if (!player.alive) return;
   player.yaw += lx;
   player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch + ly));
 
@@ -91,24 +111,47 @@ export function updatePlayer(dt) {
   player.body.setLinvel(v, true);
   player.speed = Math.hypot(v.x, v.z);
 
-  if (player.body.translation().y < -10) resetPlayer();
+  if (player.body.translation().y < -10) {
+    const h = player.health;
+    resetPlayer();
+    player.health = h;
+  }
 }
 
-/** Aggiunge una spinta (velocità) al giocatore, ad esempio da un'esplosione. */
+/** Aggiunge una spinta (velocità) al giocatore, ad esempio da un'esplosione o da un colpo. */
 export function pushPlayer(dx, dy, dz) {
   const v = player.body.linvel();
   player.body.setLinvel({ x: v.x + dx, y: v.y + dy, z: v.z + dz }, true);
 }
 
-export function updateCamera(dt) {
-  const p = player.body.translation();
-  camera.position.set(p.x, p.y + EYE, p.z);
-  player.recoil *= Math.exp(-dt * 7);
-  player.recoilYaw *= Math.exp(-dt * 7);
-  camera.rotation.set(Math.min(1.55, player.pitch + player.recoil), player.yaw + player.recoilYaw, 0);
+/** Rinculo dell'arma: la visuale sale in modo morbido e poi torna giù da sola. */
+export function addRecoil(pitch, yaw) {
+  player.recoilTarget += pitch;
+  player.recoilYawTarget += yaw;
+}
+
+let shakeT = 0;
+export function updateCamera(dt, alpha) {
+  const t = player.body.translation();
+  // Interpolazione tra l'ultimo e il penultimo passo fisico: movimento fluido anche a 120 Hz
+  player.pos.x = prev.x + (t.x - prev.x) * alpha;
+  player.pos.y = prev.y + (t.y - prev.y) * alpha;
+  player.pos.z = prev.z + (t.z - prev.z) * alpha;
+
+  const decay = Math.exp(-dt * 8);
+  player.recoilTarget *= decay;
+  player.recoilYawTarget *= decay;
+  const follow = Math.min(1, dt * 30);
+  player.recoil += (player.recoilTarget - player.recoil) * follow;
+  player.recoilYaw += (player.recoilYawTarget - player.recoilYaw) * follow;
+
+  camera.position.set(player.pos.x, player.pos.y + (player.alive ? EYE : 0.2), player.pos.z);
+  camera.rotation.set(Math.min(1.55, player.pitch + player.recoil), player.yaw + player.recoilYaw, player.alive ? 0 : 0.5);
   if (player.shake > 0) {
-    camera.position.x += (Math.random() - 0.5) * player.shake;
-    camera.position.y += (Math.random() - 0.5) * player.shake;
+    // scossa morbida (oscillazioni sovrapposte), non rumore casuale a ogni frame
+    shakeT += dt;
+    camera.position.x += (Math.sin(shakeT * 47) + Math.sin(shakeT * 29)) * 0.5 * player.shake;
+    camera.position.y += (Math.sin(shakeT * 41 + 1) + Math.sin(shakeT * 23)) * 0.5 * player.shake;
     player.shake = Math.max(0, player.shake - dt * 0.8);
   }
 }

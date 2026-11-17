@@ -8,8 +8,9 @@ con armi diverse e un multiplayer cooperativo per 2-4 giocatori.
 dal proprio dispositivo, dentro il gioco. Le foto restano nel suo browser e in
 multiplayer passano solo, direttamente, ai giocatori della stanza.
 
-> Stato: **fase 2 – armi**. Il parco giochi fisico (casse, domino, palla demolitrice)
-> ora si gioca con tre armi: pistola, fucile a pompa e mitra. I nemici arrivano nella fase 3.
+> Stato: **fase 3 – nemici e round**. Si gioca a ondate contro nemici low-poly
+> (base, veloci e grossi) con i volti scelti dal giocatore, con pistola, fucile a pompa
+> e mitra. Il multiplayer arriva nella fase 4.
 
 ## Come giocare
 
@@ -17,14 +18,17 @@ Quando GitHub Pages è attivo, il gioco è online qui:
 **https://4nso.github.io/physics-playground/**
 
 - **Touch**: joystick a sinistra, trascina a destra per guardare; tieni premuto **Spara** e
-  trascina il dito per mirare; tocca il pannello dell'arma per cambiarla, **⟳** per ricaricare
+  trascina il dito per mirare; tocca il pannello dell'arma per cambiarla, **⟳** per ricaricare,
+  **⏸** per la pausa
 - **Desktop**: WASD per muoverti, mouse per mirare, clic per sparare, 1/2/3 o rotella per
-  cambiare arma, R per ricaricare, E per afferrare, Spazio per saltare, ⌫ per ricominciare
+  cambiare arma, R per ricaricare, E per afferrare, Spazio per saltare, Esc per la pausa
+- **Volti**: nel menu apri "Galleria volti" e aggiungi foto dal dispositivo. Restano solo nel
+  tuo browser (IndexedDB) e si possono eliminare quando vuoi
 
 ## Struttura del repository
 
 ```
-src/              Codice del gioco (moduli: core, world, player, weapons, game, ui)
+src/              Codice del gioco (core, world, player, weapons, enemies, faces, game, ui)
 index.html        Pagina del gioco
 prototype/        Prototipo originale in un unico file HTML (riferimento, non si modifica)
 docs/             Design del gioco e piano di lavoro

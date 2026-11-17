@@ -2,12 +2,13 @@
 import * as THREE from 'three';
 import { camera } from '../core/renderer.js';
 import { pickables } from '../world/arena.js';
-import { player } from '../player/player.js';
+import { player, addRecoil } from '../player/player.js';
 import { WEAPONS } from './defs.js';
 import { models, showModel, kickModel, setReloadProgress, muzzleWorld, updateViewModel } from './viewmodel.js';
 import { addTracer, impact, muzzleFlash, updateEffects } from './effects.js';
 import { shotSound, reloadSound, emptySound, switchSound } from './sounds.js';
 import { hud } from '../ui/hud.js';
+import { damageEnemy } from '../enemies/enemies.js';
 
 const state = {
   current: 0,
@@ -19,7 +20,10 @@ const state = {
   tap: false,     // un singolo colpo richiesto (clic senza pointer lock)
   bloom: 0,       // dispersione extra dovuta al fuoco continuo
   emptyClick: false,
+  unlocked: WEAPONS.map((w) => w.unlockRound <= 1),
 };
+/** Avviso verso il gioco quando un colpo prende un nemico: onEnemyHit(killed, headshot) */
+export const weaponHooks = { onEnemyHit: null };
 /** Mesh da ignorare negli spari (ad esempio l'oggetto che teniamo in mano). */
 export const shotFilter = { ignore: null };
 
@@ -27,6 +31,7 @@ export const currentWeapon = () => WEAPONS[state.current];
 
 export function initWeapons() {
   hud.buildWeaponSlots(WEAPONS);
+  hud.setLocked(state.unlocked);
   showModel(state.current);
   refreshHud();
 }
@@ -39,6 +44,7 @@ export function tapFire() { state.tap = true; state.emptyClick = false; }
 
 export function selectWeapon(i) {
   if (i < 0 || i >= WEAPONS.length || i === state.current) return;
+  if (!state.unlocked[i]) { hud.flash(`🔒 ${WEAPONS[i].name}: dal round ${WEAPONS[i].unlockRound}`); return; }
   state.current = i;
   state.reloadT = 0;
   state.drawT = 0.3;
@@ -49,7 +55,40 @@ export function selectWeapon(i) {
   refreshHud();
 }
 export function nextWeapon(dir) {
-  selectWeapon((state.current + dir + WEAPONS.length) % WEAPONS.length);
+  let i = state.current;
+  for (let k = 0; k < WEAPONS.length; k++) {
+    i = (i + dir + WEAPONS.length) % WEAPONS.length;
+    if (state.unlocked[i]) break;
+  }
+  selectWeapon(i);
+}
+
+/** Sblocca le armi disponibili a questo round. Restituisce i nomi di quelle appena sbloccate. */
+export function unlockForRound(round) {
+  const fresh = [];
+  WEAPONS.forEach((w, i) => {
+    if (!state.unlocked[i] && w.unlockRound <= round) { state.unlocked[i] = true; fresh.push(w.name); }
+  });
+  hud.setLocked(state.unlocked);
+  return fresh;
+}
+
+/** Aggiunge munizioni di riserva (raccolte da terra). */
+export function addAmmo() {
+  WEAPONS.forEach((w, i) => {
+    const a = state.ammo[i];
+    if (a.reserve !== Infinity) a.reserve = Math.min(w.reserve * 2, a.reserve + w.mag * 2);
+  });
+  refreshHud();
+}
+
+/** Nuova partita: munizioni piene, solo le armi iniziali, pistola in mano. */
+export function resetWeapons() {
+  state.unlocked = WEAPONS.map((w) => w.unlockRound <= 1);
+  hud.setLocked(state.unlocked);
+  state.trigger = false;
+  refillAmmo();
+  if (state.current !== 0) selectWeapon(0);
 }
 
 export function reload() {
@@ -114,8 +153,13 @@ function shoot() {
       end.copy(hit.point);
       if (hit.face) normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
       else normal.copy(dir).negate();
-      const obj = hit.object.userData.obj;
-      impact(hit.point, normal, hit.object.userData.surface || (obj && obj.surface) || 'stone', w.pellets > 1 ? 4 : 9);
+      const obj = hit.object.userData.obj, enemy = hit.object.userData.enemy;
+      if (enemy) {
+        const head = !!hit.object.userData.head;
+        impact(hit.point, normal, 'enemy', w.pellets > 1 ? 3 : 7);
+        const killed = damageEnemy(enemy, w.damage * (head ? 2 : 1), dir, hit.point, head, w.impulse);
+        if (weaponHooks.onEnemyHit) weaponHooks.onEnemyHit(killed, head);
+      } else impact(hit.point, normal, hit.object.userData.surface || (obj && obj.surface) || 'stone', w.pellets > 1 ? 4 : 9);
       if (obj) {
         impulse.x = dir.x * w.impulse; impulse.y = dir.y * w.impulse; impulse.z = dir.z * w.impulse;
         at.x = hit.point.x; at.y = hit.point.y; at.z = hit.point.z;
@@ -128,9 +172,7 @@ function shoot() {
   }
 
   state.bloom = Math.min(w.maxBloom, state.bloom + w.bloom);
-  player.recoil += w.recoil;
-  player.recoilYaw += (Math.random() - 0.5) * w.recoil * 0.4;
-  player.shake = Math.max(player.shake, w.shake);
+  addRecoil(w.recoil, (Math.random() - 0.5) * w.recoil * 0.3);
   kickModel(w.kick);
   muzzleFlash(muzzle);
   shotSound(w);

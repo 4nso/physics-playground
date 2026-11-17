@@ -96,12 +96,16 @@ export const models = [pistol(), shotgun(), smg()];
 /* ---------- Animazione ---------- */
 const anim = {
   current: 0,
-  kick: 0,      // rinculo dell'arma (indietro e verso l'alto)
+  kick: 0,      // rinculo dell'arma mostrato (segue kickTarget in modo morbido)
+  kickTarget: 0,
   draw: 0,      // 1 = appena estratta (in basso), 0 = pronta
   reload: 0,    // 0..1 avanzamento della ricarica (0 = non sta ricaricando)
   flash: 0,
   bobT: 0,
   bobAmt: 0,
+  speed: 0,     // velocità del giocatore filtrata
+  lookVX: 0,    // velocità di rotazione della visuale filtrata (rad/s)
+  lookVY: 0,
   swayX: 0,
   swayY: 0,
 };
@@ -112,7 +116,7 @@ export function showModel(i) {
   anim.draw = 1;
 }
 export function kickModel(amount) {
-  anim.kick = Math.min(0.25, anim.kick + amount);
+  anim.kickTarget = Math.min(0.2, anim.kickTarget + amount);
   anim.flash = 0.05;
   const f = models[anim.current].userData.flash;
   f.rotation.z = Math.random() * Math.PI;
@@ -132,23 +136,33 @@ export function muzzleWorld(out) {
  */
 export function updateViewModel(dt, speed, grounded, lookDX, lookDY) {
   const m = models[anim.current], u = m.userData;
-  anim.kick *= Math.exp(-dt * 14);
-  anim.draw = Math.max(0, anim.draw - dt / 0.3);
-  anim.flash -= dt;
-  const moving = grounded ? Math.min(1, speed / 5.5) : 0;
-  anim.bobAmt += (moving - anim.bobAmt) * Math.min(1, dt * 8);
-  anim.bobT += dt * (6 + speed * 0.9);
-  anim.swayX += (Math.max(-0.04, Math.min(0.04, lookDX * 0.6)) - anim.swayX) * Math.min(1, dt * 10);
-  anim.swayY += (Math.max(-0.04, Math.min(0.04, lookDY * 0.6)) - anim.swayY) * Math.min(1, dt * 10);
+  if (dt > 0) {
+    // Tutto passa da filtri "morbidi": i tocchi e il mouse arrivano a scatti irregolari,
+    // e usarli direttamente farebbe vibrare l'arma.
+    const f = (rate) => 1 - Math.exp(-dt * rate);
+    anim.kickTarget *= Math.exp(-dt * 12);
+    anim.kick += (anim.kickTarget - anim.kick) * f(35);
+    anim.draw = Math.max(0, anim.draw - dt / 0.3);
+    anim.flash -= dt;
+    anim.speed += ((grounded ? speed : 0) - anim.speed) * f(6);
+    anim.bobAmt = Math.min(1, anim.speed / 5.5);
+    anim.bobT += dt * (5 + anim.speed * 0.8);
+    anim.lookVX += (lookDX / dt - anim.lookVX) * f(8);
+    anim.lookVY += (lookDY / dt - anim.lookVY) * f(8);
+    const tx = Math.max(-0.025, Math.min(0.025, anim.lookVX * 0.006));
+    const ty = Math.max(-0.025, Math.min(0.025, anim.lookVY * 0.006));
+    anim.swayX += (tx - anim.swayX) * f(10);
+    anim.swayY += (ty - anim.swayY) * f(10);
+  }
 
   const r = anim.reload > 0 ? Math.sin(anim.reload * Math.PI) : 0;
   const d = anim.draw * anim.draw;
   m.position.set(
-    u.base.x + Math.sin(anim.bobT) * 0.012 * anim.bobAmt + anim.swayX * 0.5,
-    u.base.y - Math.abs(Math.cos(anim.bobT)) * 0.012 * anim.bobAmt - d * 0.3 - r * 0.07 + anim.swayY * 0.5,
-    u.base.z + anim.kick * 0.5,
+    u.base.x + Math.sin(anim.bobT) * 0.008 * anim.bobAmt + anim.swayX * 0.5,
+    u.base.y - (1 - Math.cos(anim.bobT * 2)) * 0.004 * anim.bobAmt - d * 0.3 - r * 0.07 + anim.swayY * 0.5,
+    u.base.z + anim.kick * 0.4,
   );
-  m.rotation.set(anim.kick * 1.4 - r * 0.5 - d * 0.6, anim.swayX * 2, r * 0.6);
+  m.rotation.set(anim.kick * 0.9 - r * 0.5 - d * 0.6, anim.swayX * 1.5, r * 0.6);
 
   u.flash.visible = anim.flash > 0;
   flashLight.intensity = anim.flash > 0 ? 3 : 0;

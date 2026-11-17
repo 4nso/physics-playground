@@ -19,6 +19,9 @@ export const input = {
 };
 
 const locked = () => document.pointerLockElement === canvas;
+export function exitLock() {
+  if (document.pointerLockElement) document.exitPointerLock();
+}
 export function requestLock() {
   if (isTouch) return;
   try {
@@ -29,7 +32,7 @@ export function requestLock() {
 
 /**
  * Collega l'input alle azioni di gioco.
- * actions: { trigger(on), tap, reload, weapon(i), nextWeapon(dir), grab, jump, boom, crate, reset }
+ * actions: { trigger(on), tap, reload, weapon(i), nextWeapon(dir), grab, jump, pause, lockLost }
  *  - trigger(true/false): grilletto premuto/rilasciato (fuoco continuo)
  *  - tap: un colpo singolo (clic del mouse quando il puntatore non è catturato)
  */
@@ -52,10 +55,8 @@ export function setupInput(actions) {
     if (!input.enabled || e.repeat) return;
     if (e.code === 'Space') { actions.jump(); e.preventDefault(); }
     if (e.code === 'KeyE') actions.grab();
-    if (e.code === 'KeyF') actions.boom();
-    if (e.code === 'KeyQ') actions.crate();
     if (e.code === 'KeyR') actions.reload();
-    if (e.code === 'Backspace') { actions.reset(); e.preventDefault(); }
+    if (e.code === 'KeyP' || e.code === 'Escape') actions.pause();
     if (e.code === 'Digit1') actions.weapon(0);
     if (e.code === 'Digit2') actions.weapon(1);
     if (e.code === 'Digit3') actions.weapon(2);
@@ -65,7 +66,13 @@ export function setupInput(actions) {
     for (const k in input.keys) input.keys[k] = false;
     releaseTrigger();
   });
-  document.addEventListener('pointerlockchange', () => { if (!locked() && mouseFire) releaseTrigger(); });
+  // Quando il mouse viene liberato (tasto Esc) il gioco va in pausa
+  let wasLocked = false;
+  document.addEventListener('pointerlockchange', () => {
+    if (locked()) { wasLocked = true; return; }
+    releaseTrigger();
+    if (wasLocked) { wasLocked = false; actions.lockLost(); }
+  });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // Rotella del mouse: arma successiva/precedente (con una piccola pausa per i trackpad)
@@ -166,10 +173,8 @@ export function setupInput(actions) {
   });
   press($('bJump'), actions.jump);
   press($('bGrab'), actions.grab);
-  press($('bBoom'), actions.boom);
   press($('bReload'), actions.reload);
-  press($('bCrate'), actions.crate);
-  press($('bReset'), actions.reset);
+  press($('bPause'), actions.pause);
   press($('weapon'), (e) => {
     const slot = e.target.closest('[data-w]');
     if (slot) actions.weapon(+slot.dataset.w); else actions.nextWeapon(1);
