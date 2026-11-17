@@ -64,30 +64,30 @@ Note: la corsa su touch si attiva spingendo il joystick oltre il bordo. Su scher
 il campo visivo orizzontale è limitato a circa 100° per non deformare l'immagine.
 Impostazioni salvate in localStorage (menu principale e pausa → ⚙️ Impostazioni).
 
-## Fase 5 – Mondo grande a moduli (in corso)
+## Fase 5 – Mondo grande (in prova su iPad/iPhone)
 Passo 1 (generatore e pathfinding):
 - [x] Sezione "Mondo" in `docs/DESIGN.md`
-- [x] Generatore con seed: griglia di riquadri, porte e muri, tutto raggiungibile
-- [x] 5 tipi di area: corridoi gialli, uffici con soppalco, piscina coperta, parcheggio con
-      piano rialzato, parco giochi/cortile (piazza di partenza con la palla demolitrice)
-- [x] Più livelli: scale/rampe, soppalco, piano del parcheggio, vasca della piscina
+- [x] Generatore con seed, tutto raggiungibile; in multiplayer l'host manda il seed
 - [x] Griglia di navigazione e percorsi dei nemici (anche su più piani)
 - [x] Comparsa dei nemici lontano e fuori vista; casse e palloni sparsi
-- [x] Geometria unita per riquadro, luce nei colori dei vertici, nebbia
-- [x] Minimappa
-- [x] Multiplayer: l'host manda il seed
+- [x] Geometria unita, luce nei colori dei vertici, nebbia; minimappa
 - [x] Verifica con screenshot headless a 844×390
+
+Passo 1b (dopo la prima prova sull'iPhone):
+- [x] Corretti i glitch grafici: sfarfallio tra la cima dei muri e i tetti, gradini a filo del
+      pavimento; non si può più salire sui tetti
+- [x] Mappa riordinata in 3 zone tematiche: parcheggio multipiano (3 livelli con rampe),
+      parco giochi al centro (palle, casse e giochi), backrooms (un unico labirinto)
+- [x] La minimappa mostra il nome della zona e il piano del parcheggio
 - [ ] Provato su iPad/iPhone
 
-Note: ogni partita genera una mappa nuova (6×6 riquadri, 90×90 m); il numero della mappa si vede
-nel menu di pausa e si può riusare aprendo il gioco con `?seed=NUMERO`. Partenza nella piazza con la
-palla demolitrice. Ombre in tempo reale tolte (luce dipinta nei vertici); nebbia oltre ~55 m.
-Misure headless a 844×390: 12–35 chiamate di disegno, al massimo ~13.000 triangoli della mappa a schermo,
-griglia di navigazione calcolata in meno di 0,1 s. Nei test i nemici salgono sul soppalco e attraversano
-i corridoi fino al giocatore; host e client costruiscono la stessa mappa dal seed.
+Note: ogni partita genera una mappa nuova (90×72 m); il numero della mappa si vede nel menu di pausa
+e si può riusare aprendo il gioco con `?seed=NUMERO`. Misure headless a 844×390: 15–30 chiamate di
+disegno nel parcheggio e nelle backrooms, circa 110 nel parco (ogni cassa e palla è disegnata a parte).
+Nei test 17 nemici su 18 salgono fino al tetto del parcheggio e attraversano il labirinto delle backrooms.
 
-Passo 2 (varietà, dopo la prova): altri tipi di stanza (scale verso stanze strane, cantine,
-tetti), più oggetti e decorazioni, instancing degli oggetti ripetuti.
+Passo 2 (varietà, dopo la prova): altre zone (piscine, uffici, scale verso stanze strane),
+instancing di casse e palle per alleggerire il parco.
 
 ## Fase 6 – Rifinitura (idee)
 - [ ] Oggetti esplosivi, potenziamenti

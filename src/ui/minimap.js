@@ -1,8 +1,7 @@
 // Minimappa rotonda in alto a sinistra: ruota con la visuale (in alto c'è sempre "davanti").
 // La pianta della mappa si disegna una volta sola in un canvas nascosto; a ogni aggiornamento
 // se ne copia solo un pezzo ruotato, quindi costa pochissimo.
-import { map } from '../world/map.js';
-import { TYPES, TILE } from '../world/rooms.js';
+import { map, zoneAt } from '../world/map.js';
 
 const PX = 3;        // pixel per metro nella pianta
 const RANGE = 26;    // metri visibili dal centro al bordo
@@ -16,13 +15,11 @@ function drawPlan() {
   plan.width = W; plan.height = H;
   const g = plan.getContext('2d');
   const X = (x) => (x - b.minX) * PX, Z = (z) => (z - b.minZ) * PX;
-  for (const t of map.tiles) {
-    g.fillStyle = TYPES[t.type].map;
-    g.fillRect(X(t.ox), Z(t.oz), TILE * PX, TILE * PX);
+  for (const zn of map.zones) {
+    g.fillStyle = zn.color;
+    g.fillRect(X(zn.x0), 0, (zn.x1 - zn.x0) * PX, H);
   }
-  g.fillStyle = 'rgba(255,255,255,.28)';
-  for (const [x0, z0, x1, z1] of map.decks || []) g.fillRect(X(x0), Z(z0), (x1 - x0) * PX, (z1 - z0) * PX);
-  g.fillStyle = 'rgba(255,255,255,.5)';
+  g.fillStyle = 'rgba(255,255,255,.55)';
   for (const [x0, z0, x1, z1] of map.ramps || []) g.fillRect(X(x0), Z(z0), (x1 - x0) * PX, (z1 - z0) * PX);
   g.fillStyle = '#26221c';
   for (const [x0, z0, x1, z1] of map.walls) g.fillRect(X(x0), Z(z0), Math.max(1.5, (x1 - x0) * PX), Math.max(1.5, (z1 - z0) * PX));
@@ -31,7 +28,7 @@ function drawPlan() {
 
 export const minimap = {
   /**
-   * me = { x, z, yaw }, mates = [{ x, z, down }], eachEnemy(fn) chiama fn(x, z) per ogni nemico.
+   * me = { x, y (piedi), z, yaw }, mates = [{ x, z, down }], eachEnemy(fn) chiama fn(x, z) per ogni nemico.
    */
   update(dt, me, mates, eachEnemy) {
     timer -= dt;
@@ -85,5 +82,18 @@ export const minimap = {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('N', Math.sin(me.yaw) * r, -Math.cos(me.yaw) * r);
     ctx.restore();
+    // nome della zona (e piano del parcheggio) in basso
+    const zn = zoneAt(me.x);
+    if (zn) {
+      let label = zn.name;
+      if (zn.id === 'parcheggio') label = `Piano ${me.y < 2.6 ? 0 : me.y < 6.1 ? 1 : 2}`;
+      ctx.font = `bold ${9 * dpr}px system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const w = ctx.measureText(label).width + 10 * dpr;
+      ctx.fillStyle = 'rgba(15,25,40,.7)';
+      ctx.fillRect(S / 2 - w / 2, S - 17 * dpr, w, 13 * dpr);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(label, S / 2, S - 10.5 * dpr);
+    }
   },
 };

@@ -95,7 +95,7 @@ const eachEnemy = (fn) => {
 function updateMinimap(dt) {
   mates.length = 0;
   for (const m of team.values()) if (!m.local) mates.push(m);
-  minimap.update(dt, { x: player.pos.x, z: player.pos.z, yaw: player.yaw }, mates, eachEnemy);
+  minimap.update(dt, { x: player.pos.x, y: player.pos.y - 0.85, z: player.pos.z, yaw: player.yaw }, mates, eachEnemy);
 }
 
 async function start() {

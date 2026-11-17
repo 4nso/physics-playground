@@ -36,6 +36,13 @@ export class Builder {
     this.water = [];          // triangoli dell'acqua (mesh trasparente a parte)
     this.colliders = [];      // { hx, hy, hz, x, y, z, q, surface }
     this.shapes = [];         // forme per la navigazione
+    this.auto = 12;           // divide la geometria in blocchi da 12×12 m (si disegna solo ciò che si vede)
+  }
+
+  /** Sceglie il blocco in base alla posizione; i pezzi molto grandi (pavimenti) vanno a parte. */
+  _autoChunk(cx, cz, big) {
+    if (!this.auto) return;
+    this.chunk(big ? 'big' : `${Math.floor(cx / this.auto)},${Math.floor(cz / this.auto)}`);
   }
 
   /** Sceglie la mesh (riquadro) in cui finiscono i prossimi triangoli. */
@@ -55,6 +62,7 @@ export class Builder {
     const hx = (x1 - x0) / 2, hy = (y1 - y0) / 2, hz = (z1 - z0) / 2;
     const cx = x0 + hx, cy = y0 + hy, cz = z0 + hz;
     if (o.visible !== false) {
+      this._autoChunk(cx, cz, hx > this.auto / 2 || hz > this.auto / 2);
       mat4.compose(v.set(cx, cy, cz), q.identity(), n.set(hx, hy, hz));
       this._box(mat4, null, color, o, y0);
     }
@@ -83,12 +91,14 @@ export class Builder {
       const nSteps = Math.max(2, Math.round(Math.abs(rise) / 0.25));
       const sl = len / nSteps;
       for (let i = 0; i < nSteps; i++) {
-        const top = h0 + rise * ((i + 1) / nSteps);
+        // a metà altezza di ogni tratto: nessun gradino è allo stesso livello del pavimento (niente sfarfallio)
+        const top = h0 + rise * ((i + 0.5) / nSteps);
         const a = (axis === 'x' ? x0 : z0) + sl * i, b = a + sl;
         if (axis === 'x') this.box(a, top - 0.3, z0, b, top, z1, color, { collide: false, ao: false });
         else this.box(x0, top - 0.3, a, x1, top, b, color, { collide: false, ao: false });
       }
     } else if (o.visible !== false) {
+      this._autoChunk(cx, cz, false);
       mat4.compose(v.set(cx, cy, cz), rq, n.set(hx, t / 2, hz));
       this._box(mat4, null, color, { ...o, ao: false }, 0);
     }
@@ -101,6 +111,7 @@ export class Builder {
     const g = geometry.index ? geometry.toNonIndexed() : geometry.clone();
     mat4.compose(v.set(x, y, z), q.setFromAxisAngle(n.set(0, 1, 0), o.rotY || 0), o.scale || s1);
     g.applyMatrix4(mat4);
+    this._autoChunk(x, z, false);
     const p = g.attributes.position.array;
     const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
     tmpC.set(color);

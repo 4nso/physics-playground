@@ -73,28 +73,32 @@ Il repository e il sito sono pubblici, quindi **le foto non stanno mai nel proge
 
 ## Mondo
 
-Un mondo grande e "a stanze", in stile **backrooms giocoso e un po' surreale**: gli ambienti
-non devono avere molto senso tra loro, anzi è voluto. Si passa da un corridoio con la carta da
-parati gialla e i neon a una piscina coperta vuota, poi a un parcheggio all'aperto o a un parco giochi.
+Un mondo grande in stile **backrooms giocoso e un po' surreale**, diviso in **zone tematiche**
+una accanto all'altra (così ci si orienta): da ovest a est
 
-- **Moduli**: la mappa è una griglia di riquadri (15×15 m). Ogni riquadro è una stanza o
-  un'area esterna di un certo tipo: corridoi gialli, uffici vuoti, piscina coperta,
-  parcheggio, parco giochi/cortile (in seguito: scale verso stanze strane, cantine, tetti…)
-- **Generatore con seed**: un numero ("seed") decide tutto: disposizione, tipi di stanza,
-  porte, oggetti. Stesso seed = stessa mappa. In multiplayer l'host sceglie il seed e lo manda
-  ai client, che costruiscono la stessa mappa senza scaricare niente
-- **Collegamenti**: tra i riquadri ci sono porte, varchi o muri; tutti i riquadri sono
-  raggiungibili. Tra due aree esterne il passaggio può essere aperto del tutto
-- **Più livelli di altezza**: scale e rampe, soppalchi e balconi, la vasca della piscina più in basso
-- **Nemici che navigano**: una griglia di navigazione (celle da 1 m, anche su più piani) calcolata
-  dalla geometria; i nemici seguono il percorso più breve verso il giocatore più vicino
-  (aggirano muri, salgono le scale)
-- **Comparsa dei nemici**: in punti distribuiti nella mappa, lontani e fuori dalla vista dei giocatori
-- **Oggetti fisici sparsi**: casse e palloni nelle stanze, la palla demolitrice nella piazza di partenza
-- **Orientarsi**: minimappa in alto a sinistra che ruota con la visuale (compagni in blu, nemici vicini in rosso)
-- **Prestazioni**: la geometria statica di ogni riquadro è unita in un'unica mesh; niente luci
-  per le stanze (la luce è "dipinta" nei colori dei vertici), nebbia e distanza di disegno limitata
-  per non disegnare tutta la mappa. Obiettivo 30+ fps su iPhone
+1. **Parcheggio multipiano** (30×72 m): 3 livelli (terra, piano 1, tetto) collegati da rampe,
+   pilastri con una fascia colorata per piano (giallo, blu, rosso), auto parcheggiate, neon sotto
+   le solette. Dal piano 1 e dal tetto si guarda giù sul parco
+2. **Parco giochi** (30×72 m, al centro): prato con vialetti e tante piazzole di giochi: torrette con
+   scivolo, altalene, sabbiera, piscina di palline, fortino di casse, arrampicata, trampolini,
+   giostra e dondolo, palle giganti, piramide di casse, alberi e panchine. La partenza è nella
+   piazza al centro, con la palla demolitrice
+3. **Backrooms** (30×72 m): un unico labirinto di corridoi gialli con moquette e neon (qualcuno spento),
+   qualche salone più grande, sedie e casse abbandonate
+
+- **Seed**: un numero decide i dettagli (labirinto, auto, quali giochi e dove, porte).
+  Stesso seed = stessa mappa. In multiplayer l'host manda solo il numero
+- **Passaggi**: 3 varchi tra parcheggio e parco, 3 porte tra parco e backrooms
+- **Più livelli**: rampe del parcheggio, torrette, arrampicata, trampolini
+- **Nemici che navigano**: griglia di navigazione (celle da 1 m, anche su più piani) calcolata dalla
+  geometria; i nemici seguono il percorso più breve (salgono le rampe, attraversano il labirinto)
+- **Comparsa dei nemici**: lontano e fuori dalla vista dei giocatori
+- **Orientarsi**: minimappa in alto a sinistra che ruota con la visuale, con il nome della zona
+  (e il piano nel parcheggio)
+- **Prestazioni**: geometria statica unita in blocchi da 12×12 m, luce "dipinta" nei colori dei
+  vertici, niente ombre in tempo reale, nebbia oltre ~55 m. Obiettivo 30+ fps su iPhone
+- **Niente sfarfallii**: due superfici non stanno mai sullo stesso piano; i muri esterni sono alti
+  11 m, così non si sale sui tetti
 
 ## Piattaforme
 
