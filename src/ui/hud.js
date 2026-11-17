@@ -1,4 +1,5 @@
 // HUD: round, nemici, punteggio, vita, mirino, arma, messaggi e schermate.
+import { MAX_ROUNDS } from '../game/difficulty.js';
 import { isTouch } from '../core/renderer.js';
 import { onSettings } from './settings.js';
 
@@ -77,7 +78,7 @@ export const hud = {
     m.classList.add('show');
     msgTimer = seconds;
   },
-  setRound(n) { setText('pRound', `Round ${n}`); },
+  setRound(n) { setText('pRound', `Round ${n}/${MAX_ROUNDS}`); },
   setEnemies(n) { setText('pEnemies', `👾 ${n}`); },
   setScore(n) { setText('pScore', `★ ${n}`); },
   /** Conto alla rovescia tra i round (null per nasconderlo). */

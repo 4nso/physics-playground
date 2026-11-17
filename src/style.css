@@ -158,3 +158,6 @@ body:not(.touch) .touchOnly{display:none}
   #start .btn.big{padding:11px;font-size:17px}
   #start .note{font-size:12px;margin:0 0 6px}
 }
+
+/* Schermata di vittoria (dopo il round 25) */
+#over.win h1 { color: #ffcf3a; text-shadow: 0 0 18px rgba(255, 190, 40, 0.55); }

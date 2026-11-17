@@ -13,6 +13,11 @@ const GEO = {
   arm: box(0.17, 0.7, 0.19, -0.33),
   torso: box(0.6, 0.72, 0.32),
   head: box(0.46, 0.5, 0.44),
+  // pezzi in più dei nemici speciali
+  helmet: box(0.52, 0.14, 0.5),
+  chest: box(0.66, 0.5, 0.1),
+  pad: box(0.3, 0.14, 0.32),
+  horn: box(0.09, 0.26, 0.09),
 };
 
 const mat = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true });
@@ -20,6 +25,10 @@ export const VARIANTS = {
   base: { shirt: mat(0x4f7cc9), pants: mat(0x3b3b4a), scale: 1, speed: 1, health: 1, damage: 10, points: 100, mass: 4 },
   fast: { shirt: mat(0xd8452f), pants: mat(0x2b2b2b), scale: 0.86, speed: 1.6, health: 0.6, damage: 7, points: 150, mass: 3 },
   big: { shirt: mat(0x5d8a3a), pants: mat(0x4a3b2a), scale: 1.45, speed: 0.62, health: 3.2, damage: 22, points: 300, mass: 14 },
+  // corazzato: lento e resistentissimo, con elmo e piastra sul petto (dal round 8)
+  armored: { shirt: mat(0x6b7280), pants: mat(0x30343b), armor: mat(0xa9b1bc), scale: 1.2, speed: 0.55, health: 4.5, damage: 18, points: 450, mass: 12 },
+  // boss: uno ogni 5 round, grande, con corna e spalline
+  boss: { shirt: mat(0x4a1f5c), pants: mat(0x1d1424), armor: mat(0xd4a017), scale: 1.65, speed: 0.8, health: 14, damage: 25, points: 2500, mass: 40 },
 };
 /** Materiale bianco usato per un attimo quando il nemico viene colpito. */
 export const HIT_MAT = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.6 });
@@ -66,10 +75,19 @@ export function buildEnemyModel(variant, faceSet) {
   head.castShadow = true;
   head.userData.head = true;
   inner.add(head);
+  const parts = [legL, legR, armL, armR, torso, head];
+  if (variant === 'armored' || v === VARIANTS.armored) {
+    parts.push(mesh(GEO.helmet, v.armor, 0, 2.1, -0.02), mesh(GEO.chest, v.armor, 0, 1.22, 0.2));
+  }
+  if (variant === 'boss' || v === VARIANTS.boss) {
+    const hl = mesh(GEO.horn, v.armor, -0.17, 2.18, 0), hr = mesh(GEO.horn, v.armor, 0.17, 2.18, 0);
+    hl.rotation.z = 0.35; hr.rotation.z = -0.35;
+    parts.push(hl, hr, mesh(GEO.pad, v.armor, -0.42, 1.55, 0), mesh(GEO.pad, v.armor, 0.42, 1.55, 0));
+  }
 
   return {
     group, inner,
-    parts: [legL, legR, armL, armR, torso, head],
+    parts,
     pivots: { hipL, hipR, shL, shR },
   };
 }

@@ -6,6 +6,8 @@ import { pickables } from '../world/arena.js';
 import { updateFields, nodeAt, steer, findSpawn } from '../world/nav.js';
 import { VARIANTS, MODEL_HEIGHT, buildEnemyModel, animateModel, flashModel } from './model.js';
 import { crumbleModel, updateDebris, clearDebris } from './debris.js';
+import { speedFor } from '../game/difficulty.js';
+import { WALK_SPEED } from '../player/player.js';
 
 export const enemies = [];
 /** Avvisi verso il gioco: onKill(enemy, headshot, dir, force), onPlayerHit(damage, x, z, targetId) */
@@ -41,7 +43,8 @@ function spawnPoint() {
 }
 
 /**
- * Crea un nemico. opts = { health, speed } valori di base del round (moltiplicati dalla variante).
+ * Crea un nemico. opts = configurazione del round (vedi game/difficulty.js):
+ * { round, health, damage } — vita e danno di base, moltiplicati dalla variante.
  */
 export function spawnEnemy(variant, opts) {
   const v = VARIANTS[variant];
@@ -66,8 +69,9 @@ export function spawnEnemy(variant, opts) {
     variant, v, model, body, collider, centerY,
     health: opts.health * v.health,
     maxHealth: opts.health * v.health,
-    speed: Math.min(variant === 'fast' ? 6.5 : 5.5, opts.speed * v.speed),
-    damage: v.damage,
+    // limite fisso: nessun nemico è più veloce del giocatore che cammina
+    speed: Math.min(WALK_SPEED, speedFor(variant, opts.round)),
+    damage: Math.round(v.damage * (opts.damage || 1)),
     yaw: Math.atan2(-sp.x, -sp.z),
     phase: Math.random() * 6,
     attackT: 0, attackCd: 0.5, hitDone: false,

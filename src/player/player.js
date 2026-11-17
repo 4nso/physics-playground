@@ -8,6 +8,9 @@ const RADIUS = 0.4, HALF = 0.4;        // capsula alta 1.6 m
 const EYE = 0.75;                       // occhi sopra il centro della capsula (≈1.55 m da terra)
 const SPAWN = { x: 0, y: HALF + RADIUS + 0.05, z: 9 };
 export const MAX_HEALTH = 100;
+/** Velocità del giocatore (m/s): camminata e corsa. I nemici non superano mai WALK_SPEED. */
+export const WALK_SPEED = 5.5;
+export const RUN_SPEED = 9;
 
 export const player = {
   body: null,
@@ -107,7 +110,7 @@ export function updatePlayer(dt) {
   if (k.KeyA || k.ArrowLeft) r -= 1;
   const mag = Math.hypot(f, r);
   if (mag > 1) { f /= mag; r /= mag; }
-  const speed = k.ShiftLeft || k.ShiftRight || input.run ? 9 : 5.5;
+  const speed = k.ShiftLeft || k.ShiftRight || input.run ? RUN_SPEED : WALK_SPEED;
   const s = Math.sin(player.yaw), c = Math.cos(player.yaw);
   const vx = (-s * f + c * r) * speed, vz = (-c * f - s * r) * speed;
 

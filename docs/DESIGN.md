@@ -71,6 +71,28 @@ Se ha senso, Code può proporre qualche arma in più.
 - **Nemici più forti** nei round alti: ad esempio un corazzato lento e resistentissimo,
   e un boss ogni 5 round
 
+#### Valori attuali (passo 1, formule in `src/game/difficulty.js`)
+Il giocatore cammina a 5,5 m/s e corre a 9 m/s.
+
+| Round | Nemici | Vita base | Danno | Vel. base | Vel. rossi | Boss |
+|---|---|---|---|---|---|---|
+| 1 | 7 | 45 | ×1,0 | 2,7 | 3,8 | – |
+| 5 | 20 | 69 | ×1,15 | 3,2 | 4,2 | 1 |
+| 10 | 38 | 108 | ×1,34 | 3,7 | 4,5 | 1 |
+| 15 | 58 | 156 | ×1,53 | 4,2 | 4,9 | 1 |
+| 20 | 80 | 213 | ×1,72 | 4,6 | 5,2 | 2 |
+| 25 | 104 | 278 | ×1,91 | 5,0 | 5,5 | 2 |
+
+(Da solo; con più giocatori i nemici sono di più e un po' più resistenti. Al massimo 20 vivi insieme.)
+
+| Tipo | Da quando | Vita | Danno | Velocità (round 1 → 25) | Punti |
+|---|---|---|---|---|---|
+| Base (blu) | sempre | ×1 | 10 | 2,7 → 5,0 | 100 |
+| Veloce (rosso) | round 2 | ×0,6 | 7 | 3,8 → 5,5 | 150 |
+| Grosso (verde) | round 3 | ×3,2 | 22 | 2,0 → 3,8 | 300 |
+| Corazzato (grigio, elmo e piastra) | round 8 | ×4,5 | 18 | 1,8 → 3,3 | 450 |
+| Boss (viola, corna d'oro) | ogni 5 round | ×14 | 25 | 2,3 → 4,4 | 2500 |
+
 ### Punti e negozio
 - I punti dei nemici uccisi sono la **moneta**
 - **Area negozio** nella mappa, riconoscibile (banco, insegna luminosa). Avvicinandosi si

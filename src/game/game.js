@@ -8,6 +8,7 @@ import { setTrigger, resetWeapons, unlockForRound, addAmmo, weaponHooks } from '
 import { enemies, spawnEnemy, clearEnemies, enemyHooks, setFaceSets } from '../enemies/enemies.js';
 import { spawnPickup, clearPickups, pickupHooks } from './pickups.js';
 import { buildLevel } from './level.js';
+import { MAX_ROUNDS, roundConfig, pickVariant } from './difficulty.js';
 import { setObjectsRemote, clearObjects } from '../world/objects.js';
 import { map, buildWorld } from '../world/map.js';
 import { dropHeld } from '../player/interact.js';
@@ -29,6 +30,7 @@ export const game = {
   kills: 0,
   timer: 0,
   toSpawn: 0,
+  spawned: 0,
   spawnT: 0,
   cfg: null,
 };
@@ -80,45 +82,40 @@ export function showRecord() {
   $('record').textContent = r.score > 0 ? `🏆 Record: ${r.score} punti · round ${r.round}` : '';
 }
 
-/* ---------- Difficoltà dei round ---------- */
-function roundConfig(r) {
-  const n = Math.max(1, team.size); // più giocatori = più nemici, un po' più resistenti
-  return {
-    total: Math.round((4 + r * 3) * (1 + 0.5 * (n - 1))),
-    maxAlive: Math.min(20, Math.round((4 + r * 2) * (1 + 0.3 * (n - 1)))),
-    interval: Math.max(0.4, (1.5 - r * 0.08) / (1 + 0.3 * (n - 1))),
-    health: (45 + (r - 1) * 12) * (1 + 0.2 * (n - 1)),
-    speed: Math.min(4.4, 2.6 + r * 0.15),
-    specials: r % 5 === 0 ? 2 : 0, // ogni 5 round arrivano due "grossi" speciali
-  };
-}
-function pickVariant(r) {
-  if (game.cfg.specials > 0) { game.cfg.specials--; return 'big'; }
-  const big = r >= 3 ? Math.min(0.22, 0.04 + 0.02 * r) : 0;
-  const fast = r >= 2 ? Math.min(0.35, 0.08 + 0.03 * r) : 0;
-  const x = Math.random();
-  return x < big ? 'big' : x < big + fast ? 'fast' : 'base';
+/* ---------- Difficoltà dei round (formule in difficulty.js) ---------- */
+function nextVariant() {
+  const v = pickVariant(game.cfg, game.spawned);
+  if (v === 'boss') announce('👹 Arriva il boss!', 2.2);
+  return v;
 }
 
 function beginRound() {
   game.round++;
   game.phase = 'fight';
-  game.cfg = roundConfig(game.round);
+  game.cfg = roundConfig(game.round, team.size);
   game.toSpawn = game.cfg.total;
+  game.spawned = 0;
   game.spawnT = 0.5;
   hud.setRound(game.round);
   hud.setBreak(null);
   const fresh = unlockForRound(game.round);
   if (fresh.length) addAmmo();
   if (net.mode === 'host' && gameNet.toAll) gameNet.toAll({ t: 'round', r: game.round });
-  let text = `Round ${game.round}`;
+  let text = game.round === MAX_ROUNDS ? `Round ${game.round}: l'ultimo!` : `Round ${game.round}`;
   if (fresh.length) text += `<br><small>🔓 ${fresh.join(', ')} sbloccato!</small>`;
-  if (game.cfg.specials) text += '<br><small>⚠️ Arrivano i grossi!</small>';
+  if (game.cfg.bosses) text += `<br><small>⚠️ Round del boss${game.cfg.bosses > 1 ? ' (sono ' + game.cfg.bosses + '!)' : ''}</small>`;
+  else if (game.round === 8) text += '<br><small>⚠️ Arrivano i corazzati</small>';
   announce(text, 2.6);
   thud(0.3, 70);
 }
 
 function endRound() {
+  if (game.round >= MAX_ROUNDS) {
+    game.score += 250 * game.round;
+    hud.setScore(game.score);
+    gameOver({ round: game.round, score: game.score, kills: game.kills, win: true });
+    return;
+  }
   game.phase = 'break';
   game.timer = BREAK_TIME;
   const bonus = 250 * game.round;
@@ -242,13 +239,21 @@ export function gameOver(info) {
   exitLock();
   hud.setPlaying(false);
   hud.hide('pause');
+  hud.flash('', 0); // niente messaggi sopra la schermata finale
   const r = info || { round: game.round, score: game.score, kills: game.kills };
-  if (net.mode === 'host' && gameNet.toAll) gameNet.toAll({ t: 'over', round: r.round, score: r.score, kills: r.kills });
+  const win = !!r.win;
+  if (net.mode === 'host' && gameNet.toAll) gameNet.toAll({ t: 'over', round: r.round, score: r.score, kills: r.kills, win: win ? 1 : 0 });
   const rec = loadRecord();
   const isRecord = r.score > rec.score;
   if (isRecord) saveRecord({ score: r.score, round: r.round });
-  const who = team.size > 1 ? 'La squadra è arrivata' : 'Sei arrivato';
-  $('overInfo').textContent = `${who} al round ${r.round} con ${r.score} punti (${r.kills} nemici eliminati).`;
+  const many = team.size > 1;
+  $('overTitle').textContent = win ? '🏆 Vittoria!' : 'Game over';
+  $('over').classList.toggle('win', win);
+  if (win) {
+    $('overInfo').textContent = `${many ? 'Avete' : 'Hai'} superato tutti i ${MAX_ROUNDS} round con ${r.score} punti (${r.kills} nemici eliminati)!`;
+  } else {
+    $('overInfo').textContent = `${many ? 'La squadra è arrivata' : 'Sei arrivato'} al round ${r.round} con ${r.score} punti (${r.kills} nemici eliminati).`;
+  }
   $('overRecord').textContent = isRecord ? '🏆 Nuovo record!' : rec.score ? `Record: ${rec.score} punti · round ${rec.round}` : '';
   $('again').style.display = net.mode === 'client' ? 'none' : '';
   $('overWait').style.display = net.mode === 'client' ? '' : 'none';
@@ -344,8 +349,9 @@ export function updateGame(dt) {
   // combattimento: fa comparire i nemici un po' alla volta
   game.spawnT -= dt;
   if (game.toSpawn > 0 && game.spawnT <= 0 && enemies.length < game.cfg.maxAlive) {
-    spawnEnemy(pickVariant(game.round), game.cfg);
+    spawnEnemy(nextVariant(), game.cfg);
     game.toSpawn--;
+    game.spawned++;
     game.spawnT = game.cfg.interval * (0.6 + Math.random() * 0.8);
   }
   hud.setEnemies(enemies.length + game.toSpawn);

@@ -5,7 +5,7 @@ import { buildEnemyModel, animateModel, flashModel, MODEL_HEIGHT, VARIANTS } fro
 import { crumbleModel, updateDebris, clearDebris } from '../enemies/debris.js';
 import { makeBar } from '../enemies/enemies.js';
 
-export const VARIANT_KEYS = ['base', 'fast', 'big'];
+export const VARIANT_KEYS = ['base', 'fast', 'big', 'armored', 'boss'];
 const proxies = new Map();
 let faceSets = [];
 export function setProxyFaces(sets) { faceSets = sets; }

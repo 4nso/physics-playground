@@ -94,10 +94,10 @@ Dettagli in `docs/DESIGN.md`, sezione "Progressione, negozio e zona segreta".
 Si lavora a passi: dopo ogni passo si pubblica e ci si ferma per provare.
 
 Passo 1 – Difficoltà a livelli:
-- [ ] Massimo 25 round, schermata di vittoria
-- [ ] Curva di difficoltà procedurale (numero, vita, danno, velocità dei nemici)
-- [ ] Limiti di velocità: base appena sotto il giocatore, rossi pari al giocatore
-- [ ] Nemici più forti nei round alti (corazzato, boss ogni 5 round)
+- [x] Massimo 25 round, schermata di vittoria
+- [x] Curva di difficoltà procedurale (numero, vita, danno, velocità dei nemici)
+- [x] Limiti di velocità: base appena sotto il giocatore, rossi pari al giocatore
+- [x] Nemici più forti nei round alti (corazzato, boss ogni 5 round)
 
 Passo 2 – Armi e negozio:
 - [ ] Si parte con pistola e mitra
