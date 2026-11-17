@@ -3,7 +3,8 @@ import * as THREE from 'three';
 import { scene, camera } from '../core/renderer.js';
 import { thud, boomSound } from '../core/audio.js';
 import { pickables } from '../world/arena.js';
-import { objects, hooks, makeBall, makeCrate, removeObj } from '../world/objects.js';
+import { objects, hooks, makeCrate } from '../world/objects.js';
+import { shotFilter } from '../weapons/weapons.js';
 import { sphereGeo } from '../world/materials.js';
 import { player, pushPlayer } from './player.js';
 import { hud } from '../ui/hud.js';
@@ -20,16 +21,15 @@ export function aim(maxDist) {
 }
 
 let held = null, holdDist = 2.6;
-const thrown = [];
+export const isHolding = () => !!held;
 
 function setHeld(o) {
   held = o;
+  shotFilter.ignore = o ? o.mesh : null;
   hud.setHolding(!!o);
 }
 hooks.onRemove = (o) => {
   if (held === o) setHeld(null);
-  const i = thrown.indexOf(o);
-  if (i >= 0) thrown.splice(i, 1);
 };
 export function dropHeld() { setHeld(null); }
 
@@ -44,23 +44,16 @@ export function toggleGrab() {
   }
 }
 
-export function fire() {
+/** Se teniamo un oggetto lo lancia e restituisce true; altrimenti non fa nulla. */
+export function throwHeld() {
+  if (!held) return false;
   camera.getWorldDirection(camDir);
-  if (held) {
-    const b = held.body, s = held.kind === 'wreck' ? 8 : 16;
-    b.setLinvel({ x: camDir.x * s, y: camDir.y * s + 1.5, z: camDir.z * s }, true);
-    b.setAngvel({ x: Math.random() * 6 - 3, y: Math.random() * 6 - 3, z: Math.random() * 6 - 3 }, true);
-    setHeld(null);
-    thud(0.15, 200);
-    return;
-  }
-  const p = camera.position;
-  const o = makeBall(p.x + camDir.x * 0.8, p.y + camDir.y * 0.8 - 0.1, p.z + camDir.z * 0.8, 0.22, 1);
-  const pv = player.body.linvel();
-  o.body.setLinvel({ x: camDir.x * 22 + pv.x, y: camDir.y * 22 + 1, z: camDir.z * 22 + pv.z }, true);
-  thrown.push(o);
-  if (thrown.length > 40) removeObj(thrown[0]);
-  thud(0.08, 600);
+  const b = held.body, s = held.kind === 'wreck' ? 8 : 16;
+  b.setLinvel({ x: camDir.x * s, y: camDir.y * s + 1.5, z: camDir.z * s }, true);
+  b.setAngvel({ x: Math.random() * 6 - 3, y: Math.random() * 6 - 3, z: Math.random() * 6 - 3 }, true);
+  setHeld(null);
+  thud(0.15, 200);
+  return true;
 }
 
 export function spawnCrate() {

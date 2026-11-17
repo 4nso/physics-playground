@@ -15,6 +15,11 @@ export const player = {
   grounded: false,
   jumpReq: false,
   shake: 0,
+  speed: 0,      // velocità orizzontale (per oscillazione dell'arma e dispersione)
+  recoil: 0,     // rinculo della visuale verso l'alto, torna a zero da solo
+  recoilYaw: 0,
+  lookDX: 0,     // rotazione della visuale in questo frame
+  lookDY: 0,
 };
 
 export function createPlayer() {
@@ -59,6 +64,8 @@ function checkGrounded() {
 
 export function updatePlayer(dt) {
   const [lx, ly] = input.takeLook();
+  player.lookDX = lx;
+  player.lookDY = ly;
   player.yaw += lx;
   player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch + ly));
 
@@ -82,6 +89,7 @@ export function updatePlayer(dt) {
   if (player.jumpReq && player.grounded && v.y < 3) v.y = 6.2;
   player.jumpReq = false;
   player.body.setLinvel(v, true);
+  player.speed = Math.hypot(v.x, v.z);
 
   if (player.body.translation().y < -10) resetPlayer();
 }
@@ -95,7 +103,9 @@ export function pushPlayer(dx, dy, dz) {
 export function updateCamera(dt) {
   const p = player.body.translation();
   camera.position.set(p.x, p.y + EYE, p.z);
-  camera.rotation.set(player.pitch, player.yaw, 0);
+  player.recoil *= Math.exp(-dt * 7);
+  player.recoilYaw *= Math.exp(-dt * 7);
+  camera.rotation.set(Math.min(1.55, player.pitch + player.recoil), player.yaw + player.recoilYaw, 0);
   if (player.shake > 0) {
     camera.position.x += (Math.random() - 0.5) * player.shake;
     camera.position.y += (Math.random() - 0.5) * player.shake;

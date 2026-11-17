@@ -6,19 +6,22 @@ su GitHub Pages e provato su iPad prima di passare alla successiva.
 ## Fase 0 – Prototipo ✅
 - [x] Parco giochi fisico in un unico file (`prototype/physics-playground.html`)
 
-## Fase 1 – Progetto vero (in prova su iPad)
+## Fase 1 – Progetto vero ✅
 - [x] Progetto Vite in `src/` con moduli separati (vedi CLAUDE.md)
 - [x] Three.js e Rapier installati da npm al posto della CDN e di Cannon.js
 - [x] Porting del prototipo: arena, giocatore, controlli touch e desktop, casse
 - [x] Aggiornare `.github/workflows/deploy.yml` perché faccia la build con Vite
-- [ ] Il gioco è online e funziona su iPad
+- [x] Il gioco è online e funziona su iPad
 
-## Fase 2 – Armi
-- [ ] Sistema armi: pistola, fucile a pompa, mitra
-- [ ] Raycast, scie, scintille, impulso fisico sugli oggetti colpiti
-- [ ] Munizioni, ricarica, rinculo; HUD con arma e munizioni
-- [ ] Cambio arma da touch (pulsante) e da desktop (1/2/3 e rotella)
-- [ ] Modelli low-poly delle armi e suoni procedurali
+## Fase 2 – Armi (in prova su iPad)
+- [x] Sistema armi: pistola, fucile a pompa, mitra
+- [x] Raycast, scie, scintille, impulso fisico sugli oggetti colpiti
+- [x] Munizioni, ricarica, rinculo; HUD con arma e munizioni
+- [x] Cambio arma da touch (pulsante) e da desktop (1/2/3 e rotella)
+- [x] Modelli low-poly delle armi e suoni procedurali
+- [ ] Provato su iPad
+
+Nota: per ora il mitra è disponibile da subito; nella fase 3 si sbloccherà con i round.
 
 ## Fase 3 – Nemici e round
 - [ ] Nemico low-poly con animazione di camminata

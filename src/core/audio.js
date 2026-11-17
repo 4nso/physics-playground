@@ -1,5 +1,8 @@
 // Suoni generati con WebAudio (niente file audio).
 let actx = null;
+
+/** Il contesto audio (null finché il giocatore non ha toccato lo schermo). */
+export const audioCtx = () => actx;
 let lastSnd = 0;
 
 /** Da chiamare dentro un gesto dell'utente (tocco/clic): i browser lo richiedono. */

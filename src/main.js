@@ -7,13 +7,37 @@ import { initAudio } from './core/audio.js';
 import { buildArena } from './world/arena.js';
 import { syncObjects, updateRope } from './world/objects.js';
 import { player, createPlayer, updatePlayer, updateCamera, jump } from './player/player.js';
-import { fire, toggleGrab, boom, spawnCrate, updateHeld, updateFx, updateCrosshair } from './player/interact.js';
+import { throwHeld, toggleGrab, boom, spawnCrate, updateHeld, updateFx, updateCrosshair } from './player/interact.js';
+import { weaponScene } from './weapons/viewmodel.js';
+import {
+  initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, nextWeapon, refillAmmo,
+} from './weapons/weapons.js';
 import { buildLevel, resetAll, updateObjectives } from './game/playground.js';
 import { hud } from './ui/hud.js';
 import { isTouch } from './core/renderer.js';
 
 let running = false;
 let last = performance.now();
+renderer.autoClear = false;
+
+// Il grilletto lancia l'oggetto in mano, se ce n'è uno; altrimenti spara.
+let triggerBlocked = false;
+const actions = {
+  trigger(on) {
+    if (on && throwHeld()) { triggerBlocked = true; return; }
+    if (!on) triggerBlocked = false;
+    if (!triggerBlocked) setTrigger(on);
+  },
+  tap() { if (!throwHeld()) tapFire(); },
+  reload,
+  weapon: selectWeapon,
+  nextWeapon,
+  grab() { setTrigger(false); toggleGrab(); },
+  jump,
+  boom,
+  crate: spawnCrate,
+  reset() { resetAll(); refillAmmo(); },
+};
 
 function loop(now) {
   requestAnimationFrame(loop);
@@ -31,12 +55,16 @@ function loop(now) {
   const p = player.body.translation();
   followSun(p.x, p.z);
   updateFx(dt);
+  updateWeapons(running ? dt : 0, player.lookDX, player.lookDY);
   if (running) {
     updateCrosshair();
     updateObjectives();
   }
   hud.update(dt);
+  renderer.clear();
   renderer.render(scene, camera);
+  renderer.clearDepth();
+  renderer.render(weaponScene, camera); // l'arma sopra a tutto, senza entrare nei muri
 }
 
 async function start() {
@@ -51,7 +79,8 @@ async function start() {
   buildArena();
   createPlayer();
   buildLevel();
-  setupInput({ fire, grab: toggleGrab, jump, boom, crate: spawnCrate, reset: resetAll });
+  initWeapons();
+  setupInput(actions);
   requestAnimationFrame(loop);
 
   hud.ready(() => {

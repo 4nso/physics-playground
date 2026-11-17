@@ -29,13 +29,23 @@ export function requestLock() {
 
 /**
  * Collega l'input alle azioni di gioco.
- * actions: { fire, grab, jump, boom, crate, reset }
+ * actions: { trigger(on), tap, reload, weapon(i), nextWeapon(dir), grab, jump, boom, crate, reset }
+ *  - trigger(true/false): grilletto premuto/rilasciato (fuoco continuo)
+ *  - tap: un colpo singolo (clic del mouse quando il puntatore non è catturato)
  */
 export function setupInput(actions) {
   const joy = { id: null, ox: 0, oy: 0 };
   const look = { id: null, x: 0, y: 0 };
+  let fireId = null;     // dito che tiene premuto il pulsante "Spara"
+  let mouseFire = false; // tasto sinistro premuto con il puntatore catturato
   let mouseDrag = null;
   const joyEl = $('joy'), knob = $('knob');
+
+  const releaseTrigger = () => {
+    if (fireId !== null || mouseFire) actions.trigger(false);
+    fireId = null;
+    mouseFire = false;
+  };
 
   addEventListener('keydown', (e) => {
     input.keys[e.code] = true;
@@ -44,18 +54,36 @@ export function setupInput(actions) {
     if (e.code === 'KeyE') actions.grab();
     if (e.code === 'KeyF') actions.boom();
     if (e.code === 'KeyQ') actions.crate();
-    if (e.code === 'KeyR') actions.reset();
+    if (e.code === 'KeyR') actions.reload();
+    if (e.code === 'Backspace') { actions.reset(); e.preventDefault(); }
+    if (e.code === 'Digit1') actions.weapon(0);
+    if (e.code === 'Digit2') actions.weapon(1);
+    if (e.code === 'Digit3') actions.weapon(2);
   });
   addEventListener('keyup', (e) => { input.keys[e.code] = false; });
-  addEventListener('blur', () => { for (const k in input.keys) input.keys[k] = false; });
+  addEventListener('blur', () => {
+    for (const k in input.keys) input.keys[k] = false;
+    releaseTrigger();
+  });
+  document.addEventListener('pointerlockchange', () => { if (!locked() && mouseFire) releaseTrigger(); });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // Rotella del mouse: arma successiva/precedente (con una piccola pausa per i trackpad)
+  let lastWheel = 0;
+  addEventListener('wheel', (e) => {
+    if (!input.enabled || Math.abs(e.deltaY) < 4) return;
+    const now = performance.now();
+    if (now - lastWheel < 180) return;
+    lastWheel = now;
+    actions.nextWeapon(e.deltaY > 0 ? 1 : -1);
+  }, { passive: true });
 
   canvas.addEventListener('pointerdown', (e) => {
     if (!input.enabled) return;
     initAudio();
     if (e.pointerType === 'mouse') {
       if (locked()) {
-        if (e.button === 0) actions.fire();
+        if (e.button === 0) { mouseFire = true; actions.trigger(true); }
         else if (e.button === 2) actions.grab();
         return;
       }
@@ -79,6 +107,8 @@ export function setupInput(actions) {
     if (!input.enabled) return;
     if (e.pointerType === 'mouse') {
       if (locked()) {
+        // alcuni browser mandano ogni tanto salti enormi e finti: li ignoriamo
+        if (Math.abs(e.movementX) > 300 || Math.abs(e.movementY) > 300) return;
         input.lookX -= e.movementX * 0.0022;
         input.lookY -= e.movementY * 0.0022;
       } else if (mouseDrag) {
@@ -104,12 +134,14 @@ export function setupInput(actions) {
 
   function endPointer(e) {
     if (e.pointerType === 'mouse') {
+      if (mouseFire && e.button === 0) { mouseFire = false; actions.trigger(false); }
       if (mouseDrag && !locked() && mouseDrag.moved < 6) {
-        if (mouseDrag.button === 2) actions.grab(); else actions.fire();
+        if (mouseDrag.button === 2) actions.grab(); else actions.tap();
       }
       mouseDrag = null;
       return;
     }
+    if (e.pointerId === fireId) { fireId = null; actions.trigger(false); }
     if (e.pointerId === joy.id) {
       joy.id = null; input.joy.x = input.joy.y = 0;
       joyEl.style.display = 'none';
@@ -119,17 +151,27 @@ export function setupInput(actions) {
   addEventListener('pointerup', endPointer);
   addEventListener('pointercancel', endPointer);
 
-  const bind = (id, fn) => {
-    $(id).addEventListener('pointerdown', (e) => {
+  const press = (el, fn) => {
+    el.addEventListener('pointerdown', (e) => {
       e.preventDefault(); e.stopPropagation();
       initAudio();
-      if (input.enabled) fn();
+      if (input.enabled) fn(e);
     });
   };
-  bind('bFire', actions.fire);
-  bind('bJump', actions.jump);
-  bind('bGrab', actions.grab);
-  bind('bBoom', actions.boom);
-  bind('bCrate', actions.crate);
-  bind('bReset', actions.reset);
+  // "Spara": tieni premuto per il fuoco continuo; trascinando il dito sul pulsante si mira.
+  press($('bFire'), (e) => {
+    fireId = e.pointerId;
+    if (look.id === null) { look.id = e.pointerId; look.x = e.clientX; look.y = e.clientY; }
+    actions.trigger(true);
+  });
+  press($('bJump'), actions.jump);
+  press($('bGrab'), actions.grab);
+  press($('bBoom'), actions.boom);
+  press($('bReload'), actions.reload);
+  press($('bCrate'), actions.crate);
+  press($('bReset'), actions.reset);
+  press($('weapon'), (e) => {
+    const slot = e.target.closest('[data-w]');
+    if (slot) actions.weapon(+slot.dataset.w); else actions.nextWeapon(1);
+  });
 }

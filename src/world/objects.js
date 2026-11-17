@@ -10,13 +10,15 @@ export const objects = [];
 /** Callback chiamata quando un oggetto viene rimosso (es. per lasciarlo se è in mano). */
 export const hooks = { onRemove: null };
 
+const SURFACE = { crate: 'wood', domino: 'wood', ball: 'soft', wreck: 'metal' };
+
 function addObj(bodyDesc, colliderDesc, mesh, kind, freq) {
   const body = world.createRigidBody(bodyDesc);
   const collider = world.createCollider(colliderDesc, body);
   addSound(collider, body, freq);
   mesh.castShadow = mesh.receiveShadow = true;
   scene.add(mesh);
-  const o = { body, collider, mesh, kind };
+  const o = { body, collider, mesh, kind, surface: SURFACE[kind] || 'stone' };
   mesh.userData.obj = o;
   objects.push(o);
   pickables.push(mesh);
