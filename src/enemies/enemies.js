@@ -107,10 +107,12 @@ onBeforeStep(() => {
 /* ---------- Danni e morte ---------- */
 /**
  * Infligge danno. dir = direzione del colpo (unitaria), point = punto colpito.
- * impulse = spinta fisica. Restituisce true se il nemico muore.
+ * impulse = spinta fisica. by = chi ha colpito (id del giocatore, 'local' = questo dispositivo):
+ * i punti dell'uccisione vanno all'ultimo che l'ha colpito. Restituisce true se il nemico muore.
  */
-export function damageEnemy(e, amount, dir, point, headshot, impulse) {
+export function damageEnemy(e, amount, dir, point, headshot, impulse, by) {
   if (e.dead) return false;
+  if (by) e.lastBy = by;
   e.health -= amount;
   e.flash = 0.08;
   flashModel(e.model, true);

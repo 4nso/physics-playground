@@ -6,7 +6,7 @@ import { onSettings } from './settings.js';
 const $ = (id) => document.getElementById(id);
 let msgTimer = 0, hurtT = 0, markT = 0;
 let lastGap = -1;
-let icons = [];
+let slotsKey = '';
 const last = {};
 const setText = (id, text) => { if (last[id] !== text) { $(id).textContent = text; last[id] = text; } };
 
@@ -25,8 +25,8 @@ function layoutButtons(scale = btnScale) {
   const F = Math.round(Math.max(72, Math.min(104, short * 0.22)) * scale); // diametro di "Spara"
   const gap = Math.round(9 * scale);
   const c = F / 2; // centro di "Spara" rispetto all'angolo
-  const place = (id, d, deg) => {
-    const el = $(id), a = (deg * Math.PI) / 180, r = c + gap + d / 2;
+  const place = (id, d, deg, extra = 0) => {
+    const el = $(id), a = (deg * Math.PI) / 180, r = c + gap + d / 2 + extra;
     Object.assign(el.style, {
       width: d + 'px', height: d + 'px',
       right: Math.round(c - r * Math.cos(a) - d / 2) + 'px',
@@ -37,14 +37,17 @@ function layoutButtons(scale = btnScale) {
   place('bJump', Math.round(F * 0.7), 180);
   place('bReload', Math.round(F * 0.6), 133);
   place('bGrab', Math.round(F * 0.6), 87);
+  place('bZoom', Math.round(F * 0.6), 128, Math.round(F * 0.6) + gap); // secondo giro, sopra "Ricarica"
+  // il pannello del negozio sta subito a sinistra dei pulsanti, sotto il pollice destro
+  document.documentElement.style.setProperty('--arc', Math.round(F * 1.75 + gap * 2 + 6) + 'px');
   document.documentElement.style.setProperty('--bs', scale);
 }
 
 export const hud = {
   init() {
     $('howto').innerHTML = isTouch
-      ? "<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Spara</b>: tienilo premuto e trascina il dito per mirare</li><li>Tocca le <b>icone delle armi</b> in alto a destra per cambiarla · <b>⟳</b> ricarica</li><li>Spingi il joystick <b>oltre il bordo</b> per correre</li><li>Mira alla <b>testa</b>: danno doppio!</li><li>Tra un round e l'altro raccogli <b>munizioni</b> e <b>vita</b></li><li>La <b>minimappa</b> in alto a sinistra gira con te: puntini rossi = nemici</li>"
-      : "<li><b>WASD</b> muovi · <b>Mouse</b> mira · <b>Shift</b> corri · <b>Spazio</b> salta</li><li><b>Clic</b> spara · <b>1/2/3</b> o <b>rotella</b> cambia arma · <b>R</b> ricarica</li><li><b>E</b>: afferra una cassa, poi <b>clic</b> per lanciarla sui nemici</li><li>Mira alla <b>testa</b>: danno doppio! · <b>Esc</b> pausa</li><li>Tra un round e l'altro raccogli <b>munizioni</b> e <b>vita</b></li><li>La <b>minimappa</b> in alto a sinistra gira con te: puntini rossi = nemici</li>";
+      ? "<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Spara</b>: tienilo premuto e trascina il dito per mirare</li><li>Tocca le <b>icone delle armi</b> in alto a destra per cambiarla · <b>⟳</b> ricarica</li><li>Spingi il joystick <b>oltre il bordo</b> per correre</li><li>Mira alla <b>testa</b>: danno doppio!</li><li>Con i punti compra armi e potenziamenti al <b>🛒 negozio</b> davanti alla partenza: avvicinati al banco e tocca</li><li>Cecchino: <b>🔭 Mirino</b> per lo zoom</li>"
+      : "<li><b>WASD</b> muovi · <b>Mouse</b> mira · <b>Shift</b> corri · <b>Spazio</b> salta</li><li><b>Clic</b> spara · <b>1/2/3</b> o <b>rotella</b> cambia arma · <b>R</b> ricarica</li><li><b>E</b>: afferra una cassa, poi <b>clic</b> per lanciarla sui nemici</li><li>Mira alla <b>testa</b>: danno doppio! · <b>Esc</b> pausa</li><li>Con i punti compra armi e potenziamenti al <b>🛒 negozio</b> davanti alla partenza: avvicinati al banco e premi <b>B</b></li><li>Cecchino: <b>tasto destro</b> o <b>Q</b> per il mirino</li>";
     if (isTouch) {
       document.body.classList.add('touch');
       $('btns').style.display = 'block';
@@ -80,6 +83,7 @@ export const hud = {
   },
   setRound(n) { setText('pRound', `Round ${n}/${MAX_ROUNDS}`); },
   setEnemies(n) { setText('pEnemies', `👾 ${n}`); },
+  /** Punti da spendere (la moneta del negozio). */
   setScore(n) { setText('pScore', `★ ${n}`); },
   /** Conto alla rovescia tra i round (null per nasconderlo). */
   setBreak(seconds) {
@@ -103,16 +107,22 @@ export const hud = {
     markT = kill ? 0.25 : 0.12;
   },
 
-  buildWeaponSlots(list) {
-    icons = list.map((w) => w.icon);
-    $('wSlots').innerHTML = list.map((w, i) => `<button data-w="${i}" aria-label="${w.name}">${slotLabel(i, w.icon)}</button>`).join('');
+  /** Armi in mano (al massimo 3): un pulsante per ognuna. current = posizione dell'arma attuale. */
+  setSlots(list, current) {
+    const key = list.map((w) => w.id).join(',');
+    if (key !== slotsKey) {
+      slotsKey = key;
+      $('wSlots').innerHTML = list.map((w, i) => `<button data-w="${i}" aria-label="${w.name}">${slotLabel(i, w.icon)}</button>`).join('');
+    }
+    document.querySelectorAll('#wSlots button').forEach((b, i) => b.classList.toggle('on', i === current));
   },
-  setLocked(unlocked) {
-    document.querySelectorAll('#wSlots button').forEach((b, i) => {
-      b.style.opacity = unlocked[i] ? '' : '0.45';
-      b.textContent = slotLabel(i, unlocked[i] ? icons[i] : '🔒');
-    });
+  /** Mirino del cecchino (cerchio nero attorno). */
+  setScope(on) {
+    $('scope').classList.toggle('on', on);
+    document.body.classList.toggle('scoped', on);
   },
+  /** Pulsante "Mirino" su touch: c'è solo con le armi che hanno lo zoom. */
+  setZoomButton(on) { $('bZoom').style.display = on ? '' : 'none'; },
   setWeapon(index, name, mag, reserve, reloading) {
     document.querySelectorAll('#wSlots button').forEach((b, i) => b.classList.toggle('on', i === index));
     $('wName').textContent = name;

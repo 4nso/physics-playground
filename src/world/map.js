@@ -18,6 +18,7 @@ export const map = {
   bounds: { minX: ZONES[0].x0, minZ: Z0, maxX: ZONES[ZONES.length - 1].x1, maxZ: Z1 },
   walls: [],         // rettangoli per la minimappa [x0, z0, x1, z1]
   ramps: [],
+  shops: [],        // negozi: { x, z, y, fx, fz, signX, signY, signZ } (vedi world/shop.js)
 };
 /** Corpo fisso a cui è appesa la palla demolitrice. */
 export let wreckAnchor = null;
@@ -41,9 +42,9 @@ function clearWorld() {
 export function buildWorld(seed) {
   clearWorld();
   const b = new Builder();
-  const ctx = { props: [], wreck: null, spawn: null };
+  const ctx = { props: [], wreck: null, spawn: null, shops: [] };
   buildZones(b, makeRng(seed), ctx);
-  Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn });
+  Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn, shops: ctx.shops });
 
   // mesh unite: una per blocco da 12×12 m (quelle fuori dalla visuale non si disegnano)
   for (const ch of b.chunks.values()) {

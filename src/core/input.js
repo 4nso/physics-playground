@@ -60,7 +60,8 @@ export function requestLock() {
 
 /**
  * Collega l'input alle azioni di gioco.
- * actions: { trigger(on), tap, reload, weapon(i), nextWeapon(dir), grab, jump, pause, lockLost }
+ * actions: { trigger(on), tap, reload, weapon(i), nextWeapon(dir), grab, alt, zoom, shop, jump, pause, lockLost }
+ *  - alt: tasto destro del mouse (mirino col cecchino, altrimenti afferra)
  *  - trigger(true/false): grilletto premuto/rilasciato (fuoco continuo)
  *  - tap: un colpo singolo (clic del mouse quando il puntatore non è catturato)
  */
@@ -88,6 +89,8 @@ export function setupInput(actions) {
     if (e.code === 'Space') { actions.jump(); e.preventDefault(); }
     if (e.code === 'KeyE') actions.grab();
     if (e.code === 'KeyR') actions.reload();
+    if (e.code === 'KeyQ') actions.zoom();
+    if (e.code === 'KeyB') actions.shop();
     if (e.code === 'KeyP' || e.code === 'Escape') actions.pause();
     if (e.code === 'Digit1') actions.weapon(0);
     if (e.code === 'Digit2') actions.weapon(1);
@@ -123,7 +126,7 @@ export function setupInput(actions) {
     if (e.pointerType === 'mouse') {
       if (locked()) {
         if (e.button === 0) { mouseFire = true; actions.trigger(true); }
-        else if (e.button === 2) actions.grab();
+        else if (e.button === 2) actions.alt();
         return;
       }
       requestLock();
@@ -193,7 +196,7 @@ export function setupInput(actions) {
     if (e.pointerType === 'mouse') {
       if (mouseFire && e.button === 0) { mouseFire = false; actions.trigger(false); }
       if (mouseDrag && !locked() && mouseDrag.moved < 6) {
-        if (mouseDrag.button === 2) actions.grab(); else actions.tap();
+        if (mouseDrag.button === 2) actions.alt(); else actions.tap();
       }
       mouseDrag = null;
       return;
@@ -227,6 +230,7 @@ export function setupInput(actions) {
   press($('bJump'), actions.jump);
   press($('bGrab'), actions.grab);
   press($('bReload'), actions.reload);
+  press($('bZoom'), actions.zoom);
   press($('bPause'), actions.pause);
   press($('weapon'), (e) => {
     const slot = e.target.closest('[data-w]');

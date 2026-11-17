@@ -5,6 +5,7 @@
 // (strisce e decorazioni sono sempre un po' più in alto del pavimento e mai sovrapposte tra loro).
 import * as THREE from 'three';
 import { SKIP } from './builder.js';
+import { buildShop } from './shop.js';
 
 export const Z0 = -36, Z1 = 36;          // la mappa va da z = -36 a 36
 export const ZONES = [
@@ -277,14 +278,16 @@ function park(b, rng, ctx) {
   const PATH = 0xcdb68a;
   for (const x of [-5, 5]) b.box(x - 1, 0, Z0, x + 1, 0.02, Z1, PATH, { collide: false, skip: SKIP.BOTTOM });
   for (const z of [-24, -12, 0, 12, 24]) b.box(X0, 0, z - 1, X1, 0.03, z + 1, PATH, { collide: false, skip: SKIP.BOTTOM });
-  // piazzole 3×6; quella al centro (0, 6) è la piazza di partenza
+  // piazzole 3×6; quella al centro (0, 6) è la piazza di partenza, quella davanti (0, -6) il negozio
   const slots = [];
-  for (const cz of [-30, -18, -6, 6, 18, 30]) for (const cx of [-10, 0, 10]) if (!(cx === 0 && cz === 6)) slots.push([cx, cz]);
+  for (const cz of [-30, -18, -6, 6, 18, 30]) for (const cx of [-10, 0, 10]) if (!(cx === 0 && (cz === 6 || cz === -6))) slots.push([cx, cz]);
   const kinds = Object.keys(TOYS);
   const list = [...kinds];
   while (list.length < slots.length) list.push(rng.pick(['torre', 'piscinaPalline', 'fortino', 'trampolini', 'pallone', 'boschetto']));
   rng.shuffle(list);
   slots.forEach(([cx, cz], i) => TOYS[list[i]](b, rng, ctx, cx, cz));
+  // negozio davanti alla piazza di partenza, con il banco rivolto verso di essa
+  buildShop(b, ctx, 0, -4, '+z');
   // piazza di partenza: portale della palla demolitrice
   b.box(-4, 0, 1, 4, 0.04, 11, 0xd7c39b, { collide: false, skip: SKIP.BOTTOM });
   b.box(-3.75, 0, 2.85, -3.45, 7.3, 3.15, METAL, { surface: 'metal', skip: SKIP.BOTTOM });

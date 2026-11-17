@@ -1,42 +1,51 @@
 // Logica delle armi: sparo (raycast), munizioni, ricarica, rinculo, dispersione, cambio arma.
 import * as THREE from 'three';
-import { camera } from '../core/renderer.js';
+import { camera, setZoom } from '../core/renderer.js';
 import { castWorld } from '../world/raycast.js';
 import { player, addRecoil } from '../player/player.js';
-import { WEAPONS } from './defs.js';
-import { models, showModel, kickModel, setReloadProgress, muzzleWorld, updateViewModel } from './viewmodel.js';
+import { WEAPONS, START_WEAPONS, MAX_SLOTS, weaponIndex } from './defs.js';
+import { models, showModel, hideModel, kickModel, setReloadProgress, muzzleWorld, updateViewModel } from './viewmodel.js';
+import { spawnProjectile, updateProjectiles, clearProjectiles, projHooks, newPid } from './projectiles.js';
 import { addTracer, impact, muzzleFlash, updateEffects } from './effects.js';
 import { shotSound, reloadSound, emptySound, switchSound } from './sounds.js';
 import { hud } from '../ui/hud.js';
 import { damageEnemy } from '../enemies/enemies.js';
 
 const state = {
-  current: 0,
+  slots: [],      // armi in mano (indici in WEAPONS), al massimo MAX_SLOTS
+  slot: 0,        // posizione dell'arma attuale in slots
+  current: 0,     // indice in WEAPONS dell'arma attuale
   ammo: WEAPONS.map((w) => ({ mag: w.mag, reserve: w.reserve })),
   cooldown: 0,
   reloadT: 0,     // secondi di ricarica rimasti (0 = non sta ricaricando)
+  reloadTotal: 1, // durata della ricarica in corso
+  reloadMul: 1,   // potenziamento "ricarica veloce" (1 = normale)
   drawT: 0,       // secondi prima di poter sparare dopo il cambio arma
   trigger: false, // grilletto premuto (fuoco continuo)
   tap: false,     // un singolo colpo richiesto (clic senza pointer lock)
   bloom: 0,       // dispersione extra dovuta al fuoco continuo
   emptyClick: false,
-  unlocked: WEAPONS.map((w) => w.unlockRound <= 1),
+  zoomed: false,  // mirino del cecchino
 };
 /**
  * Collegamenti verso gioco e rete:
  *  onEnemyHit(killed, headshot, shooterId) · onShot(origin, dirs, ends, weaponIndex)
- *  isAuthority() → true se questo dispositivo decide i danni (da solo o host)
+ *  onProjectile(pid, origin, dir, weaponIndex) · isAuthority() → true se questo dispositivo decide i danni
  */
-export const weaponHooks = { onEnemyHit: null, onShot: null, isAuthority: null };
+export const weaponHooks = { onEnemyHit: null, onShot: null, onProjectile: null, isAuthority: null };
 /** Mesh da ignorare negli spari (ad esempio l'oggetto che teniamo in mano). */
 export const shotFilter = { ignore: null };
+projHooks.onHit = (killed, owner) => { if (weaponHooks.onEnemyHit) weaponHooks.onEnemyHit(killed, false, owner); };
 
 export const currentWeapon = () => WEAPONS[state.current];
 export const currentWeaponIndex = () => state.current;
+/** Armi in mano (indici in WEAPONS). */
+export const ownedWeapons = () => state.slots;
+export const ownsWeapon = (wi) => state.slots.includes(wi);
+export const slotsFull = () => state.slots.length >= MAX_SLOTS;
 
 export function initWeapons() {
-  hud.buildWeaponSlots(WEAPONS);
-  hud.setLocked(state.unlocked);
+  resetSlots();
   showModel(state.current);
   refreshHud();
 }
@@ -47,36 +56,57 @@ export function setTrigger(on) {
 }
 export function tapFire() { state.tap = true; state.emptyClick = false; }
 
-export function selectWeapon(i) {
-  if (i < 0 || i >= WEAPONS.length || i === state.current) return;
-  if (!state.unlocked[i]) { hud.flash(`🔒 ${WEAPONS[i].name}: dal round ${WEAPONS[i].unlockRound}`); return; }
-  state.current = i;
+function equip(slot) {
+  state.slot = slot;
+  state.current = state.slots[slot];
   state.reloadT = 0;
   state.drawT = 0.3;
   state.bloom = 0;
+  setZoomed(false);
   setReloadProgress(0);
-  showModel(i);
+  showModel(state.current);
   switchSound();
   refreshHud();
 }
+
+/** Prende l'arma nella posizione `slot` (tasti 1/2/3 o icone in alto). */
+export function selectWeapon(slot) {
+  if (slot < 0 || slot >= state.slots.length || slot === state.slot) return;
+  equip(slot);
+}
 export function nextWeapon(dir) {
-  let i = state.current;
-  for (let k = 0; k < WEAPONS.length; k++) {
-    i = (i + dir + WEAPONS.length) % WEAPONS.length;
-    if (state.unlocked[i]) break;
-  }
-  selectWeapon(i);
+  const n = state.slots.length;
+  if (n > 1) equip((state.slot + dir + n) % n);
 }
 
-/** Sblocca le armi disponibili a questo round. Restituisce i nomi di quelle appena sbloccate. */
-export function unlockForRound(round) {
-  const fresh = [];
-  WEAPONS.forEach((w, i) => {
-    if (!state.unlocked[i] && w.unlockRound <= round) { state.unlocked[i] = true; fresh.push(w.name); }
-  });
-  hud.setLocked(state.unlocked);
-  return fresh;
+/**
+ * Dà un'arma (comprata o vinta). Se ce l'hai già, ricarica le sue munizioni.
+ * Se hai già MAX_SLOTS armi, sostituisce quella in mano. Restituisce il nome dell'arma sostituita (o null).
+ */
+export function giveWeapon(wi) {
+  const w = WEAPONS[wi];
+  refillWeapon(wi);
+  if (ownsWeapon(wi)) { equip(state.slots.indexOf(wi)); return null; }
+  let replaced = null;
+  if (state.slots.length < MAX_SLOTS) state.slots.push(wi);
+  else { replaced = WEAPONS[state.slots[state.slot]].name; state.slots[state.slot] = wi; }
+  hud.setSlots(state.slots.map((i) => WEAPONS[i]), state.slot);
+  equip(state.slots.indexOf(wi));
+  hud.flash(`${w.icon} ${w.name}!`, 1.6);
+  return replaced;
 }
+
+/** Munizioni piene per un'arma. */
+export function refillWeapon(wi) {
+  const w = WEAPONS[wi];
+  state.ammo[wi].mag = w.mag;
+  state.ammo[wi].reserve = w.reserve;
+  if (wi === state.current) { state.reloadT = 0; setReloadProgress(0); }
+  refreshHud();
+}
+
+/** Potenziamento "ricarica veloce": mul = 1 normale, 0.8 = 20% più veloce... */
+export function setReloadMul(mul) { state.reloadMul = mul; }
 
 /** Aggiunge munizioni di riserva (raccolte da terra). */
 export function addAmmo() {
@@ -87,20 +117,30 @@ export function addAmmo() {
   refreshHud();
 }
 
+function resetSlots() {
+  state.slots = START_WEAPONS.map(weaponIndex);
+  state.slot = 0;
+  state.current = state.slots[0];
+  hud.setSlots(state.slots.map((i) => WEAPONS[i]), state.slot);
+}
+
 /** Nuova partita: munizioni piene, solo le armi iniziali, pistola in mano. */
 export function resetWeapons() {
-  state.unlocked = WEAPONS.map((w) => w.unlockRound <= 1);
-  hud.setLocked(state.unlocked);
   state.trigger = false;
+  state.reloadMul = 1;
+  clearProjectiles();
   refillAmmo();
-  if (state.current !== 0) selectWeapon(0);
+  resetSlots();
+  equip(0);
 }
 
 export function reload() {
   const w = currentWeapon(), a = state.ammo[state.current];
   if (state.reloadT > 0 || state.drawT > 0 || a.mag >= w.mag || a.reserve <= 0) return;
-  state.reloadT = w.reload;
-  reloadSound(w.reload);
+  state.reloadTotal = w.reload * state.reloadMul;
+  state.reloadT = state.reloadTotal;
+  setZoomed(false);
+  reloadSound(state.reloadTotal);
   refreshHud();
 }
 
@@ -121,6 +161,24 @@ export function refillAmmo() {
   refreshHud();
 }
 
+/* ---------- Mirino con zoom (cecchino) ---------- */
+function setZoomed(on) {
+  const w = currentWeapon();
+  on = !!(on && w.zoom);
+  state.zoomed = on;
+  setZoom(on ? w.zoom : 1);
+  hideModel(on);
+  hud.setScope(on);
+}
+/** Attiva o disattiva il mirino (solo per le armi che lo hanno). */
+export function toggleZoom() {
+  if (!currentWeapon().zoom || state.reloadT > 0) return;
+  setZoomed(!state.zoomed);
+}
+export const hasZoom = () => !!currentWeapon().zoom;
+/** Toglie il mirino (ad esempio quando si va in pausa o si muore). */
+export function unzoom() { if (state.zoomed) setZoomed(false); }
+
 /* ---------- Sparo ---------- */
 const origin = new THREE.Vector3(), fwd = new THREE.Vector3(), right = new THREE.Vector3(), up = new THREE.Vector3();
 const dir = new THREE.Vector3(), end = new THREE.Vector3(), muzzle = new THREE.Vector3(), normal = new THREE.Vector3();
@@ -128,7 +186,8 @@ const impulse = { x: 0, y: 0, z: 0 }, at = { x: 0, y: 0, z: 0 };
 
 function currentSpread(w) {
   const air = player.grounded ? 0 : 0.03;
-  return w.spread + state.bloom + Math.min(1, player.speed / 5.5) * w.moveSpread + air;
+  const base = state.zoomed && w.zoomSpread !== undefined ? w.zoomSpread : w.spread;
+  return base + state.bloom + Math.min(1, player.speed / 5.5) * w.moveSpread + air;
 }
 
 /**
@@ -148,7 +207,7 @@ function castPellet(o, d, w, authority, shooterId) {
     impact(hit.point, normal, 'enemy', n);
     if (enemy && authority) {
       const head = !!ud.head;
-      const killed = damageEnemy(enemy, w.damage * (head ? 2 : 1), d, hit.point, head, w.impulse);
+      const killed = damageEnemy(enemy, w.damage * (head ? w.headMul || 2 : 1), d, hit.point, head, w.impulse, shooterId);
       if (weaponHooks.onEnemyHit) weaponHooks.onEnemyHit(killed, head, shooterId);
     }
   } else impact(hit.point, normal, ud.surface || (obj && obj.surface) || 'stone', n + 1);
@@ -178,7 +237,14 @@ function shoot() {
   const authority = weaponHooks.isAuthority ? weaponHooks.isAuthority() : true;
   shotDirs.length = shotEnds.length = 0;
 
-  for (let p = 0; p < w.pellets; p++) {
+  if (w.projectile) {
+    // granata o razzo: parte dalla canna nella direzione in cui guardi
+    const r = Math.sqrt(Math.random()) * spread, a2 = Math.random() * Math.PI * 2;
+    dir.copy(fwd).addScaledVector(right, Math.cos(a2) * r).addScaledVector(up, Math.sin(a2) * r).normalize();
+    const pid = newPid();
+    spawnProjectile(pid, state.current, muzzle, dir, 'local', authority, shotFilter.ignore);
+    if (weaponHooks.onProjectile) weaponHooks.onProjectile(pid, muzzle, dir, state.current);
+  } else for (let p = 0; p < w.pellets; p++) {
     // direzione casuale dentro un cono (distribuzione uniforme nel disco)
     const r = Math.sqrt(Math.random()) * spread, a2 = Math.random() * Math.PI * 2;
     dir.copy(fwd).addScaledVector(right, Math.cos(a2) * r).addScaledVector(up, Math.sin(a2) * r).normalize();
@@ -187,7 +253,7 @@ function shoot() {
     shotDirs.push([dir.x, dir.y, dir.z]);
     shotEnds.push([end.x, end.y, end.z, hit ? 1 : 0]);
   }
-  if (weaponHooks.onShot) weaponHooks.onShot(origin, shotDirs, shotEnds, state.current);
+  if (!w.projectile && weaponHooks.onShot) weaponHooks.onShot(origin, shotDirs, shotEnds, state.current);
 
   state.bloom = Math.min(w.maxBloom, state.bloom + w.bloom);
   addRecoil(w.recoil, (Math.random() - 0.5) * w.recoil * 0.3);
@@ -196,6 +262,20 @@ function shoot() {
   shotSound(w);
   refreshHud();
   if (a.mag === 0 && a.reserve > 0) reload(); // ricarica automatica a caricatore vuoto
+}
+
+/** Host: un altro giocatore ha lanciato una granata o un razzo (qui è vero e fa danni). */
+const pv = new THREE.Vector3(), pd = new THREE.Vector3();
+export function resolveRemoteProjectile(shooterId, pid, o, d, wi) {
+  if (!WEAPONS[wi] || !WEAPONS[wi].projectile) return;
+  spawnProjectile(pid, wi, pv.set(o[0], o[1], o[2]), pd.set(d[0], d[1], d[2]).normalize(), shooterId, true);
+  shotSound(WEAPONS[wi], 0.45);
+}
+/** Client: mostra la granata o il razzo di un altro giocatore (solo da vedere). */
+export function showRemoteProjectile(pid, o, d, wi) {
+  if (!WEAPONS[wi] || !WEAPONS[wi].projectile) return;
+  spawnProjectile(pid, wi, pv.set(o[0], o[1], o[2]), pd.set(d[0], d[1], d[2]).normalize(), 'remote', false);
+  shotSound(WEAPONS[wi], 0.45);
 }
 
 /**
@@ -238,8 +318,9 @@ export function updateWeapons(dt, lookDX, lookDY) {
 
   if (state.reloadT > 0) {
     state.reloadT -= dt;
-    setReloadProgress(1 - Math.max(0, state.reloadT) / w.reload);
-    hud.setReload(1 - Math.max(0, state.reloadT) / w.reload);
+    const prog = 1 - Math.max(0, state.reloadT) / state.reloadTotal;
+    setReloadProgress(prog);
+    hud.setReload(prog);
     if (state.reloadT <= 0) { state.reloadT = 0; finishReload(); }
   }
 
@@ -251,8 +332,10 @@ export function updateWeapons(dt, lookDX, lookDY) {
     else if (!state.emptyClick) { emptySound(); state.emptyClick = true; state.cooldown = 0.3; }
   }
 
+  if (state.zoomed && !player.alive) setZoomed(false);
   updateViewModel(dt, player.speed, player.grounded, lookDX, lookDY);
   updateEffects(dt);
+  updateProjectiles(dt);
 
   // Mirino: la distanza delle stanghette mostra la dispersione attuale
   const px = (Math.tan(currentSpread(w)) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * (innerHeight / 2);
@@ -261,7 +344,8 @@ export function updateWeapons(dt, lookDX, lookDY) {
 
 function refreshHud() {
   const w = currentWeapon(), a = state.ammo[state.current];
-  hud.setWeapon(state.current, w.name, a.mag, a.reserve, state.reloadT > 0);
+  hud.setWeapon(state.slot, w.name, a.mag, a.reserve, state.reloadT > 0);
+  hud.setZoomButton(!!w.zoom);
 }
 
 export { models };

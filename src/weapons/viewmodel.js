@@ -34,6 +34,9 @@ const GM = {
   dark: mat(0x1f2228, { roughness: 0.7 }),
   wood: mat(0x8a5a2b, { roughness: 0.85 }),
   accent: mat(0xd2452f, { roughness: 0.6 }),
+  olive: mat(0x5d6b4a, { roughness: 0.75 }),
+  sand: mat(0xb59a6a, { roughness: 0.8 }),
+  glass: mat(0x5fb6ff, { roughness: 0.2, metalness: 0.3, emissive: 0x0b2a44 }),
 };
 const boxGeo = new THREE.BoxGeometry(1, 1, 1);
 const cylGeo = new THREE.CylinderGeometry(1, 1, 1, 6);
@@ -102,7 +105,58 @@ function smg() {
   return finish(g, [0, 0.01, -0.37], [0.16, -0.165, -0.52]);
 }
 
-export const models = [pistol(), shotgun(), smg()];
+function rifle() {
+  const g = new THREE.Group();
+  box(g, GM.dark, [0.05, 0.075, 0.34], [0, 0, -0.1]);            // corpo
+  box(g, GM.metal, [0.03, 0.03, 0.2], [0, 0.055, -0.08]);        // slitta
+  box(g, GM.sand, [0.056, 0.06, 0.2], [0, -0.004, -0.33]);       // paramano
+  cyl(g, GM.metal, 0.011, 0.2, [0, 0.012, -0.5]);                // canna
+  box(g, GM.metal, [0.03, 0.15, 0.06], [0, -0.1, -0.15], -0.2);  // caricatore curvo
+  box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.08, 0.03], 0.25);  // impugnatura
+  box(g, GM.sand, [0.045, 0.09, 0.22], [0, -0.02, 0.2]);         // calcio
+  box(g, GM.accent, [0.012, 0.03, 0.012], [0, 0.07, -0.42]);     // mirino
+  return finish(g, [0, 0.012, -0.61], [0.16, -0.17, -0.55]);
+}
+
+function sniper() {
+  const g = new THREE.Group();
+  box(g, GM.olive, [0.05, 0.07, 0.46], [0, 0, -0.08]);           // calciatura
+  cyl(g, GM.metal, 0.012, 0.5, [0, 0.02, -0.55]);                // canna lunga
+  cyl(g, GM.dark, 0.026, 0.24, [0, 0.085, -0.08]);               // ottica
+  cyl(g, GM.glass, 0.022, 0.01, [0, 0.085, 0.045]);              // lente
+  box(g, GM.dark, [0.02, 0.04, 0.03], [0, 0.05, -0.12]);         // attacco ottica
+  box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.08, 0.05], 0.25);  // impugnatura
+  box(g, GM.olive, [0.045, 0.11, 0.2], [0, -0.03, 0.24]);        // calcio
+  box(g, GM.metal, [0.03, 0.08, 0.05], [0, -0.07, -0.12]);       // caricatore
+  return finish(g, [0, 0.02, -0.81], [0.15, -0.17, -0.5]);
+}
+
+function launcher() {
+  const g = new THREE.Group();
+  cyl(g, GM.olive, 0.045, 0.34, [0, 0.01, -0.25]);               // canna grossa
+  cyl(g, GM.dark, 0.05, 0.03, [0, 0.01, -0.43]);                 // bocca
+  cyl(g, GM.metal, 0.06, 0.12, [0, -0.01, -0.04]);               // tamburo
+  box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.09, 0.06], 0.25);  // impugnatura
+  box(g, GM.dark, [0.03, 0.09, 0.04], [0, -0.07, -0.22]);        // impugnatura davanti
+  box(g, GM.olive, [0.04, 0.08, 0.2], [0, -0.03, 0.2]);          // calcio
+  box(g, GM.accent, [0.01, 0.05, 0.01], [0, 0.075, -0.3]);       // mirino
+  return finish(g, [0, 0.01, -0.45], [0.16, -0.17, -0.5]);
+}
+
+function bazooka() {
+  const g = new THREE.Group();
+  cyl(g, GM.olive, 0.06, 0.78, [0, 0.03, -0.22]);                // tubo sulla spalla
+  cyl(g, GM.dark, 0.068, 0.05, [0, 0.03, -0.6]);                 // anello davanti
+  cyl(g, GM.dark, 0.068, 0.05, [0, 0.03, 0.15]);                 // anello dietro
+  box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.08, -0.08], 0.2);  // impugnatura
+  box(g, GM.dark, [0.03, 0.09, 0.04], [0, -0.07, -0.34]);
+  box(g, GM.accent, [0.03, 0.05, 0.05], [-0.065, 0.075, -0.3]);  // mirino laterale
+  box(g, GM.sand, [0.125, 0.02, 0.02], [0, 0.03, -0.45]);        // striscia
+  return finish(g, [0, 0.03, -0.63], [0.2, -0.16, -0.5]);
+}
+
+/** Stesso ordine di WEAPONS in defs.js. */
+export const models = [pistol(), shotgun(), smg(), rifle(), sniper(), launcher(), bazooka()];
 
 /* ---------- Animazione ---------- */
 const anim = {
@@ -121,10 +175,16 @@ const anim = {
   swayY: 0,
 };
 
+let hidden = false;
 export function showModel(i) {
-  models.forEach((m, k) => { m.visible = k === i; });
+  models.forEach((m, k) => { m.visible = k === i && !hidden; });
   anim.current = i;
   anim.draw = 1;
+}
+/** Nasconde l'arma (mentre si guarda nel mirino del cecchino). */
+export function hideModel(on) {
+  hidden = on;
+  models.forEach((m, k) => { m.visible = k === anim.current && !hidden; });
 }
 export function kickModel(amount) {
   anim.kickTarget = Math.min(0.2, anim.kickTarget + amount);

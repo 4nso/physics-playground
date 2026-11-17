@@ -4,7 +4,7 @@
 import { input, requestLock, exitLock } from '../core/input.js';
 import { thud } from '../core/audio.js';
 import { player, resetPlayer, pushPlayer, MAX_HEALTH } from '../player/player.js';
-import { setTrigger, resetWeapons, unlockForRound, addAmmo, weaponHooks } from '../weapons/weapons.js';
+import { setTrigger, resetWeapons, addAmmo, weaponHooks, unzoom } from '../weapons/weapons.js';
 import { enemies, spawnEnemy, clearEnemies, enemyHooks, setFaceSets } from '../enemies/enemies.js';
 import { spawnPickup, clearPickups, pickupHooks } from './pickups.js';
 import { buildLevel } from './level.js';
@@ -14,6 +14,7 @@ import { map, buildWorld } from '../world/map.js';
 import { dropHeld } from '../player/interact.js';
 import { net } from '../net/net.js';
 import { hud } from '../ui/hud.js';
+import { resetShop, setShopMember, closeShopping } from './shop.js';
 
 const $ = (id) => document.getElementById(id);
 const BREAK_TIME = 12;
@@ -46,9 +47,16 @@ export function localMember() { return team.get(net.myId); }
 export function setupTeam(members) {
   team.clear();
   for (const m of members) {
-    team.set(m.id, { id: m.id, slot: m.slot, local: m.id === net.myId, health: MAX_HEALTH, down: false, reviveT: 0, x: 0, y: 0, z: 0, yaw: 0, pitch: 0, weapon: 0, speed: 0 });
+    team.set(m.id, {
+      id: m.id, slot: m.slot, local: m.id === net.myId, health: MAX_HEALTH, maxHealth: MAX_HEALTH, down: false, reviveT: 0,
+      x: 0, y: 0, z: 0, yaw: 0, pitch: 0, weapon: 0, speed: 0,
+      money: 0, upg: { hp: 0, reload: 0 }, // punti da spendere e potenziamenti comprati (decisi da solo / dall'host)
+    });
   }
 }
+setShopMember(() => localMember());
+/** Punti da spendere del giocatore locale. */
+export function myMoney() { const me = localMember(); return me ? me.money || 0 : 0; }
 export function removeMember(id) { team.delete(id); }
 
 function posOf(m) { return m.local ? player.pos : m; }
@@ -98,11 +106,8 @@ function beginRound() {
   game.spawnT = 0.5;
   hud.setRound(game.round);
   hud.setBreak(null);
-  const fresh = unlockForRound(game.round);
-  if (fresh.length) addAmmo();
   if (net.mode === 'host' && gameNet.toAll) gameNet.toAll({ t: 'round', r: game.round });
   let text = game.round === MAX_ROUNDS ? `Round ${game.round}: l'ultimo!` : `Round ${game.round}`;
-  if (fresh.length) text += `<br><small>🔓 ${fresh.join(', ')} sbloccato!</small>`;
   if (game.cfg.bosses) text += `<br><small>⚠️ Round del boss${game.cfg.bosses > 1 ? ' (sono ' + game.cfg.bosses + '!)' : ''}</small>`;
   else if (game.round === 8) text += '<br><small>⚠️ Arrivano i corazzati</small>';
   announce(text, 2.6);
@@ -112,7 +117,6 @@ function beginRound() {
 function endRound() {
   if (game.round >= MAX_ROUNDS) {
     game.score += 250 * game.round;
-    hud.setScore(game.score);
     gameOver({ round: game.round, score: game.score, kills: game.kills, win: true });
     return;
   }
@@ -120,19 +124,25 @@ function endRound() {
   game.timer = BREAK_TIME;
   const bonus = 250 * game.round;
   game.score += bonus;
-  hud.setScore(game.score);
-  for (const m of team.values()) if (!m.down) m.health = Math.min(MAX_HEALTH, m.health + 20);
+  for (const m of team.values()) {
+    m.money = (m.money || 0) + bonus; // il bonus del round va a tutti
+    if (!m.down) m.health = Math.min(m.maxHealth || MAX_HEALTH, m.health + 20);
+  }
   spawnPickup('ammo');
   spawnPickup('health');
   if (game.round % 2 === 0 || team.size > 2) spawnPickup('ammo');
-  announce(`Round ${game.round} superato!<br><small>+${bonus} punti · raccogli munizioni e vita</small>`, 3);
+  announce(`Round ${game.round} superato!<br><small>+${bonus} punti · raccogli munizioni e vita, passa dal 🛒 negozio</small>`, 3);
 }
 
 /* ---------- Avvisi da nemici, armi e oggetti ---------- */
 enemyHooks.onKill = (e, head) => {
   game.kills++;
-  game.score += Math.round(e.v.points * (head ? 1.5 : 1));
-  hud.setScore(game.score);
+  const pts = Math.round(e.v.points * (head ? 1.5 : 1));
+  game.score += pts;
+  // i punti da spendere vanno a chi l'ha colpito per ultimo ('local' o nessuno = questo dispositivo)
+  const id = !e.lastBy || e.lastBy === 'local' ? net.myId : e.lastBy;
+  const m = team.get(id);
+  if (m) m.money = (m.money || 0) + pts;
 };
 enemyHooks.onPlayerHit = (damage, ex, ez, targetId) => {
   const m = team.get(targetId);
@@ -158,7 +168,7 @@ weaponHooks.isAuthority = () => net.mode !== 'client';
 pickupHooks.onPick = (kind, id) => {
   const m = team.get(id);
   if (!m) return;
-  if (kind === 'health') m.health = Math.min(MAX_HEALTH, m.health + 35);
+  if (kind === 'health') m.health = Math.min(m.maxHealth || MAX_HEALTH, m.health + 35);
   if (m.local) applyPick(kind);
   else if (gameNet.sendTo) gameNet.sendTo(id, { t: 'pick', k: kind });
 };
@@ -215,7 +225,8 @@ export function syncLocalMember() {
   player.health = me.health;
   if (player.alive && me.down) { player.alive = false; setTrigger(false); dropHeld(); }
   if (!player.alive && !me.down) { player.alive = true; hud.flash('Rianimato!', 1.4); }
-  hud.setHealth(me.health, MAX_HEALTH);
+  hud.setHealth(me.health, me.maxHealth || MAX_HEALTH);
+  hud.setScore(me.money || 0);
   // barra di rianimazione: per chi è a terra e per chi lo sta aiutando
   let text = null, prog = 0;
   if (me.down) {
@@ -236,6 +247,8 @@ export function gameOver(info) {
   game.overlay = false;
   input.enabled = false;
   setTrigger(false);
+  unzoom();
+  closeShopping();
   exitLock();
   hud.setPlaying(false);
   hud.hide('pause');
@@ -278,6 +291,7 @@ export function startGame(faceSets, members, seed) {
   setupTeam(members);
   resetPlayer(net.mySlot);
   resetWeapons();
+  resetShop();
   Object.assign(game, { state: 'playing', phase: 'break', overlay: false, round: 0, score: 0, kills: 0, timer: 3 });
   hud.setRound(1);
   hud.setScore(0);
@@ -296,6 +310,8 @@ export function pauseGame() {
   input.enabled = false;
   input.reset();
   setTrigger(false);
+  unzoom();
+  closeShopping();
   exitLock();
   if (net.mode === 'solo') game.state = 'paused';
   else game.overlay = true; // in multiplayer la partita non si ferma per gli altri
@@ -318,6 +334,8 @@ export function toMenu() {
   game.overlay = false;
   input.enabled = false;
   setTrigger(false);
+  unzoom();
+  closeShopping();
   exitLock();
   clearEnemies();
   clearPickups();

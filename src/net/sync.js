@@ -6,7 +6,9 @@ import { thud } from '../core/audio.js';
 import { player, pushPlayer, spawnPoint } from '../player/player.js';
 import { enemies, enemyHooks } from '../enemies/enemies.js';
 import { objects, applyObjectState } from '../world/objects.js';
-import { weaponHooks, resolveRemoteShot, showRemoteShot, currentWeaponIndex, unlockForRound, addAmmo } from '../weapons/weapons.js';
+import { weaponHooks, resolveRemoteShot, showRemoteShot, currentWeaponIndex, resolveRemoteProjectile, showRemoteProjectile } from '../weapons/weapons.js';
+import { projHooks, remoteBoom } from '../weapons/projectiles.js';
+import { shopNet, serverBuy, applyBuy, buyFailed } from '../game/shop.js';
 import { loadFaceMaterials, faceBuffers, facesFromBuffers } from '../faces/gallery.js';
 import { pickupSnapshot, applyPickupSnapshot } from '../game/pickups.js';
 import { game, team, gameNet, startGame, gameOver, toMenu, applyPick, syncLocalMember, removeMember, announce } from '../game/game.js';
@@ -258,6 +260,37 @@ weaponHooks.onShot = (o, dirs, ends, wi) => {
   }
 };
 
+/* ---------- Granate e razzi ---------- */
+weaponHooks.onProjectile = (pid, o, d, wi) => {
+  const msg = { t: 'proj', pid, o: [o.x, o.y, o.z], d: [d.x, d.y, d.z], w: wi };
+  if (net.mode === 'client') sendHost(msg);
+  else if (net.mode === 'host') broadcast(msg);
+};
+on('proj', (msg, id) => {
+  if (game.state === 'menu') return;
+  if (net.mode === 'host') {
+    const m = team.get(id);
+    if (!m || m.down) return;
+    resolveRemoteProjectile(id, msg.pid, msg.o, msg.d, msg.w); // qui è vero e fa danni
+    broadcast(msg, id);                                       // gli altri lo vedono soltanto
+  } else showRemoteProjectile(msg.pid, msg.o, msg.d, msg.w);
+});
+// le esplosioni le decide l'host: i client le mostrano dove dice lui
+projHooks.onBoom = (pid, x, y, z, wi) => {
+  if (net.mode === 'host') broadcast({ t: 'boom', pid, x: q(x), y: q(y), z: q(z), w: wi });
+};
+on('boom', (msg) => { if (net.mode === 'client') remoteBoom(msg.pid, msg.x / 100, msg.y / 100, msg.z / 100, msg.w); });
+
+/* ---------- Negozio: compra il client, decide l'host ---------- */
+shopNet.toHost = (msg) => sendHost(msg);
+on('buy', (msg, id) => {
+  if (net.mode !== 'host' || game.state === 'menu') return;
+  const r = serverBuy(team.get(id), msg.id, msg.k);
+  sendTo(id, r.ok ? { t: 'bought', id: msg.id, k: msg.k, l: r.level } : { t: 'nobuy', why: r.why });
+});
+on('bought', (msg) => applyBuy(msg.id, msg.k, msg.l));
+on('nobuy', (msg) => buyFailed(msg.why));
+
 /* ---------- Host: nemici uccisi ---------- */
 const origKill = enemyHooks.onKill;
 enemyHooks.onKill = (e, head, dir, force) => {
@@ -271,7 +304,6 @@ on('kill', (msg) => killProxy(msg.id, msg.dx, msg.dz, msg.f));
 on('hit', (msg) => hud.hitMarker(!!msg.k));
 on('pick', (msg) => applyPick(msg.k));
 on('msg', (msg) => hud.flash(msg.text, msg.s));
-on('round', (msg) => { if (unlockForRound(msg.r).length) addAmmo(); });
 on('hurt', (msg) => {
   hud.hurt(msg.d / 20);
   player.shake = Math.max(player.shake, 0.06);
@@ -285,16 +317,16 @@ on('s', (msg) => {
   const [round, phase, timer, score, left, kills] = msg.g;
   game.round = round; game.phase = PHASES[phase]; game.timer = timer / 10; game.score = score; game.kills = kills;
   hud.setRound(Math.max(1, round));
-  hud.setScore(score);
   hud.setEnemies(left);
   hud.setBreak(game.phase === 'break' && round > 0 ? game.timer : null);
   const seen = new Set();
   for (const p of msg.pl) {
-    const [id, slot, x, y, z, yaw, pitch, hp, down, revive, w, speed] = p;
+    const [id, slot, x, y, z, yaw, pitch, hp, down, revive, w, speed, money, maxHp] = p;
     seen.add(id);
     let m = team.get(id);
     if (!m) { m = { id, slot, local: id === net.myId }; team.set(id, m); }
     m.health = hp; m.down = !!down; m.reviveT = revive / 100;
+    m.money = money || 0; m.maxHealth = maxHp || 100;
     if (!m.local) {
       m.x = x / 100; m.y = y / 100; m.z = z / 100;
       setAvatar(id, { slot, x: m.x, y: m.y, z: m.z, yaw: yaw / 100, pitch: pitch / 100, speed: speed / 10, down: m.down, weapon: w });
@@ -328,7 +360,7 @@ function snapshot() {
     const p = m.local ? player.pos : m;
     const yaw = m.local ? player.yaw : m.yaw, pitch = m.local ? player.pitch : m.pitch;
     const w = m.local ? currentWeaponIndex() : m.weapon, sp = m.local ? player.speed : m.speed;
-    pl.push([m.id, m.slot, q(p.x), q(p.y), q(p.z), q(yaw), q(pitch), Math.round(m.health), m.down ? 1 : 0, q(m.reviveT || 0), w || 0, Math.round((sp || 0) * 10)]);
+    pl.push([m.id, m.slot, q(p.x), q(p.y), q(p.z), q(yaw), q(pitch), Math.round(m.health), m.down ? 1 : 0, q(m.reviveT || 0), w || 0, Math.round((sp || 0) * 10), m.money || 0, m.maxHealth || 100]);
   }
   const en = enemies.map((e) => {
     const g = e.model.group.position;

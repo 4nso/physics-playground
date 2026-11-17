@@ -100,13 +100,13 @@ Passo 1 – Difficoltà a livelli:
 - [x] Nemici più forti nei round alti (corazzato, boss ogni 5 round)
 
 Passo 2 – Armi e negozio:
-- [ ] Si parte con pistola e mitra
-- [ ] Nuove armi: fucile d'assalto, fucile da cecchino con zoom, lanciagranate, bazooka
+- [x] Si parte con pistola e mitra
+- [x] Nuove armi: fucile d'assalto, fucile da cecchino con zoom, lanciagranate, bazooka
       (più il fucile a pompa da comprare)
-- [ ] Esplosioni con danno ad area e spinta fisica
-- [ ] Area negozio nella mappa: armi, munizioni, potenziamenti base
-- [ ] Inventario 2-3 armi e cambio rapido anche da touch
-- [ ] Tabella di prezzi e bilanciamento scritta in DESIGN.md
+- [x] Esplosioni con danno ad area e spinta fisica
+- [x] Area negozio nella mappa: armi, munizioni, potenziamenti base
+- [x] Inventario 2-3 armi e cambio rapido anche da touch
+- [x] Tabella di prezzi e bilanciamento scritta in DESIGN.md
 
 Passo 3 – Passaggio segreto e zona sicura:
 - [ ] Muro appena più giallo nelle backrooms (posizione dal seed) che porta alla zona sicura
@@ -115,6 +115,7 @@ Passo 3 – Passaggio segreto e zona sicura:
 - [ ] Potenziatore: 2 livelli per arma, strisce viola, poi viola e arancione
 - [ ] Negozio, passaggio e zona sicura come elementi riutilizzabili in altre mappe
 - [ ] Multiplayer: punti e acquisti per giocatore, decisi dall'host
+      (già fatto per il negozio nel passo 2; mancano cassa e potenziatore)
 
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano

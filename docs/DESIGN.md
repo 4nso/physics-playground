@@ -102,6 +102,32 @@ Il giocatore cammina a 5,5 m/s e corre a 9 m/s.
 - **Inventario**: 2-3 armi in mano, cambio rapido anche da touch
 - La tabella di prezzi e bilanciamento si scrive qui quando si implementa
 
+#### Prezzi e armi (passo 2, valori in `src/weapons/defs.js`)
+Si parte con **pistola e mitra**; si tengono al massimo **3 armi**. Comprando un'arma nuova con
+3 armi in mano, sostituisce quella che hai in mano. Ricomprare un'arma che hai già = munizioni piene.
+Il negozio è il chiosco con l'insegna gialla "NEGOZIO" davanti alla piazza di partenza.
+
+| Arma | Prezzo | Munizioni | Danno | Note |
+|---|---|---|---|---|
+| Pistola | (iniziale) | – | 26 | colpi infiniti |
+| Mitra | 1000 (iniziale) | 400 | 15 | fuoco continuo veloce |
+| Fucile a pompa | 1500 | 500 | 9 × 15 | da vicino, spinge i nemici |
+| Fucile d'assalto | 3000 | 800 | 34 | raffica precisa |
+| Fucile da cecchino | 4000 | 900 | 260 (testa ×2,5) | mirino con zoom ×3,2; senza mirino è impreciso |
+| Lanciagranate | 6000 | 1200 | 230 ad area (raggio 3,6 m) | granate a parabola che rimbalzano |
+| Bazooka | 9000 | 1500 | 520 ad area (raggio 5 m) | razzo dritto, grande spinta |
+
+Le esplosioni fanno danno pieno al centro e il 40% al bordo, spingono nemici, oggetti e il
+giocatore (le proprie esplosioni non fanno male, ma spingono: si può fare il "salto col razzo").
+
+| Potenziamento | Livello 1 | Livello 2 |
+|---|---|---|
+| Vita massima +25 (100 → 125 → 150) | 2500 | 4000 |
+| Ricarica veloce (−20%, poi −35%) | 2000 | 3500 |
+
+Punti: ogni nemico dà i suoi punti a chi l'ha colpito per ultimo; il bonus di fine round
+(250 × round) va a tutti. Il record usa il totale della squadra (i punti spesi non si perdono).
+
 ### Passaggio segreto e zona sicura
 - Nei corridoi gialli delle backrooms c'è un punto di muro **appena più giallo** degli altri,
   con una differenza minima, da notare solo guardando bene. La posizione cambia con il seed

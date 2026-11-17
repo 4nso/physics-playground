@@ -1,5 +1,5 @@
 // Giocatore: corpo fisico a capsula, movimento, salto, vita, telecamera in prima persona.
-import { camera } from '../core/renderer.js';
+import { camera, view } from '../core/renderer.js';
 import { world, RAPIER, GROUPS, onBeforeStep } from '../core/physics.js';
 import { input } from '../core/input.js';
 import { map } from '../world/map.js';
@@ -95,7 +95,8 @@ function checkGrounded() {
 }
 
 export function updatePlayer(dt) {
-  const [lx, ly] = input.takeLook(dt);
+  let [lx, ly] = input.takeLook(dt);
+  lx *= view.lookScale; ly *= view.lookScale; // col mirino zoomato lo sguardo è più lento e preciso
   player.lookDX = lx;
   player.lookDY = ly;
   if (!player.alive) return;

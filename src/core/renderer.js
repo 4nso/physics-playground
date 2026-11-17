@@ -61,13 +61,27 @@ export function followSun(x, z) {
  * limitiamo quello orizzontale a circa 100°, altrimenti l'immagine sembra "a occhio di pesce".
  */
 const VFOV = 70, HFOV_MAX = 100;
+/** Zoom della visuale (mirino del cecchino): 1 = normale. lookScale rallenta lo sguardo quando si zooma. */
+export const view = { zoom: 1, lookScale: 1 };
+let baseFov = VFOV;
+export function setZoom(z) {
+  if (z === view.zoom) return;
+  view.zoom = z;
+  view.lookScale = 1 / z;
+  applyFov();
+}
+function applyFov() {
+  const r = THREE.MathUtils.degToRad(baseFov / 2);
+  camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(r) / view.zoom));
+  camera.updateProjectionMatrix();
+}
 function fitCamera() {
   const aspect = innerWidth / innerHeight;
   const deg = THREE.MathUtils.radToDeg;
   const vMax = deg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(HFOV_MAX / 2)) / aspect));
   camera.aspect = aspect;
-  camera.fov = Math.min(VFOV, vMax);
-  camera.updateProjectionMatrix();
+  baseFov = Math.min(VFOV, vMax);
+  applyFov();
   renderer.setSize(innerWidth, innerHeight);
 }
 fitCamera();

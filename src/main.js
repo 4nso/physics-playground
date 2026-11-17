@@ -14,12 +14,13 @@ import { syncObjects, updateRope } from './world/objects.js';
 import { player, createPlayer, resetPlayer, updatePlayer, updateCamera, jump } from './player/player.js';
 import { throwHeld, toggleGrab, updateHeld, updateCrosshair } from './player/interact.js';
 import { weaponScene } from './weapons/viewmodel.js';
-import { initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, nextWeapon } from './weapons/weapons.js';
+import { initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, nextWeapon, toggleZoom, hasZoom } from './weapons/weapons.js';
+import { updateShop, toggleShopping, closeShopping, isShopping } from './game/shop.js';
 import { updateEnemies } from './enemies/enemies.js';
 import { initGallery, openGallery } from './faces/gallery.js';
 import { updatePickups } from './game/pickups.js';
 import { buildLevel } from './game/level.js';
-import { game, pauseGame, resumeGame, updateGame, showRecord, teamTargets, team } from './game/game.js';
+import { game, pauseGame, resumeGame, updateGame, showRecord, teamTargets, team, myMoney } from './game/game.js';
 import { net } from './net/net.js';
 import { startMatch, openCreateRoom, openJoin, joinWithCode, leaveToMenu, netBeforePhysics, netUpdate, shareInvite, joinFromLink } from './net/sync.js';
 import { hud } from './ui/hud.js';
@@ -43,9 +44,14 @@ const actions = {
   weapon: selectWeapon,
   nextWeapon,
   grab() { if (net.mode !== 'client' && player.alive) { setTrigger(false); toggleGrab(); } },
+  // tasto destro: mirino se l'arma ce l'ha, altrimenti afferra
+  alt() { if (hasZoom()) toggleZoom(); else actions.grab(); },
+  zoom() { if (player.alive) toggleZoom(); },
+  shop: toggleShopping,
   jump,
-  pause: pauseGame,
-  lockLost() { if (game.state === 'playing' && game.phase !== 'dead') pauseGame(); },
+  pause() { if (closeShopping()) { requestLock(); return; } pauseGame(); },
+  // il mouse liberato per comprare non mette in pausa
+  lockLost() { if (game.state === 'playing' && game.phase !== 'dead' && !isShopping()) pauseGame(); },
 };
 
 function loop(now) {
@@ -75,6 +81,7 @@ function loop(now) {
     updatePickups(gdt, null);
   }
   updateWeapons(gdt, player.lookDX, player.lookDY);
+  updateShop(dt, playing && !game.overlay, myMoney());
   netUpdate(dt);
   if (game.state !== 'menu') updateMinimap(dt);
   if (playing && net.mode !== 'client') updateCrosshair();
