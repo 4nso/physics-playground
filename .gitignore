@@ -12,3 +12,6 @@ _site/
 *.webp
 *.heic
 *.gif
+
+# Eccezione: le icone del gioco, generate dal codice (scripts/make-icons.cjs da icon.svg)
+!public/icons/*.png

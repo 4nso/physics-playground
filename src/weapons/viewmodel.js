@@ -17,6 +17,17 @@ const viewRoot = new THREE.Group();
 viewRoot.matrixAutoUpdate = false;
 weaponScene.add(viewRoot);
 
+/**
+ * Allinea l'arma alla telecamera di QUESTO frame. Importante: la matrice della telecamera
+ * va ricalcolata prima, altrimenti l'arma usa la posizione del frame precedente e,
+ * mentre ci si muove, sembra tremare.
+ */
+function syncToCamera() {
+  camera.updateMatrixWorld();
+  viewRoot.matrix.copy(camera.matrixWorld);
+  viewRoot.updateMatrixWorld(true);
+}
+
 const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, flatShading: true, ...extra });
 const GM = {
   metal: mat(0x3a3f48, { metalness: 0.5, roughness: 0.45 }),
@@ -126,8 +137,7 @@ export function setReloadProgress(p) { anim.reload = p; }
 const tmp = new THREE.Vector3();
 /** Posizione della bocca dell'arma nel mondo (per far partire le scie). */
 export function muzzleWorld(out) {
-  viewRoot.matrix.copy(camera.matrixWorld);
-  viewRoot.updateMatrixWorld(true);
+  syncToCamera();
   return models[anim.current].userData.muzzle.getWorldPosition(out);
 }
 
@@ -167,7 +177,6 @@ export function updateViewModel(dt, speed, grounded, lookDX, lookDY) {
   u.flash.visible = anim.flash > 0;
   flashLight.intensity = anim.flash > 0 ? 3 : 0;
 
-  viewRoot.matrix.copy(camera.matrixWorld);
-  viewRoot.updateMatrixWorld(true);
+  syncToCamera();
   if (u.flash.visible) flashLight.position.copy(u.muzzle.getWorldPosition(tmp));
 }

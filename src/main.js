@@ -99,7 +99,9 @@ async function start() {
 
 // Solo in sviluppo (npm run dev): oggetti utili per i test automatici. Non finisce nel sito pubblicato.
 if (import.meta.env.DEV) {
-  import('./enemies/enemies.js').then((m) => { window.__pp = { game, player, enemies: m.enemies, camera }; });
+  Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js')]).then(([m, v]) => {
+    window.__pp = { game, player, enemies: m.enemies, camera, models: v.models };
+  });
 }
 
 start();

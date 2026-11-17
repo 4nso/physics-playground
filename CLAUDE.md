@@ -1,6 +1,7 @@
 # Istruzioni per Claude Code
 
 ## Contesto
+- Il gioco si chiama **Shoot Your Friends** (il repository resta `physics-playground`).
 - Il proprietario del progetto lavora soprattutto da **iPad** con sessioni cloud:
   non ha un computer per testare in locale. Prova il gioco solo dalla versione
   pubblicata su GitHub Pages.

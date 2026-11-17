@@ -1,4 +1,4 @@
-# Physics Playground
+# Shoot Your Friends
 
 Un FPS web in stile low-poly, giocabile da browser su iPad, telefono e computer.
 Si gioca a round contro ondate di nemici che hanno per volto delle foto vere,
@@ -25,11 +25,16 @@ Quando GitHub Pages è attivo, il gioco è online qui:
 - **Volti**: nel menu apri "Galleria volti" e aggiungi foto dal dispositivo. Restano solo nel
   tuo browser (IndexedDB) e si possono eliminare quando vuoi
 
+**Icona sulla schermata Home**: su iPad/iPhone apri il gioco in Safari, tocca Condividi →
+"Aggiungi alla schermata Home". Il gioco si apre a schermo intero, come un'app.
+
 ## Struttura del repository
 
 ```
 src/              Codice del gioco (core, world, player, weapons, enemies, faces, game, ui)
 index.html        Pagina del gioco
+public/           Icone (generate dal codice da icon.svg) e manifest
+scripts/          Script di servizio (make-icons.cjs rigenera le icone PNG)
 prototype/        Prototipo originale in un unico file HTML (riferimento, non si modifica)
 docs/             Design del gioco e piano di lavoro
   DESIGN.md       Cosa deve diventare il gioco

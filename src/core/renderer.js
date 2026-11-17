@@ -33,10 +33,24 @@ sun.shadow.camera.updateProjectionMatrix();
 sun.shadow.bias = -0.0006;
 scene.add(sun, sun.target);
 
-/** Tiene la luce del sole (e la sua mappa delle ombre) centrata sul giocatore. */
+/**
+ * Tiene la luce del sole (e la sua mappa delle ombre) centrata sul giocatore.
+ * Il centro viene "agganciato" alla griglia dei pixel della mappa delle ombre:
+ * così i bordi delle ombre non sfarfallano mentre ci si muove.
+ */
+const SUN_OFFSET = new THREE.Vector3(15, 30, 12);
+const sunFwd = SUN_OFFSET.clone().normalize().negate();
+const sunRight = new THREE.Vector3().crossVectors(sunFwd, new THREE.Vector3(0, 1, 0)).normalize();
+const sunUp = new THREE.Vector3().crossVectors(sunRight, sunFwd);
+const TEXEL = 44 / SM;
+const snapped = new THREE.Vector3();
 export function followSun(x, z) {
-  sun.position.set(x + 15, 30, z + 12);
-  sun.target.position.set(x, 0, z);
+  const a = Math.round((x * sunRight.x + z * sunRight.z) / TEXEL) * TEXEL;
+  const b = Math.round((x * sunUp.x + z * sunUp.z) / TEXEL) * TEXEL;
+  const d = x * sunFwd.x + z * sunFwd.z;
+  snapped.copy(sunRight).multiplyScalar(a).addScaledVector(sunUp, b).addScaledVector(sunFwd, d);
+  sun.target.position.copy(snapped);
+  sun.position.copy(snapped).add(SUN_OFFSET);
 }
 
 addEventListener('resize', () => {
