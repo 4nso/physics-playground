@@ -9,23 +9,26 @@ export const renderer = new THREE.WebGLRenderer({
 });
 renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.75 : 2));
 renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;
+// Niente ombre in tempo reale: le stanze hanno la luce "dipinta" nei colori dei vertici
+// (molto più leggero sui telefoni).
+renderer.shadowMap.enabled = false;
 document.body.prepend(renderer.domElement);
 export const canvas = renderer.domElement;
 
 export const scene = new THREE.Scene();
-const SKY = 0xa8d8ff;
+// Cielo e nebbia dello stesso colore: oltre ~55 m non si disegna niente (la nebbia lo nasconde).
+const SKY = 0xc4dbe8;
+export const VIEW_DIST = 58;
 scene.background = new THREE.Color(SKY);
-scene.fog = new THREE.Fog(SKY, 35, 95);
+scene.fog = new THREE.Fog(SKY, 16, VIEW_DIST - 3);
 
-export const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 200);
+export const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, VIEW_DIST);
 camera.rotation.order = 'YXZ';
 
 // Dalla r155 Three.js usa intensità "fisiche": i valori del prototipo vanno moltiplicati circa per π.
 scene.add(new THREE.HemisphereLight(0xe4f3ff, 0x5a7a3a, 2.5));
 export const sun = new THREE.DirectionalLight(0xfff1dc, 3.0);
-sun.castShadow = true;
+sun.castShadow = false;
 const SM = isTouch ? 1024 : 2048;
 sun.shadow.mapSize.set(SM, SM);
 Object.assign(sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 90 });

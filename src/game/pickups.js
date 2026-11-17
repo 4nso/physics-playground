@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { scene } from '../core/renderer.js';
 import { canvasTex } from '../world/materials.js';
+import { randomNodeNear } from '../world/nav.js';
 
 const geo = new THREE.BoxGeometry(0.55, 0.4, 0.55);
 const ammoTex = canvasTex(64, 64, (g, w, h) => {
@@ -24,18 +25,18 @@ let nextId = 0;
 /** Avviso quando un giocatore raccoglie qualcosa: onPick(kind, idGiocatore) */
 export const pickupHooks = { onPick: null };
 
-function add(id, kind, x, z) {
+function add(id, kind, x, y, z) {
   const m = new THREE.Mesh(geo, MATS[kind]);
-  m.position.set(x, 0.5, z);
-  m.castShadow = true;
+  m.position.set(x, y + 0.5, z);
   scene.add(m);
-  items.push({ id, kind, m, t: Math.random() * 6 });
+  items.push({ id, kind, m, y, t: Math.random() * 6 });
 }
 
+/** Fa comparire munizioni o vita in un punto raggiungibile, non troppo lontano dai giocatori. */
 export function spawnPickup(kind) {
   if (items.filter((i) => i.kind === kind).length >= 3) return;
-  const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 15;
-  add(++nextId, kind, Math.cos(a) * r, Math.sin(a) * r);
+  const p = randomNodeNear(5, 24);
+  if (p) add(++nextId, kind, p.x, p.y, p.z);
 }
 
 /**
@@ -47,11 +48,11 @@ export function updatePickups(dt, collectors) {
     const it = items[i];
     it.t += dt;
     it.m.rotation.y = it.t * 1.5;
-    it.m.position.y = 0.45 + Math.sin(it.t * 3) * 0.1;
+    it.m.position.y = it.y + 0.45 + Math.sin(it.t * 3) * 0.1;
     if (!collectors) continue;
     for (const p of collectors) {
       const dx = it.m.position.x - p.x, dz = it.m.position.z - p.z;
-      if (dx * dx + dz * dz < 1.3 * 1.3 && Math.abs(p.y - 0.85) < 1.6) {
+      if (dx * dx + dz * dz < 1.3 * 1.3 && Math.abs(p.y - 0.85 - it.y) < 1.6) {
         scene.remove(it.m);
         items.splice(i, 1);
         if (pickupHooks.onPick) pickupHooks.onPick(it.kind, p.id);
@@ -61,9 +62,9 @@ export function updatePickups(dt, collectors) {
   }
 }
 
-/** Host → client: elenco compatto [[id, tipo, x×100, z×100], ...] */
+/** Host → client: elenco compatto [[id, tipo, x×100, z×100, y×100], ...] */
 export function pickupSnapshot() {
-  return items.map((it) => [it.id, KINDS.indexOf(it.kind), Math.round(it.m.position.x * 100), Math.round(it.m.position.z * 100)]);
+  return items.map((it) => [it.id, KINDS.indexOf(it.kind), Math.round(it.m.position.x * 100), Math.round(it.m.position.z * 100), Math.round(it.y * 100)]);
 }
 /** Client: allinea gli oggetti a quelli dell'host. */
 export function applyPickupSnapshot(list) {
@@ -71,8 +72,8 @@ export function applyPickupSnapshot(list) {
   for (let i = items.length - 1; i >= 0; i--) {
     if (!seen.has(items[i].id)) { scene.remove(items[i].m); items.splice(i, 1); }
   }
-  for (const [id, k, x, z] of list) {
-    if (!items.some((it) => it.id === id)) add(id, KINDS[k], x / 100, z / 100);
+  for (const [id, k, x, z, y] of list) {
+    if (!items.some((it) => it.id === id)) add(id, KINDS[k], x / 100, (y || 0) / 100, z / 100);
   }
 }
 

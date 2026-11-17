@@ -7,8 +7,9 @@ import { player, resetPlayer, pushPlayer, MAX_HEALTH } from '../player/player.js
 import { setTrigger, resetWeapons, unlockForRound, addAmmo, weaponHooks } from '../weapons/weapons.js';
 import { enemies, spawnEnemy, clearEnemies, enemyHooks, setFaceSets } from '../enemies/enemies.js';
 import { spawnPickup, clearPickups, pickupHooks } from './pickups.js';
-import { rebuildLevel } from './level.js';
-import { setObjectsRemote } from '../world/objects.js';
+import { buildLevel } from './level.js';
+import { setObjectsRemote, clearObjects } from '../world/objects.js';
+import { map, buildWorld } from '../world/map.js';
 import { dropHeld } from '../player/interact.js';
 import { net } from '../net/net.js';
 import { hud } from '../ui/hud.js';
@@ -258,14 +259,17 @@ export function gameOver(info) {
 
 /**
  * Avvia una partita. faceSets = materiali dei volti già pronti.
- * members = [{ id, slot }] squadra (da solo: un solo membro 'host').
+ * members = [{ id, slot }] squadra (da solo: un solo membro 'host'). seed = numero della mappa.
  */
-export function startGame(faceSets, members) {
+export function startGame(faceSets, members, seed) {
   setFaceSets(faceSets);
   clearEnemies();
   clearPickups();
+  dropHeld();
+  clearObjects();
   setObjectsRemote(net.mode === 'client');
-  rebuildLevel();
+  if (seed && seed !== map.seed) buildWorld(seed); // nuova mappa (stesso seed = stessa mappa)
+  buildLevel();
   setupTeam(members);
   resetPlayer(net.mySlot);
   resetWeapons();
@@ -290,7 +294,7 @@ export function pauseGame() {
   exitLock();
   if (net.mode === 'solo') game.state = 'paused';
   else game.overlay = true; // in multiplayer la partita non si ferma per gli altri
-  $('pauseInfo').textContent = `Round ${Math.max(1, game.round)} · ${game.score} punti` + (net.mode !== 'solo' ? ' · la partita continua!' : '');
+  $('pauseInfo').textContent = `Round ${Math.max(1, game.round)} · ${game.score} punti · mappa n. ${map.seed}` + (net.mode !== 'solo' ? ' · la partita continua!' : '');
   $('restart').style.display = net.mode === 'client' ? 'none' : '';
   hud.show('pause');
 }

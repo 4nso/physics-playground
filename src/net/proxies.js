@@ -86,3 +86,8 @@ export function clearProxies() {
   for (const p of [...proxies.values()]) remove(p);
   clearDebris();
 }
+
+/** Per la minimappa: chiama fn(x, z) per ogni nemico copiato. */
+export function forEachProxy(fn) {
+  for (const p of proxies.values()) fn(p.model.group.position.x, p.model.group.position.z);
+}

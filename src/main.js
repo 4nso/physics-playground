@@ -4,9 +4,14 @@ import { renderer, scene, camera, followSun } from './core/renderer.js';
 import { initPhysics, stepPhysics, alpha } from './core/physics.js';
 import { setupInput, requestLock } from './core/input.js';
 import { initAudio } from './core/audio.js';
-import { buildArena } from './world/arena.js';
+import { buildWorld, map } from './world/map.js';
+import { nav } from './world/nav.js';
+import { randomSeed } from './world/rng.js';
+import { minimap } from './ui/minimap.js';
+import { enemies } from './enemies/enemies.js';
+import { forEachProxy } from './net/proxies.js';
 import { syncObjects, updateRope } from './world/objects.js';
-import { player, createPlayer, updatePlayer, updateCamera, jump } from './player/player.js';
+import { player, createPlayer, resetPlayer, updatePlayer, updateCamera, jump } from './player/player.js';
 import { throwHeld, toggleGrab, updateHeld, updateCrosshair } from './player/interact.js';
 import { weaponScene } from './weapons/viewmodel.js';
 import { initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, nextWeapon } from './weapons/weapons.js';
@@ -14,7 +19,7 @@ import { updateEnemies } from './enemies/enemies.js';
 import { initGallery, openGallery } from './faces/gallery.js';
 import { updatePickups } from './game/pickups.js';
 import { buildLevel } from './game/level.js';
-import { game, pauseGame, resumeGame, updateGame, showRecord, teamTargets } from './game/game.js';
+import { game, pauseGame, resumeGame, updateGame, showRecord, teamTargets, team } from './game/game.js';
 import { net } from './net/net.js';
 import { startMatch, openCreateRoom, openJoin, joinWithCode, leaveToMenu, netBeforePhysics, netUpdate } from './net/sync.js';
 import { hud } from './ui/hud.js';
@@ -71,6 +76,7 @@ function loop(now) {
   }
   updateWeapons(gdt, player.lookDX, player.lookDY);
   netUpdate(dt);
+  if (game.state !== 'menu') updateMinimap(dt);
   if (playing && net.mode !== 'client') updateCrosshair();
   hud.update(dt);
 
@@ -78,6 +84,18 @@ function loop(now) {
   renderer.render(scene, camera);
   renderer.clearDepth();
   renderer.render(weaponScene, camera); // l'arma sopra a tutto, senza entrare nei muri
+}
+
+/* ---------- Minimappa ---------- */
+const mates = [];
+const eachEnemy = (fn) => {
+  if (net.mode === 'client') forEachProxy(fn);
+  else for (const e of enemies) fn(e.model.group.position.x, e.model.group.position.z);
+};
+function updateMinimap(dt) {
+  mates.length = 0;
+  for (const m of team.values()) if (!m.local) mates.push(m);
+  minimap.update(dt, { x: player.pos.x, z: player.pos.z, yaw: player.yaw }, mates, eachEnemy);
 }
 
 async function start() {
@@ -92,8 +110,10 @@ async function start() {
     hud.error('Non riesco ad avviare il motore fisico. Ricarica la pagina.');
     return;
   }
-  buildArena();
+  // una mappa subito (si vede dietro al menu); ogni partita ne genera una nuova dal suo seed
+  buildWorld(randomSeed());
   createPlayer();
+  resetPlayer(0);
   buildLevel();
   initWeapons();
   setupInput(actions);
@@ -121,7 +141,7 @@ async function start() {
 // Solo in sviluppo (npm run dev): oggetti utili per i test automatici. Non finisce nel sito pubblicato.
 if (import.meta.env.DEV) {
   Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js'), import('./game/game.js')]).then(([m, v, g]) => {
-    window.__pp = { game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team };
+    window.__pp = { game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team, map, renderer, nav };
   });
 }
 

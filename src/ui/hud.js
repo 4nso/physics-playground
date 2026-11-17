@@ -42,8 +42,8 @@ function layoutButtons(scale = btnScale) {
 export const hud = {
   init() {
     $('howto').innerHTML = isTouch
-      ? "<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Spara</b>: tienilo premuto e trascina il dito per mirare</li><li>Tocca le <b>icone delle armi</b> in alto a destra per cambiarla · <b>⟳</b> ricarica</li><li>Spingi il joystick <b>oltre il bordo</b> per correre</li><li>Mira alla <b>testa</b>: danno doppio!</li><li>Tra un round e l'altro raccogli <b>munizioni</b> e <b>vita</b></li>"
-      : "<li><b>WASD</b> muovi · <b>Mouse</b> mira · <b>Shift</b> corri · <b>Spazio</b> salta</li><li><b>Clic</b> spara · <b>1/2/3</b> o <b>rotella</b> cambia arma · <b>R</b> ricarica</li><li><b>E</b>: afferra una cassa, poi <b>clic</b> per lanciarla sui nemici</li><li>Mira alla <b>testa</b>: danno doppio! · <b>Esc</b> pausa</li><li>Tra un round e l'altro raccogli <b>munizioni</b> e <b>vita</b></li>";
+      ? "<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Spara</b>: tienilo premuto e trascina il dito per mirare</li><li>Tocca le <b>icone delle armi</b> in alto a destra per cambiarla · <b>⟳</b> ricarica</li><li>Spingi il joystick <b>oltre il bordo</b> per correre</li><li>Mira alla <b>testa</b>: danno doppio!</li><li>Tra un round e l'altro raccogli <b>munizioni</b> e <b>vita</b></li><li>La <b>minimappa</b> in alto a sinistra gira con te: puntini rossi = nemici</li>"
+      : "<li><b>WASD</b> muovi · <b>Mouse</b> mira · <b>Shift</b> corri · <b>Spazio</b> salta</li><li><b>Clic</b> spara · <b>1/2/3</b> o <b>rotella</b> cambia arma · <b>R</b> ricarica</li><li><b>E</b>: afferra una cassa, poi <b>clic</b> per lanciarla sui nemici</li><li>Mira alla <b>testa</b>: danno doppio! · <b>Esc</b> pausa</li><li>Tra un round e l'altro raccogli <b>munizioni</b> e <b>vita</b></li><li>La <b>minimappa</b> in alto a sinistra gira con te: puntini rossi = nemici</li>";
     if (isTouch) {
       document.body.classList.add('touch');
       $('btns').style.display = 'block';
@@ -54,7 +54,7 @@ export const hud = {
   },
   /** Mostra o nasconde l'HUD di gioco (durante i menu resta nascosto). */
   setPlaying(on) {
-    for (const id of ['hud', 'health', 'cross', 'weapon', 'top', 'keys', 'joy']) $(id).style.visibility = on ? '' : 'hidden';
+    for (const id of ['hud', 'health', 'minimap', 'cross', 'weapon', 'top', 'keys', 'joy']) $(id).style.visibility = on ? '' : 'hidden';
     $('btns').style.visibility = on ? '' : 'hidden';
   },
   show(id) { $(id).classList.remove('hidden'); },

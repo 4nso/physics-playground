@@ -3,7 +3,8 @@ import * as THREE from 'three';
 import { scene } from '../core/renderer.js';
 import { world, RAPIER, addSound, removeSound } from '../core/physics.js';
 import { M, ballMats, sphereGeo, unitBox } from './materials.js';
-import { pickables, wreckAnchor } from './arena.js';
+import { pickables } from './arena.js';
+import { map, wreckAnchor } from './map.js';
 
 /** Tutti gli oggetti dinamici: { body, collider, mesh, kind } */
 export const objects = [];
@@ -89,8 +90,8 @@ scene.add(rope);
 const UP = new THREE.Vector3(0, 1, 0), ropeA = new THREE.Vector3(), ropeB = new THREE.Vector3(), ropeD = new THREE.Vector3();
 
 export function updateRope() {
-  rope.visible = !!wreck;
-  if (!wreck) return;
+  rope.visible = !!(wreck && wreckAnchor);
+  if (!rope.visible) return;
   const a = wreckAnchor.translation(), b = wreck.body.translation();
   ropeA.set(a.x, a.y, a.z);
   ropeB.set(b.x, b.y, b.z);
@@ -100,10 +101,12 @@ export function updateRope() {
   rope.quaternion.setFromUnitVectors(UP, ropeD.copy(ropeA).sub(ropeB).normalize());
 }
 
-/** Palla demolitrice appesa con una corda (giunto sferico) al portale. */
+/** Palla demolitrice appesa con una corda (giunto sferico) al portale della piazza. */
 export function makeWreck() {
+  const w = map.wreck;
+  if (!w || !wreckAnchor) return null;
   const desc = RAPIER.RigidBodyDesc.dynamic()
-    .setTranslation(4, 2.15, -8)
+    .setTranslation(w.ax, w.ay - 5, w.az)
     .setLinearDamping(0.02)
     .setAngularDamping(0.3);
   const col = RAPIER.ColliderDesc.ball(0.7).setMass(6).setFriction(0.5).setRestitution(0.1);

@@ -2,20 +2,20 @@
 import * as THREE from 'three';
 import { camera } from '../core/renderer.js';
 import { thud } from '../core/audio.js';
-import { pickables } from '../world/arena.js';
+import { castWorld } from '../world/raycast.js';
 import { hooks } from '../world/objects.js';
 import { shotFilter } from '../weapons/weapons.js';
 import { hud } from '../ui/hud.js';
 
 const camDir = new THREE.Vector3();
-const raycaster = new THREE.Raycaster();
-const center = new THREE.Vector2(0, 0);
+const camPos = new THREE.Vector3();
 
+/** Cosa c'è al centro del mirino (oggetti, nemici o muri) entro maxDist. */
 export function aim(maxDist) {
-  raycaster.setFromCamera(center, camera);
-  raycaster.far = maxDist;
-  const hits = raycaster.intersectObjects(pickables, false);
-  return hits.length ? hits[0] : null;
+  camera.getWorldDirection(camDir);
+  camPos.setFromMatrixPosition(camera.matrixWorld);
+  const h = castWorld(camPos, camDir, maxDist, null);
+  return h && h.object ? h : null;
 }
 
 let held = null, holdDist = 2.6;

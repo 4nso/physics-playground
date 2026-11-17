@@ -2,6 +2,7 @@
 import { camera } from '../core/renderer.js';
 import { world, RAPIER, GROUPS, onBeforeStep } from '../core/physics.js';
 import { input } from '../core/input.js';
+import { map } from '../world/map.js';
 
 const RADIUS = 0.4, HALF = 0.4;        // capsula alta 1.6 m
 const EYE = 0.75;                       // occhi sopra il centro della capsula (≈1.55 m da terra)
@@ -53,16 +54,21 @@ export function createPlayer() {
   });
 }
 
-const SLOT_X = [0, 1.6, -1.6, 3.2];
+const SLOT_OFF = [0, 1.6, -1.6, 3.2];
 let spawn = { ...SPAWN };
-/** slot = posto del giocatore in multiplayer (0..3): ognuno parte un po' spostato. */
+/** Punto di partenza del giocatore nello slot (0..3) sulla mappa attuale: ognuno un po' spostato. */
+export function spawnPoint(slot = 0) {
+  const s = map.spawn;
+  return { x: s.x, y: s.y + HALF + RADIUS + 0.05, z: s.z + SLOT_OFF[slot % 4] };
+}
+/** slot = posto del giocatore in multiplayer (0..3). */
 export function resetPlayer(slot = 0) {
-  spawn = { x: SPAWN.x + SLOT_X[slot % 4], y: SPAWN.y, z: SPAWN.z };
+  spawn = spawnPoint(slot);
   player.body.setTranslation(spawn, true);
   player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
   Object.assign(prev, spawn);
   Object.assign(player.pos, spawn);
-  player.yaw = 0;
+  player.yaw = map.spawn.yaw || 0;
   player.pitch = -0.08;
   player.recoil = player.recoilTarget = player.recoilYaw = player.recoilYawTarget = 0;
   player.shake = 0;

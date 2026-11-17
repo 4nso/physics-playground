@@ -18,7 +18,7 @@ ondate di nemici dalla faccia fotografica, da solo o con 1-3 amici.
 ## Ciclo di gioco
 
 1. Lobby: gioco da solo, oppure creo una stanza o entro in una stanza con un codice
-2. Round N: arrivano nemici dai bordi dell'arena, a ondate
+2. Round N: arrivano nemici a ondate da punti lontani della mappa
 3. Il round finisce quando tutti i nemici sono eliminati
 4. Pausa breve (10-15 s): ricarico, raccolgo munizioni, e si mostrano punteggio e prossimo round
 5. Ogni round ha più nemici, più veloci e più resistenti, e ogni tanto compare un nemico speciale
@@ -70,6 +70,31 @@ Il repository e il sito sono pubblici, quindi **le foto non stanno mai nel proge
 - Gli altri inviano i propri input e la propria posizione, e ricevono lo stato dall'host
 - Da 2 a 4 giocatori, codice stanza di 4-5 caratteri
 - Se l'host esce, la partita finisce (va bene così per la prima versione)
+
+## Mondo
+
+Un mondo grande e "a stanze", in stile **backrooms giocoso e un po' surreale**: gli ambienti
+non devono avere molto senso tra loro, anzi è voluto. Si passa da un corridoio con la carta da
+parati gialla e i neon a una piscina coperta vuota, poi a un parcheggio all'aperto o a un parco giochi.
+
+- **Moduli**: la mappa è una griglia di riquadri (15×15 m). Ogni riquadro è una stanza o
+  un'area esterna di un certo tipo: corridoi gialli, uffici vuoti, piscina coperta,
+  parcheggio, parco giochi/cortile (in seguito: scale verso stanze strane, cantine, tetti…)
+- **Generatore con seed**: un numero ("seed") decide tutto: disposizione, tipi di stanza,
+  porte, oggetti. Stesso seed = stessa mappa. In multiplayer l'host sceglie il seed e lo manda
+  ai client, che costruiscono la stessa mappa senza scaricare niente
+- **Collegamenti**: tra i riquadri ci sono porte, varchi o muri; tutti i riquadri sono
+  raggiungibili. Tra due aree esterne il passaggio può essere aperto del tutto
+- **Più livelli di altezza**: scale e rampe, soppalchi e balconi, la vasca della piscina più in basso
+- **Nemici che navigano**: una griglia di navigazione (celle da 1 m, anche su più piani) calcolata
+  dalla geometria; i nemici seguono il percorso più breve verso il giocatore più vicino
+  (aggirano muri, salgono le scale)
+- **Comparsa dei nemici**: in punti distribuiti nella mappa, lontani e fuori dalla vista dei giocatori
+- **Oggetti fisici sparsi**: casse e palloni nelle stanze, la palla demolitrice nella piazza di partenza
+- **Orientarsi**: minimappa in alto a sinistra che ruota con la visuale (compagni in blu, nemici vicini in rosso)
+- **Prestazioni**: la geometria statica di ogni riquadro è unita in un'unica mesh; niente luci
+  per le stanze (la luce è "dipinta" nei colori dei vertici), nebbia e distanza di disegno limitata
+  per non disegnare tutta la mappa. Obiettivo 30+ fps su iPhone
 
 ## Piattaforme
 

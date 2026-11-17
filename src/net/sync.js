@@ -3,7 +3,7 @@
 // Ogni client muove il proprio giocatore e manda posizione e colpi all'host.
 import { world, RAPIER, GROUPS } from '../core/physics.js';
 import { thud } from '../core/audio.js';
-import { player, pushPlayer } from '../player/player.js';
+import { player, pushPlayer, spawnPoint } from '../player/player.js';
 import { enemies, enemyHooks } from '../enemies/enemies.js';
 import { objects, applyObjectState } from '../world/objects.js';
 import { weaponHooks, resolveRemoteShot, showRemoteShot, currentWeaponIndex, unlockForRound, addAmmo } from '../weapons/weapons.js';
@@ -14,6 +14,13 @@ import { net, on, createRoom, joinRoom, broadcast, sendTo, sendHost, leaveRoom, 
 import { setAvatar, removeAvatar, clearAvatars, updateAvatars, slotName, SLOT_COLORS } from './avatars.js';
 import { VARIANT_KEYS, applyEnemySnapshot, killProxy, updateProxies, clearProxies, setProxyFaces } from './proxies.js';
 import { hud } from '../ui/hud.js';
+import { randomSeed } from '../world/rng.js';
+
+/** Seed della prossima partita: ?seed=123456 nell'indirizzo per rigiocare sempre la stessa mappa. */
+function matchSeed() {
+  const s = parseInt(new URLSearchParams(location.search).get('seed'), 10);
+  return s > 0 ? s : randomSeed();
+}
 
 const $ = (id) => document.getElementById(id);
 const q = (v) => Math.round(v * 100);       // numeri interi: messaggi più piccoli
@@ -132,16 +139,18 @@ const faceBuf = [];
 export async function startMatch() {
   if (net.mode === 'client') return;
   const sets = await loadFaceMaterials();
+  const seed = matchSeed();
   if (net.mode === 'host') {
     setAccepting(false);
     const bufs = await faceBuffers();
     // I volti vanno direttamente ai giocatori della stanza; loro li tengono solo in memoria.
     bufs.forEach((b, i) => broadcast({ t: 'face', i, b }));
-    broadcast({ t: 'start', members: lobby, n: bufs.length });
+    // la mappa non si manda: basta il seed, ogni client la costruisce uguale
+    broadcast({ t: 'start', members: lobby, n: bufs.length, seed });
     cleanupNet();
-    for (const p of lobby) if (p.id !== 'host') remoteBodies.set(p.id, makeRemoteBody(p.slot));
   }
-  startGame(sets, net.mode === 'host' ? lobby : [{ id: 'host', slot: 0 }]);
+  startGame(sets, net.mode === 'host' ? lobby : [{ id: 'host', slot: 0 }], seed);
+  if (net.mode === 'host') for (const p of lobby) if (p.id !== 'host') remoteBodies.set(p.id, makeRemoteBody(p.slot));
 }
 
 on('lobby', (msg) => { lobby = msg.list; if (game.state === 'menu') renderLobby(); });
@@ -153,15 +162,15 @@ on('start', async (msg) => {
   clearProxies();
   setProxyFaces(sets);
   lobby = msg.members;
-  startGame(sets, msg.members);
+  startGame(sets, msg.members, msg.seed);
   hud.setGrabVisible(false); // sui client gli oggetti li muove l'host
 });
 
 /* ---------- Host: corpi dei giocatori remoti (i nemici li vedono e li inseguono) ---------- */
 const remoteBodies = new Map();
-const SLOT_X = [0, 1.6, -1.6, 3.2];
 function makeRemoteBody(slot) {
-  const b = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(SLOT_X[slot % 4], 0.85, 9));
+  const sp = spawnPoint(slot);
+  const b = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(sp.x, sp.y, sp.z));
   world.createCollider(RAPIER.ColliderDesc.capsule(0.4, 0.4).setCollisionGroups(GROUPS.player), b);
   return b;
 }

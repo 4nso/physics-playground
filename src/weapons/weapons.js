@@ -1,7 +1,7 @@
 // Logica delle armi: sparo (raycast), munizioni, ricarica, rinculo, dispersione, cambio arma.
 import * as THREE from 'three';
 import { camera } from '../core/renderer.js';
-import { pickables } from '../world/arena.js';
+import { castWorld } from '../world/raycast.js';
 import { player, addRecoil } from '../player/player.js';
 import { WEAPONS } from './defs.js';
 import { models, showModel, kickModel, setReloadProgress, muzzleWorld, updateViewModel } from './viewmodel.js';
@@ -122,7 +122,6 @@ export function refillAmmo() {
 }
 
 /* ---------- Sparo ---------- */
-const raycaster = new THREE.Raycaster();
 const origin = new THREE.Vector3(), fwd = new THREE.Vector3(), right = new THREE.Vector3(), up = new THREE.Vector3();
 const dir = new THREE.Vector3(), end = new THREE.Vector3(), muzzle = new THREE.Vector3(), normal = new THREE.Vector3();
 const impulse = { x: 0, y: 0, z: 0 }, at = { x: 0, y: 0, z: 0 };
@@ -138,17 +137,13 @@ function currentSpread(w) {
  * (il punto finale è in `end`).
  */
 function castPellet(o, d, w, authority, shooterId) {
-  raycaster.set(o, d);
-  raycaster.far = w.range;
-  const hits = raycaster.intersectObjects(pickables, false);
-  let hit = null;
-  for (const h of hits) if (h.object !== shotFilter.ignore) { hit = h; break; }
+  const hit = castWorld(o, d, w.range, shotFilter.ignore);
   if (!hit) { end.copy(o).addScaledVector(d, w.range); return false; }
   end.copy(hit.point);
-  if (hit.face) normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
-  else normal.copy(d).negate();
-  const ud = hit.object.userData, obj = ud.obj, enemy = ud.enemy;
+  normal.copy(hit.normal);
   const n = w.pellets > 1 ? 3 : 7;
+  if (!hit.object) { impact(hit.point, normal, hit.surface, n + 1); return true; }
+  const ud = hit.object.userData, obj = ud.obj, enemy = ud.enemy;
   if (enemy || ud.enemyProxy) {
     impact(hit.point, normal, 'enemy', n);
     if (enemy && authority) {

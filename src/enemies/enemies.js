@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { scene, camera } from '../core/renderer.js';
 import { world, RAPIER, GROUPS, onBeforeStep, contactHandlers, prevSpeed } from '../core/physics.js';
 import { pickables } from '../world/arena.js';
-import { player } from '../player/player.js';
+import { updateFields, nodeAt, steer, findSpawn } from '../world/nav.js';
 import { VARIANTS, MODEL_HEIGHT, buildEnemyModel, animateModel, flashModel } from './model.js';
 import { crumbleModel, updateDebris, clearDebris } from './debris.js';
 
@@ -32,18 +32,12 @@ export function makeBar() {
 }
 
 /* ---------- Comparsa ---------- */
+let lastTargets = [];
+/** Punto lontano dai giocatori e fuori dalla loro vista (vedi world/nav.js). */
 function spawnPoint() {
-  const p = player.pos;
-  let best = null;
-  for (let i = 0; i < 10; i++) {
-    const side = (Math.random() * 4) | 0, along = (Math.random() * 2 - 1) * 26, edge = 27.5;
-    const x = side === 0 ? along : side === 1 ? along : side === 2 ? edge : -edge;
-    const z = side === 0 ? edge : side === 1 ? -edge : along;
-    const d = Math.hypot(x - p.x, z - p.z);
-    if (!best || d > best.d) best = { x, z, d };
-    if (d > 14) break;
-  }
-  return best;
+  const alive = lastTargets.filter((t) => t.alive);
+  const p = findSpawn(alive.length ? alive : lastTargets);
+  return p || { x: 0, y: 0, z: 0 };
 }
 
 /**
@@ -56,7 +50,7 @@ export function spawnEnemy(variant, opts) {
   const half = 0.45 * v.scale, radius = 0.33 * v.scale, centerY = half + radius;
   const sp = spawnPoint();
   const body = world.createRigidBody(
-    RAPIER.RigidBodyDesc.dynamic().setTranslation(sp.x, centerY + 0.05, sp.z).lockRotations(),
+    RAPIER.RigidBodyDesc.dynamic().setTranslation(sp.x, sp.y + centerY + 0.05, sp.z).lockRotations(),
   );
   const collider = world.createCollider(
     RAPIER.ColliderDesc.capsule(half, radius)
@@ -79,12 +73,12 @@ export function spawnEnemy(variant, opts) {
     attackT: 0, attackCd: 0.5, hitDone: false,
     stun: 0, flash: 0, spawnT: 0,
     stuckT: 0, detourT: 0, detourSide: 1,
-    prev: { x: sp.x, y: centerY, z: sp.z },
+    prev: { x: sp.x, y: sp.y + centerY, z: sp.z },
     bar: makeBar(),
     dead: false,
   };
   for (const p of model.parts) { p.userData.enemy = e; pickables.push(p); }
-  model.group.position.set(sp.x, 0, sp.z);
+  model.group.position.set(sp.x, sp.y, sp.z);
   model.group.scale.setScalar(0.01);
   scene.add(model.group);
   // Oggetti lanciati o la palla demolitrice fanno male se arrivano veloci
@@ -157,21 +151,37 @@ const pos = [];
  */
 export function updateEnemies(dt, alpha, active, targets) {
   updateDebris(dt);
+  lastTargets = targets;
+  if (active) updateFields(dt, targets);
   for (let i = 0; i < enemies.length; i++) pos[i] = enemies[i].body.translation();
   const anyAlive = targets.some((tg) => tg.alive);
 
   for (let i = 0; i < enemies.length; i++) {
     const e = enemies[i], t = pos[i];
     e.spawnT = Math.min(1, e.spawnT + dt / 0.35);
-    let pp = targets[0], best = Infinity;
-    for (const tg of targets) {
-      if (!tg.alive && anyAlive) continue;
-      const d = (tg.x - t.x) ** 2 + (tg.z - t.z) ** 2;
-      if (d < best) { best = d; pp = tg; }
+    // percorso: il campo di navigazione dice verso quale giocatore andare e dove fare il prossimo passo
+    const way = active ? steer(nodeAt(t.x, t.y - e.centerY, t.z)) : null;
+    let pp = null;
+    if (way) pp = targets.find((tg) => tg.id === way.id);
+    if (!pp) {
+      let best = Infinity;
+      pp = targets[0];
+      for (const tg of targets) {
+        if (!tg.alive && anyAlive) continue;
+        const d = (tg.x - t.x) ** 2 + (tg.z - t.z) ** 2;
+        if (d < best) { best = d; pp = tg; }
+      }
     }
     let dx = pp.x - t.x, dz = pp.z - t.z;
     const dist = Math.hypot(dx, dz) || 0.001;
     dx /= dist; dz /= dist;
+    // direzione di marcia: verso il prossimo punto del percorso, o dritto se il giocatore è lì vicino
+    let wx = dx, wz = dz;
+    const close = dist < 2.5 && Math.abs(pp.y - t.y) < 1.2;
+    if (way && !close) {
+      const ax = way.x - t.x, az = way.z - t.z, al = Math.hypot(ax, az);
+      if (al > 0.05) { wx = ax / al; wz = az / al; }
+    }
     const reach = 0.95 + 0.33 * e.v.scale;
     const v = e.body.linvel();
     let walk = 0;
@@ -182,8 +192,8 @@ export function updateEnemies(dt, alpha, active, targets) {
       else {
         let mx = 0, mz = 0;
         if (dist > reach * 0.8 && pp.alive) {
-          mx = dx; mz = dz;
-          if (e.detourT > 0) {
+          mx = wx; mz = wz;
+          if (e.detourT > 0 && !way) {
             // aggira l'ostacolo girando di ~70°
             e.detourT -= dt;
             const c = Math.cos(1.2 * e.detourSide), s = Math.sin(1.2 * e.detourSide);
@@ -238,8 +248,8 @@ export function updateEnemies(dt, alpha, active, targets) {
       }
     }
 
-    // gira la faccia verso il giocatore
-    const targetYaw = Math.atan2(dx, dz);
+    // guarda il giocatore se è vicino, altrimenti dove sta andando
+    const targetYaw = dist < 6 ? Math.atan2(dx, dz) : Math.atan2(wx, wz);
     let dy = targetYaw - e.yaw;
     dy = Math.atan2(Math.sin(dy), Math.cos(dy));
     e.yaw += dy * Math.min(1, dt * 8);

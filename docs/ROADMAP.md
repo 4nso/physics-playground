@@ -64,7 +64,32 @@ Note: la corsa su touch si attiva spingendo il joystick oltre il bordo. Su scher
 il campo visivo orizzontale è limitato a circa 100° per non deformare l'immagine.
 Impostazioni salvate in localStorage (menu principale e pausa → ⚙️ Impostazioni).
 
-## Fase 5 – Rifinitura (idee)
-- [ ] Più arene, oggetti esplosivi, potenziamenti
+## Fase 5 – Mondo grande a moduli (in corso)
+Passo 1 (generatore e pathfinding):
+- [x] Sezione "Mondo" in `docs/DESIGN.md`
+- [x] Generatore con seed: griglia di riquadri, porte e muri, tutto raggiungibile
+- [x] 5 tipi di area: corridoi gialli, uffici con soppalco, piscina coperta, parcheggio con
+      piano rialzato, parco giochi/cortile (piazza di partenza con la palla demolitrice)
+- [x] Più livelli: scale/rampe, soppalco, piano del parcheggio, vasca della piscina
+- [x] Griglia di navigazione e percorsi dei nemici (anche su più piani)
+- [x] Comparsa dei nemici lontano e fuori vista; casse e palloni sparsi
+- [x] Geometria unita per riquadro, luce nei colori dei vertici, nebbia
+- [x] Minimappa
+- [x] Multiplayer: l'host manda il seed
+- [x] Verifica con screenshot headless a 844×390
+- [ ] Provato su iPad/iPhone
+
+Note: ogni partita genera una mappa nuova (6×6 riquadri, 90×90 m); il numero della mappa si vede
+nel menu di pausa e si può riusare aprendo il gioco con `?seed=NUMERO`. Partenza nella piazza con la
+palla demolitrice. Ombre in tempo reale tolte (luce dipinta nei vertici); nebbia oltre ~55 m.
+Misure headless a 844×390: 12–35 chiamate di disegno, al massimo ~13.000 triangoli della mappa a schermo,
+griglia di navigazione calcolata in meno di 0,1 s. Nei test i nemici salgono sul soppalco e attraversano
+i corridoi fino al giocatore; host e client costruiscono la stessa mappa dal seed.
+
+Passo 2 (varietà, dopo la prova): altri tipi di stanza (scale verso stanze strane, cantine,
+tetti), più oggetti e decorazioni, instancing degli oggetti ripetuti.
+
+## Fase 6 – Rifinitura (idee)
+- [ ] Oggetti esplosivi, potenziamenti
 - [ ] Funzionamento offline (il gioco è già installabile dalla fase 4b)
 - [ ] Impostazioni: volume, qualità grafica (sensibilità e pulsanti fatti nella fase 4b)
