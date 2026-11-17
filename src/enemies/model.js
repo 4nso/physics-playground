@@ -32,7 +32,7 @@ export const MODEL_HEIGHT = 2.1;
  * Restituisce { group, parts, pivots } — le parti sono le mesh colpibili.
  */
 export function buildEnemyModel(variant, faceSet) {
-  const v = VARIANTS[variant];
+  const v = typeof variant === 'string' ? VARIANTS[variant] : variant;
   const group = new THREE.Group();
   const inner = new THREE.Group();
   inner.scale.setScalar(v.scale);

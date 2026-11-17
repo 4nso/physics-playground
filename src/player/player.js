@@ -53,11 +53,15 @@ export function createPlayer() {
   });
 }
 
-export function resetPlayer() {
-  player.body.setTranslation(SPAWN, true);
+const SLOT_X = [0, 1.6, -1.6, 3.2];
+let spawn = { ...SPAWN };
+/** slot = posto del giocatore in multiplayer (0..3): ognuno parte un po' spostato. */
+export function resetPlayer(slot = 0) {
+  spawn = { x: SPAWN.x + SLOT_X[slot % 4], y: SPAWN.y, z: SPAWN.z };
+  player.body.setTranslation(spawn, true);
   player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-  Object.assign(prev, SPAWN);
-  Object.assign(player.pos, SPAWN);
+  Object.assign(prev, spawn);
+  Object.assign(player.pos, spawn);
   player.yaw = 0;
   player.pitch = -0.08;
   player.recoil = player.recoilTarget = player.recoilYaw = player.recoilYawTarget = 0;
@@ -112,9 +116,8 @@ export function updatePlayer(dt) {
   player.speed = Math.hypot(v.x, v.z);
 
   if (player.body.translation().y < -10) {
-    const h = player.health;
-    resetPlayer();
-    player.health = h;
+    player.body.setTranslation(spawn, true);
+    player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
   }
 }
 

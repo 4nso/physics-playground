@@ -14,7 +14,9 @@ import { updateEnemies } from './enemies/enemies.js';
 import { initGallery, openGallery } from './faces/gallery.js';
 import { updatePickups } from './game/pickups.js';
 import { buildLevel } from './game/level.js';
-import { game, startGame, pauseGame, resumeGame, toMenu, updateGame, showRecord } from './game/game.js';
+import { game, pauseGame, resumeGame, updateGame, showRecord, teamTargets } from './game/game.js';
+import { net } from './net/net.js';
+import { startMatch, openCreateRoom, openJoin, joinWithCode, leaveToMenu, netBeforePhysics, netUpdate } from './net/sync.js';
 import { hud } from './ui/hud.js';
 
 const $ = (id) => document.getElementById(id);
@@ -33,7 +35,7 @@ const actions = {
   reload,
   weapon: selectWeapon,
   nextWeapon,
-  grab() { setTrigger(false); toggleGrab(); },
+  grab() { if (net.mode !== 'client' && player.alive) { setTrigger(false); toggleGrab(); } },
   jump,
   pause: pauseGame,
   lockLost() { if (game.state === 'playing' && game.phase !== 'dead') pauseGame(); },
@@ -45,21 +47,29 @@ function loop(now) {
   last = now;
   const playing = game.state === 'playing';
   const gdt = playing ? dt : 0;
+  const authority = net.mode !== 'client'; // da solo o host: qui si simula tutto
 
   if (playing) {
     updatePlayer(dt);
     updateHeld();
+    netBeforePhysics(dt);
     stepPhysics(dt);
   }
   syncObjects();
   updateRope();
   updateCamera(gdt, alpha);
   followSun(player.pos.x, player.pos.z);
-  updateEnemies(gdt, alpha, playing);
-  updatePickups(gdt);
+  if (authority) {
+    const targets = teamTargets();
+    updateEnemies(gdt, alpha, playing, targets);
+    updatePickups(gdt, playing ? targets.filter((t) => t.alive) : null);
+    updateGame(gdt);
+  } else {
+    updatePickups(gdt, null);
+  }
   updateWeapons(gdt, player.lookDX, player.lookDY);
-  updateGame(gdt);
-  if (playing) updateCrosshair();
+  netUpdate(dt);
+  if (playing && net.mode !== 'client') updateCrosshair();
   hud.update(dt);
 
   renderer.clear();
@@ -85,13 +95,20 @@ async function start() {
   setupInput(actions);
   requestAnimationFrame(loop);
 
-  const play = () => { initAudio(); requestLock(); last = performance.now(); startGame(); };
-  $('play').onclick = play;
-  $('again').onclick = play;
+  const play = () => { initAudio(); requestLock(); last = performance.now(); startMatch(); };
+  $('play').onclick = play;      // gioca da solo
+  $('again').onclick = play;     // rigioca (da solo o, se host, con la stessa stanza)
   $('restart').onclick = play;
+  $('lStart').onclick = () => { if (net.clients.size > 0) play(); };
   $('resume').onclick = () => { initAudio(); resumeGame(); };
-  $('toMenu').onclick = toMenu;
-  $('overMenu').onclick = toMenu;
+  $('toMenu').onclick = leaveToMenu;
+  $('overMenu').onclick = leaveToMenu;
+  $('lLeave').onclick = leaveToMenu;
+  $('create').onclick = () => { initAudio(); openCreateRoom(); };
+  $('joinBtn').onclick = () => { initAudio(); openJoin(); };
+  $('jGo').onclick = joinWithCode;
+  $('jCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinWithCode(); });
+  $('jBack').onclick = leaveToMenu;
   $('openGallery').onclick = openGallery;
   initGallery((n) => { $('openGallery').textContent = `🙂 Galleria volti (${n})`; });
   hud.ready();
@@ -99,8 +116,8 @@ async function start() {
 
 // Solo in sviluppo (npm run dev): oggetti utili per i test automatici. Non finisce nel sito pubblicato.
 if (import.meta.env.DEV) {
-  Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js')]).then(([m, v]) => {
-    window.__pp = { game, player, enemies: m.enemies, camera, models: v.models };
+  Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js'), import('./game/game.js')]).then(([m, v, g]) => {
+    window.__pp = { game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team };
   });
 }
 

@@ -17,6 +17,12 @@
 - Prima di dire che un lavoro è finito, esegui la build e, se possibile, prova il gioco
   in un browser headless (avvio senza errori in console, si arriva in partita).
 
+## Test automatici
+- `npm run dev` espone `window.__pp` (stato di gioco) solo in sviluppo, utile per i test headless.
+- Multiplayer: il server pubblico di PeerJS non è raggiungibile dalle sessioni cloud. Per i test
+  avvia un server locale (pacchetto `peer`, `ExpressPeerServer` su 127.0.0.1:9000) e apri il gioco
+  con `?peer=127.0.0.1:9000`.
+
 ## Stack (dalla fase 1)
 - Vite + JavaScript moderno (ES modules). TypeScript non serve.
 - Three.js per la grafica, Rapier (`@dimforge/rapier3d-compat`) per la fisica,

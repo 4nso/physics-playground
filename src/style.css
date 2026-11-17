@@ -82,3 +82,15 @@ canvas{display:block;touch-action:none}
 body.touch #weapon{bottom:calc(214px + env(safe-area-inset-bottom))}
 body.touch #keys{display:none}
 body.touch #wSlots button{padding:8px 10px;font-size:13px}
+
+/* Multiplayer */
+.code{font-size:44px;font-weight:900;letter-spacing:10px;text-align:center;margin:6px 0 10px;color:#e8403a;font-family:ui-monospace,Menlo,monospace}
+.players{list-style:none;padding:0;margin:0 0 6px}
+.players li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:#f1f4f8;margin-bottom:6px;font-weight:600}
+.players li i{width:14px;height:14px;border-radius:50%;display:inline-block}
+#jCode{width:100%;font-size:32px;font-weight:800;letter-spacing:8px;text-align:center;text-transform:uppercase;padding:10px;border:2px solid #d5dbe5;border-radius:12px;font-family:ui-monospace,Menlo,monospace;user-select:text;-webkit-user-select:text}
+.note.err{color:#c0201a;font-weight:600}
+.note.err:empty{display:none}
+#revive{position:fixed;left:50%;top:62%;transform:translateX(-50%);background:rgba(15,25,40,.72);color:#fff;padding:10px 16px;border-radius:14px;z-index:6;pointer-events:none;text-align:center;font-weight:700;font-size:14px;min-width:220px}
+#rBar{height:8px;border-radius:4px;background:rgba(255,255,255,.2);margin-top:6px;overflow:hidden}
+#rBar i{display:block;height:100%;width:0;background:#2ec4b6}

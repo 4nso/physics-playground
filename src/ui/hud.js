@@ -31,7 +31,7 @@ export const hud = {
   ready() {
     const b = $('play');
     b.disabled = false;
-    b.textContent = 'Gioca';
+    b.textContent = '▶ Gioca da solo';
   },
   error(text) {
     const e = $('err');
@@ -96,6 +96,15 @@ export const hud = {
     const g = Math.round(Math.min(80, px));
     if (g !== lastGap) { $('cross').style.setProperty('--g', g + 'px'); lastGap = g; }
   },
+  /** Barra di rianimazione (text = null per nasconderla). */
+  setRevive(text, progress = 0) {
+    const el = $('revive');
+    el.classList.toggle('hidden', !text);
+    if (!text) return;
+    setText('rText', text);
+    $('rBar').firstChild.style.width = `${Math.round(Math.min(1, progress) * 100)}%`;
+  },
+  setGrabVisible(on) { $('bGrab').style.display = on ? '' : 'none'; },
   setHolding(on) {
     $('bGrab').classList.toggle('on', on);
     $('cross').classList.toggle('hold', on);

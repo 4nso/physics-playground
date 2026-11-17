@@ -22,12 +22,17 @@ const state = {
   emptyClick: false,
   unlocked: WEAPONS.map((w) => w.unlockRound <= 1),
 };
-/** Avviso verso il gioco quando un colpo prende un nemico: onEnemyHit(killed, headshot) */
-export const weaponHooks = { onEnemyHit: null };
+/**
+ * Collegamenti verso gioco e rete:
+ *  onEnemyHit(killed, headshot, shooterId) · onShot(origin, dirs, ends, weaponIndex)
+ *  isAuthority() → true se questo dispositivo decide i danni (da solo o host)
+ */
+export const weaponHooks = { onEnemyHit: null, onShot: null, isAuthority: null };
 /** Mesh da ignorare negli spari (ad esempio l'oggetto che teniamo in mano). */
 export const shotFilter = { ignore: null };
 
 export const currentWeapon = () => WEAPONS[state.current];
+export const currentWeaponIndex = () => state.current;
 
 export function initWeapons() {
   hud.buildWeaponSlots(WEAPONS);
@@ -127,6 +132,42 @@ function currentSpread(w) {
   return w.spread + state.bloom + Math.min(1, player.speed / 5.5) * w.moveSpread + air;
 }
 
+/**
+ * Un pallino: raycast dal punto origin lungo dir. Mostra l'impatto e, se authority è vero
+ * (partita da solo o host), applica danni e spinte. Restituisce true se ha colpito qualcosa
+ * (il punto finale è in `end`).
+ */
+function castPellet(o, d, w, authority, shooterId) {
+  raycaster.set(o, d);
+  raycaster.far = w.range;
+  const hits = raycaster.intersectObjects(pickables, false);
+  let hit = null;
+  for (const h of hits) if (h.object !== shotFilter.ignore) { hit = h; break; }
+  if (!hit) { end.copy(o).addScaledVector(d, w.range); return false; }
+  end.copy(hit.point);
+  if (hit.face) normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
+  else normal.copy(d).negate();
+  const ud = hit.object.userData, obj = ud.obj, enemy = ud.enemy;
+  const n = w.pellets > 1 ? 3 : 7;
+  if (enemy || ud.enemyProxy) {
+    impact(hit.point, normal, 'enemy', n);
+    if (enemy && authority) {
+      const head = !!ud.head;
+      const killed = damageEnemy(enemy, w.damage * (head ? 2 : 1), d, hit.point, head, w.impulse);
+      if (weaponHooks.onEnemyHit) weaponHooks.onEnemyHit(killed, head, shooterId);
+    }
+  } else impact(hit.point, normal, ud.surface || (obj && obj.surface) || 'stone', n + 1);
+  if (obj && authority) {
+    impulse.x = d.x * w.impulse; impulse.y = d.y * w.impulse; impulse.z = d.z * w.impulse;
+    at.x = hit.point.x; at.y = hit.point.y; at.z = hit.point.z;
+    obj.body.applyImpulseAtPoint(impulse, at, true);
+  }
+  return true;
+}
+
+const shotDirs = [];   // direzioni dei pallini dell'ultimo colpo (da mandare in rete)
+const shotEnds = [];   // punti d'arrivo (per far vedere le scie agli altri)
+
 function shoot() {
   const w = currentWeapon(), a = state.ammo[state.current];
   a.mag--;
@@ -139,37 +180,19 @@ function shoot() {
   origin.setFromMatrixPosition(camera.matrixWorld);
   muzzleWorld(muzzle);
   const spread = Math.tan(currentSpread(w));
+  const authority = weaponHooks.isAuthority ? weaponHooks.isAuthority() : true;
+  shotDirs.length = shotEnds.length = 0;
 
   for (let p = 0; p < w.pellets; p++) {
     // direzione casuale dentro un cono (distribuzione uniforme nel disco)
     const r = Math.sqrt(Math.random()) * spread, a2 = Math.random() * Math.PI * 2;
     dir.copy(fwd).addScaledVector(right, Math.cos(a2) * r).addScaledVector(up, Math.sin(a2) * r).normalize();
-    raycaster.set(origin, dir);
-    raycaster.far = w.range;
-    const hits = raycaster.intersectObjects(pickables, false);
-    let hit = null;
-    for (const h of hits) if (h.object !== shotFilter.ignore) { hit = h; break; }
-    if (hit) {
-      end.copy(hit.point);
-      if (hit.face) normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
-      else normal.copy(dir).negate();
-      const obj = hit.object.userData.obj, enemy = hit.object.userData.enemy;
-      if (enemy) {
-        const head = !!hit.object.userData.head;
-        impact(hit.point, normal, 'enemy', w.pellets > 1 ? 3 : 7);
-        const killed = damageEnemy(enemy, w.damage * (head ? 2 : 1), dir, hit.point, head, w.impulse);
-        if (weaponHooks.onEnemyHit) weaponHooks.onEnemyHit(killed, head);
-      } else impact(hit.point, normal, hit.object.userData.surface || (obj && obj.surface) || 'stone', w.pellets > 1 ? 4 : 9);
-      if (obj) {
-        impulse.x = dir.x * w.impulse; impulse.y = dir.y * w.impulse; impulse.z = dir.z * w.impulse;
-        at.x = hit.point.x; at.y = hit.point.y; at.z = hit.point.z;
-        obj.body.applyImpulseAtPoint(impulse, at, true);
-      }
-    } else {
-      end.copy(origin).addScaledVector(dir, w.range);
-    }
+    const hit = castPellet(origin, dir, w, authority, 'local');
     addTracer(muzzle, end);
+    shotDirs.push([dir.x, dir.y, dir.z]);
+    shotEnds.push([end.x, end.y, end.z, hit ? 1 : 0]);
   }
+  if (weaponHooks.onShot) weaponHooks.onShot(origin, shotDirs, shotEnds, state.current);
 
   state.bloom = Math.min(w.maxBloom, state.bloom + w.bloom);
   addRecoil(w.recoil, (Math.random() - 0.5) * w.recoil * 0.3);
@@ -178,6 +201,38 @@ function shoot() {
   shotSound(w);
   refreshHud();
   if (a.mag === 0 && a.reserve > 0) reload(); // ricarica automatica a caricatore vuoto
+}
+
+/**
+ * Host: risolve il colpo di un altro giocatore (danni, spinte, effetti) e restituisce i punti d'arrivo.
+ * o = [x,y,z] occhi del tiratore, dirs = [[dx,dy,dz], ...], wi = indice dell'arma.
+ */
+const remoteO = new THREE.Vector3(), remoteD = new THREE.Vector3(), remoteFrom = new THREE.Vector3();
+export function resolveRemoteShot(shooterId, o, dirs, wi) {
+  const w = WEAPONS[wi] || WEAPONS[0];
+  remoteO.set(o[0], o[1], o[2]);
+  remoteFrom.set(o[0], o[1] - 0.25, o[2]);
+  const ends = [];
+  for (const d of dirs.slice(0, 12)) {
+    remoteD.set(d[0], d[1], d[2]).normalize();
+    const hit = castPellet(remoteO, remoteD, w, true, shooterId);
+    addTracer(remoteFrom, end);
+    ends.push([end.x, end.y, end.z, hit ? 1 : 0]);
+  }
+  shotSound(w, 0.45);
+  return ends;
+}
+
+/** Mostra il colpo di un altro giocatore (scie, impatti, suono) senza calcolare nulla. */
+const UP = new THREE.Vector3(0, 1, 0);
+export function showRemoteShot(o, ends, wi) {
+  remoteFrom.set(o[0], o[1] - 0.25, o[2]);
+  for (const e of ends) {
+    end.set(e[0], e[1], e[2]);
+    addTracer(remoteFrom, end);
+    if (e[3]) impact(end, UP, 'stone', 4);
+  }
+  shotSound(WEAPONS[wi] || WEAPONS[0], 0.45);
 }
 
 export function updateWeapons(dt, lookDX, lookDY) {

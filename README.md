@@ -8,9 +8,8 @@ con armi diverse e un multiplayer cooperativo per 2-4 giocatori.
 dal proprio dispositivo, dentro il gioco. Le foto restano nel suo browser e in
 multiplayer passano solo, direttamente, ai giocatori della stanza.
 
-> Stato: **fase 3 – nemici e round**. Si gioca a ondate contro nemici low-poly
-> (base, veloci e grossi) con i volti scelti dal giocatore, con pistola, fucile a pompa
-> e mitra. Il multiplayer arriva nella fase 4.
+> Stato: **fase 4 – multiplayer cooperativo**. Si gioca a ondate contro nemici low-poly
+> con i volti scelti dal giocatore, da soli o in squadra da 2 a 4 (stanza con codice).
 
 ## Come giocare
 
@@ -22,6 +21,9 @@ Quando GitHub Pages è attivo, il gioco è online qui:
   **⏸** per la pausa
 - **Desktop**: WASD per muoverti, mouse per mirare, clic per sparare, 1/2/3 o rotella per
   cambiare arma, R per ricaricare, E per afferrare, Spazio per saltare, Esc per la pausa
+- **In squadra**: uno tocca "Crea stanza" e legge il codice agli amici; gli altri toccano
+  "Entra con codice". Quando tutti sono dentro, l'host tocca "Inizia partita". Se un compagno
+  è a terra, stagli vicino qualche secondo per rianimarlo
 - **Volti**: nel menu apri "Galleria volti" e aggiungi foto dal dispositivo. Restano solo nel
   tuo browser (IndexedDB) e si possono eliminare quando vuoi
 
@@ -31,7 +33,7 @@ Quando GitHub Pages è attivo, il gioco è online qui:
 ## Struttura del repository
 
 ```
-src/              Codice del gioco (core, world, player, weapons, enemies, faces, game, ui)
+src/              Codice del gioco (core, world, player, weapons, enemies, faces, game, net, ui)
 index.html        Pagina del gioco
 public/           Icone (generate dal codice da icon.svg) e manifest
 scripts/          Script di servizio (make-icons.cjs rigenera le icone PNG)

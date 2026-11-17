@@ -12,11 +12,11 @@ function noiseBuffer(ctx) {
   return noise;
 }
 
-export function shotSound(w) {
+export function shotSound(w, volume = 1) {
   const ctx = audioCtx();
   if (!ctx) return;
   try {
-    const s = w.sound, t = ctx.currentTime, k = 0.9 + Math.random() * 0.2;
+    const s = { ...w.sound, vol: w.sound.vol * volume }, t = ctx.currentTime, k = 0.9 + Math.random() * 0.2;
     // Scoppio: rumore bianco passa-basso con coda breve
     const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
     src.buffer = noiseBuffer(ctx);

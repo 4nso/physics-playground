@@ -2,16 +2,17 @@
 import * as THREE from 'three';
 import { scene, camera } from '../core/renderer.js';
 import { world, RAPIER, GROUPS, onBeforeStep, contactHandlers, prevSpeed } from '../core/physics.js';
-import { thud } from '../core/audio.js';
 import { pickables } from '../world/arena.js';
 import { player } from '../player/player.js';
 import { VARIANTS, MODEL_HEIGHT, buildEnemyModel, animateModel, flashModel } from './model.js';
+import { crumbleModel, updateDebris, clearDebris } from './debris.js';
 
 export const enemies = [];
-/** Avvisi verso il gioco: onKill(enemy, headshot), onPlayerHit(damage, x, z) */
+/** Avvisi verso il gioco: onKill(enemy, headshot, dir, force), onPlayerHit(damage, x, z, targetId) */
 export const enemyHooks = { onKill: null, onPlayerHit: null };
 
 let faceSets = [];
+let nextId = 0;
 export function setFaceSets(sets) { faceSets = sets; }
 
 /* ---------- Barra della vita (in scena, sempre rivolta alla telecamera) ---------- */
@@ -19,7 +20,7 @@ const barBgGeo = new THREE.PlaneGeometry(0.72, 0.09);
 const barFgGeo = new THREE.PlaneGeometry(0.68, 0.06).translate(0.34, 0, 0);
 const barBgMat = new THREE.MeshBasicMaterial({ color: 0x1b2433, transparent: true, opacity: 0.7, depthWrite: false });
 const barFgMat = new THREE.MeshBasicMaterial({ color: 0xff5a4e, depthWrite: false });
-function makeBar() {
+export function makeBar() {
   const g = new THREE.Group();
   g.add(new THREE.Mesh(barBgGeo, barBgMat));
   const fg = new THREE.Mesh(barFgGeo, barFgMat);
@@ -50,8 +51,8 @@ function spawnPoint() {
  */
 export function spawnEnemy(variant, opts) {
   const v = VARIANTS[variant];
-  const face = faceSets[(Math.random() * faceSets.length) | 0];
-  const model = buildEnemyModel(variant, face);
+  const faceIdx = (Math.random() * faceSets.length) | 0;
+  const model = buildEnemyModel(variant, faceSets[faceIdx]);
   const half = 0.45 * v.scale, radius = 0.33 * v.scale, centerY = half + radius;
   const sp = spawnPoint();
   const body = world.createRigidBody(
@@ -67,6 +68,7 @@ export function spawnEnemy(variant, opts) {
     body,
   );
   const e = {
+    id: ++nextId, faceIdx, walk: 0,
     variant, v, model, body, collider, centerY,
     health: opts.health * v.health,
     maxHealth: opts.health * v.health,
@@ -120,76 +122,13 @@ export function damageEnemy(e, amount, dir, point, headshot, impulse) {
   }
   if (e.health <= 0) {
     e.dead = true;
-    if (enemyHooks.onKill) enemyHooks.onKill(e, headshot);
-    crumble(e, dir, Math.max(impulse, 3));
+    const force = Math.max(impulse, 3);
+    if (enemyHooks.onKill) enemyHooks.onKill(e, headshot, dir, force);
+    removeEnemy(e, false);
+    crumbleModel(e.model, dir, force);
     return true;
   }
   return false;
-}
-
-/* I pezzi del nemico morto diventano corpi fisici che rotolano e poi spariscono. */
-const debris = [];
-const MAX_DEBRIS = 48;
-const wp = new THREE.Vector3(), wq = new THREE.Quaternion(), ws = new THREE.Vector3();
-
-function crumble(e, dir, force) {
-  removeEnemy(e, false);
-  const k = Math.min(9, 2 + force * 0.5);
-  e.model.group.updateMatrixWorld(true);
-  for (const part of e.model.parts) {
-    part.getWorldPosition(wp);
-    part.getWorldQuaternion(wq);
-    part.getWorldScale(ws);
-    const size = part.geometry.userData.size, oy = part.geometry.userData.offsetY;
-    // la geometria può essere spostata (gambe/braccia): il centro reale è più in basso
-    const center = new THREE.Vector3(0, oy, 0).multiply(ws).applyQuaternion(wq).add(wp);
-    part.removeFromParent();
-    part.position.copy(center);
-    part.quaternion.copy(wq);
-    part.scale.copy(ws);
-    part.userData.offset = new THREE.Vector3(0, -oy, 0);
-    scene.add(part);
-    const body = world.createRigidBody(
-      RAPIER.RigidBodyDesc.dynamic()
-        .setTranslation(center.x, center.y, center.z)
-        .setRotation({ x: wq.x, y: wq.y, z: wq.z, w: wq.w })
-        .setLinvel(dir.x * k + (Math.random() - 0.5) * 3, 2 + Math.random() * 3, dir.z * k + (Math.random() - 0.5) * 3)
-        .setAngvel({ x: (Math.random() - 0.5) * 12, y: (Math.random() - 0.5) * 12, z: (Math.random() - 0.5) * 12 }),
-    );
-    world.createCollider(
-      RAPIER.ColliderDesc.cuboid((size[0] * ws.x) / 2, (size[1] * ws.y) / 2, (size[2] * ws.z) / 2)
-        .setDensity(1.5).setFriction(0.7).setRestitution(0.2)
-        .setCollisionGroups(GROUPS.debris),
-      body,
-    );
-    debris.push({ mesh: part, body, t: 0, s: ws.x });
-  }
-  scene.remove(e.model.group);
-  while (debris.length > MAX_DEBRIS) removeDebris(debris[0]);
-  thud(0.3, 110);
-}
-
-const offV = new THREE.Vector3();
-function updateDebris(dt) {
-  for (let i = debris.length - 1; i >= 0; i--) {
-    const d = debris[i];
-    d.t += dt;
-    const p = d.body.translation(), q = d.body.rotation();
-    d.mesh.quaternion.set(q.x, q.y, q.z, q.w);
-    offV.copy(d.mesh.userData.offset).multiply(d.mesh.scale).applyQuaternion(d.mesh.quaternion);
-    d.mesh.position.set(p.x + offV.x, p.y + offV.y, p.z + offV.z);
-    if (d.t > 2.6) {
-      const f = Math.max(0, 1 - (d.t - 2.6) / 0.5);
-      d.mesh.scale.setScalar(d.s * f);
-      if (f <= 0) removeDebris(d);
-    }
-  }
-}
-function removeDebris(d) {
-  const i = debris.indexOf(d);
-  if (i >= 0) debris.splice(i, 1);
-  world.removeRigidBody(d.body);
-  scene.remove(d.mesh);
 }
 
 function removeEnemy(e, removeModel = true) {
@@ -208,19 +147,28 @@ function removeEnemy(e, removeModel = true) {
 
 export function clearEnemies() {
   for (let i = enemies.length - 1; i >= 0; i--) removeEnemy(enemies[i]);
-  for (let i = debris.length - 1; i >= 0; i--) removeDebris(debris[i]);
+  clearDebris();
 }
 
 /* ---------- Intelligenza ---------- */
 const pos = [];
-export function updateEnemies(dt, alpha, active) {
+/**
+ * targets = giocatori da inseguire: [{ id, x, y, z, alive }]. Ogni nemico insegue il più vicino vivo.
+ */
+export function updateEnemies(dt, alpha, active, targets) {
   updateDebris(dt);
-  const pp = player.body.translation();
   for (let i = 0; i < enemies.length; i++) pos[i] = enemies[i].body.translation();
+  const anyAlive = targets.some((tg) => tg.alive);
 
   for (let i = 0; i < enemies.length; i++) {
     const e = enemies[i], t = pos[i];
     e.spawnT = Math.min(1, e.spawnT + dt / 0.35);
+    let pp = targets[0], best = Infinity;
+    for (const tg of targets) {
+      if (!tg.alive && anyAlive) continue;
+      const d = (tg.x - t.x) ** 2 + (tg.z - t.z) ** 2;
+      if (d < best) { best = d; pp = tg; }
+    }
     let dx = pp.x - t.x, dz = pp.z - t.z;
     const dist = Math.hypot(dx, dz) || 0.001;
     dx /= dist; dz /= dist;
@@ -233,7 +181,7 @@ export function updateEnemies(dt, alpha, active) {
       if (e.stun > 0) e.stun -= dt;
       else {
         let mx = 0, mz = 0;
-        if (dist > reach * 0.8 && player.alive) {
+        if (dist > reach * 0.8 && pp.alive) {
           mx = dx; mz = dz;
           if (e.detourT > 0) {
             // aggira l'ostacolo girando di ~70°
@@ -278,12 +226,12 @@ export function updateEnemies(dt, alpha, active) {
         e.attackT += dt / 0.5;
         if (!e.hitDone && e.attackT > 0.5) {
           e.hitDone = true;
-          if (dist < reach + 0.35 && Math.abs(pp.y - t.y) < 1.6 && player.alive && enemyHooks.onPlayerHit) {
-            enemyHooks.onPlayerHit(e.damage, t.x, t.z);
+          if (dist < reach + 0.35 && Math.abs(pp.y - t.y) < 1.6 && pp.alive && enemyHooks.onPlayerHit) {
+            enemyHooks.onPlayerHit(e.damage, t.x, t.z, pp.id);
           }
         }
         if (e.attackT >= 1) e.attackT = 0;
-      } else if (dist < reach && e.attackCd <= 0 && player.alive) {
+      } else if (dist < reach && e.attackCd <= 0 && pp.alive) {
         e.attackT = 0.001;
         e.hitDone = false;
         e.attackCd = 1.1;
@@ -308,6 +256,7 @@ export function updateEnemies(dt, alpha, active) {
     );
     g.rotation.y = e.yaw;
     g.scale.setScalar(e.spawnT < 1 ? 0.2 + 0.8 * e.spawnT : 1);
+    e.walk = walk;
     animateModel(e.model, e.phase, walk, e.attackT);
 
     // barra della vita (solo se ferito)

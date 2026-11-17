@@ -31,18 +31,22 @@ su GitHub Pages e provato su iPad prima di passare alla successiva.
 - [x] Gestione dei round: ondate, pausa tra i round, difficoltà crescente
 - [x] Punteggio, schermata di game over, record salvato in localStorage
 - [x] Varianti di nemico: veloce e grosso
-- [ ] Provato su iPad (anche con 20 nemici a schermo)
+- [ ] Provato su iPad in modo approfondito (anche con 20 nemici a schermo)
 
 Note: il mitra si sblocca dal round 3; tra i round compaiono munizioni e vita;
 le casse lanciate e la palla demolitrice fanno danno ai nemici.
 
-## Fase 4 – Multiplayer cooperativo
-- [ ] Lobby: gioca da solo, crea stanza, entra con codice
-- [ ] Connessione PeerJS, host autoritativo
-- [ ] Sincronizzazione di giocatori, nemici, colpi e round
-- [ ] L'host invia i volti della sua galleria ai client (solo in memoria, mai salvati)
-- [ ] Rianimare i compagni a terra
+## Fase 4 – Multiplayer cooperativo (da provare con 2 dispositivi)
+- [x] Lobby: gioca da solo, crea stanza, entra con codice
+- [x] Connessione PeerJS, host autoritativo
+- [x] Sincronizzazione di giocatori, nemici, colpi e round
+- [x] L'host invia i volti della sua galleria ai client (solo in memoria, mai salvati)
+- [x] Rianimare i compagni a terra
 - [ ] Test con 2 dispositivi reali
+
+Note: il server pubblico di PeerJS serve solo a mettere in contatto i dispositivi; poi i dati
+(posizioni, colpi, volti) viaggiano direttamente tra loro. Funziona meglio sulla stessa rete Wi‑Fi.
+In multiplayer solo l'host può afferrare gli oggetti; la pausa non ferma la partita per gli altri.
 
 ## Fase 5 – Rifinitura (idee)
 - [ ] Più arene, oggetti esplosivi, potenziamenti

@@ -1,4 +1,4 @@
-// Oggetti dinamici: casse, palline, domino, palla demolitrice.
+// Oggetti dinamici: casse, palloni, palla demolitrice.
 import * as THREE from 'three';
 import { scene } from '../core/renderer.js';
 import { world, RAPIER, addSound, removeSound } from '../core/physics.js';
@@ -10,15 +10,27 @@ export const objects = [];
 /** Callback chiamata quando un oggetto viene rimosso (es. per lasciarlo se è in mano). */
 export const hooks = { onRemove: null };
 
-const SURFACE = { crate: 'wood', domino: 'wood', ball: 'soft', wreck: 'metal' };
+const SURFACE = { crate: 'wood', ball: 'soft', wreck: 'metal' };
+
+/** Ogni oggetto ha un id: il livello è costruito uguale su host e client, quindi gli id coincidono. */
+let nextId = 0;
+export const objById = new Map();
+/**
+ * In multiplayer, sui client gli oggetti non sono simulati: seguono le posizioni mandate dall'host
+ * (corpi "cinematici", che il giocatore non può attraversare).
+ */
+let remote = false;
+export function setObjectsRemote(on) { remote = on; }
 
 function addObj(bodyDesc, colliderDesc, mesh, kind, freq) {
   const body = world.createRigidBody(bodyDesc);
   const collider = world.createCollider(colliderDesc, body);
-  addSound(collider, body, freq);
+  if (remote) body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
+  else addSound(collider, body, freq);
   mesh.castShadow = mesh.receiveShadow = true;
   scene.add(mesh);
-  const o = { body, collider, mesh, kind, surface: SURFACE[kind] || 'stone' };
+  const o = { id: ++nextId, body, collider, mesh, kind, surface: SURFACE[kind] || 'stone' };
+  objById.set(o.id, o);
   mesh.userData.obj = o;
   objects.push(o);
   pickables.push(mesh);
@@ -30,6 +42,7 @@ export function removeObj(o) {
   const i = objects.indexOf(o);
   if (i < 0) return;
   objects.splice(i, 1);
+  objById.delete(o.id);
   removeSound(o.collider);
   world.removeRigidBody(o.body); // rimuove anche collider e giunti collegati
   scene.remove(o.mesh);
@@ -121,6 +134,15 @@ export function syncObjects() {
   }
 }
 
+/** Client: applica la posizione ricevuta dall'host. */
+export function applyObjectState(id, x, y, z, qx, qy, qz, qw) {
+  const o = objById.get(id);
+  if (!o) return;
+  o.body.setNextKinematicTranslation({ x, y, z });
+  o.body.setNextKinematicRotation({ x: qx, y: qy, z: qz, w: qw });
+}
+
 export function clearObjects() {
+  nextId = 0;
   for (let i = objects.length - 1; i >= 0; i--) removeObj(objects[i]);
 }
