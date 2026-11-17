@@ -89,6 +89,33 @@ Nei test 17 nemici su 18 salgono fino al tetto del parcheggio e attraversano il 
 Passo 2 (varietà, dopo la prova): altre zone (piscine, uffici, scale verso stanze strane),
 instancing di casse e palle per alleggerire il parco.
 
+## Fase 7 – Progressione, negozio e zona segreta
+Dettagli in `docs/DESIGN.md`, sezione "Progressione, negozio e zona segreta".
+Si lavora a passi: dopo ogni passo si pubblica e ci si ferma per provare.
+
+Passo 1 – Difficoltà a livelli:
+- [ ] Massimo 25 round, schermata di vittoria
+- [ ] Curva di difficoltà procedurale (numero, vita, danno, velocità dei nemici)
+- [ ] Limiti di velocità: base appena sotto il giocatore, rossi pari al giocatore
+- [ ] Nemici più forti nei round alti (corazzato, boss ogni 5 round)
+
+Passo 2 – Armi e negozio:
+- [ ] Si parte con pistola e mitra
+- [ ] Nuove armi: fucile d'assalto, fucile da cecchino con zoom, lanciagranate, bazooka
+      (più il fucile a pompa da comprare)
+- [ ] Esplosioni con danno ad area e spinta fisica
+- [ ] Area negozio nella mappa: armi, munizioni, potenziamenti base
+- [ ] Inventario 2-3 armi e cambio rapido anche da touch
+- [ ] Tabella di prezzi e bilanciamento scritta in DESIGN.md
+
+Passo 3 – Passaggio segreto e zona sicura:
+- [ ] Muro appena più giallo nelle backrooms (posizione dal seed) che porta alla zona sicura
+- [ ] Zona sicura in cui i nemici non entrano
+- [ ] Cassa misteriosa a prezzo fisso con animazione
+- [ ] Potenziatore: 2 livelli per arma, strisce viola, poi viola e arancione
+- [ ] Negozio, passaggio e zona sicura come elementi riutilizzabili in altre mappe
+- [ ] Multiplayer: punti e acquisti per giocatore, decisi dall'host
+
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano
 d'ingresso in salita dalla strada, piano terra a livello strada, poi secondo, terzo e quarto piano.

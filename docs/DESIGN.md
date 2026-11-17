@@ -26,11 +26,20 @@ ondate di nemici dalla faccia fotografica, da solo o con 1-3 amici.
 
 ## Armi
 
-| Arma | Ruolo | Note |
+Si parte con **pistola e mitra**. Tutte le altre si comprano al negozio o escono dalla
+cassa misteriosa (vedi "Progressione, negozio e zona segreta").
+
+| Arma | Ruolo | Come si ottiene |
 |---|---|---|
-| Pistola | Base, colpi infiniti | Precisa, cadenza media |
-| Fucile a pompa | Distanza ravvicinata | Più pallini, rinculo forte, spinge i nemici |
-| Mitra | Fuoco continuo | Si sblocca da un certo round o si raccoglie |
+| Pistola | Base, colpi infiniti, precisa | All'inizio |
+| Mitra | Fuoco continuo | All'inizio |
+| Fucile a pompa | Distanza ravvicinata, più pallini, spinge i nemici | Negozio / cassa |
+| Fucile d'assalto | Raffica precisa a media distanza | Negozio / cassa |
+| Fucile da cecchino | Colpo potentissimo, mirino con zoom | Negozio / cassa |
+| Lanciagranate | Granate a parabola, danno ad area | Negozio / cassa |
+| Bazooka | Razzo, grande esplosione ad area e spinta fisica | Negozio / cassa |
+
+Se ha senso, Code può proporre qualche arma in più.
 
 - Colpi istantanei (raycast) con scie e scintille visibili
 - Munizioni, ricarica, rinculo della visuale, mirino che si allarga
@@ -47,6 +56,48 @@ ondate di nemici dalla faccia fotografica, da solo o con 1-3 amici.
 - Inseguono il giocatore più vicino, attaccano in mischia
 - Barra della vita sopra la testa; alla morte diventano un ragdoll o si sbriciolano
 - Varianti: base, veloce, grosso (lento e resistente)
+
+## Progressione, negozio e zona segreta
+
+### Round e difficoltà
+- **Massimo 25 round.** Superato il 25 la partita è vinta: schermata di vittoria
+  (la ricompensa si decide più avanti)
+- Difficoltà **procedurale e graduale**: a ogni round più nemici, con più vita, più danno
+  e più velocità
+- **Limiti di velocità**, raggiunti verso il round 25:
+  - zombi base: appena più lenti del giocatore che cammina
+  - zombi rossi (veloci): alla stessa velocità del giocatore che cammina
+  - nessun nemico è mai più veloce di così
+- **Nemici più forti** nei round alti: ad esempio un corazzato lento e resistentissimo,
+  e un boss ogni 5 round
+
+### Punti e negozio
+- I punti dei nemici uccisi sono la **moneta**
+- **Area negozio** nella mappa, riconoscibile (banco, insegna luminosa). Avvicinandosi si
+  vedono armi e prezzi, e si compra con un tocco
+- Si comprano armi, munizioni e potenziamenti base (vita massima, velocità di ricarica)
+- Il negozio è una zona tranquilla ma **non sicura**: i nemici possono entrare
+- **Inventario**: 2-3 armi in mano, cambio rapido anche da touch
+- La tabella di prezzi e bilanciamento si scrive qui quando si implementa
+
+### Passaggio segreto e zona sicura
+- Nei corridoi gialli delle backrooms c'è un punto di muro **appena più giallo** degli altri,
+  con una differenza minima, da notare solo guardando bene. La posizione cambia con il seed
+- Attraversandolo si entra in un'altra stanza: una **zona sicura** dove i nemici non entrano.
+  Si esce dallo stesso passaggio
+- Nella zona sicura:
+  1. **Cassa misteriosa**: a prezzo fisso fa un giro casuale e dà un'arma a caso tra quelle
+     del negozio, con l'animazione delle armi che girano prima di fermarsi
+  2. **Potenziatore**: pagando potenzia l'arma in mano (più danno, caricatore e cadenza).
+     Massimo **2 potenziamenti per arma**, e ogni livello cambia colore all'arma in alcuni punti:
+     - livello 1: strisce **viola**
+     - livello 2 (massimo): strisce **viola e arancione**
+
+### Regole
+- Negozio, passaggio segreto e zona sicura sono **elementi riutilizzabili**, da posizionare
+  in qualsiasi mappa (serviranno anche per la futura mappa dell'università)
+- Multiplayer: punti, acquisti, cassa e potenziamenti sono di ogni singolo giocatore, ma li decide l'host
+- Su telefono i pulsanti per comprare e interagire stanno comodi sotto il pollice
 
 ## Volti dei nemici (privacy prima di tutto)
 
