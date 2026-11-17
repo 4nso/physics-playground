@@ -4,3 +4,11 @@ _site/
 .DS_Store
 *.log
 .env*
+
+# Mai foto nel repository (privacy dei volti, vedi CLAUDE.md)
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.heic
+*.gif

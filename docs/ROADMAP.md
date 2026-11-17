@@ -22,7 +22,9 @@ su GitHub Pages e provato su iPad prima di passare alla successiva.
 
 ## Fase 3 – Nemici e round
 - [ ] Nemico low-poly con animazione di camminata
-- [ ] Volti da `assets/faces/` (caricamento, ritaglio quadrato, texture)
+- [ ] Galleria volti nel menu: caricamento dal dispositivo, ritaglio quadrato,
+      salvataggio in IndexedDB, eliminazione
+- [ ] Volti applicati come texture sulla testa; facce procedurali se la galleria è vuota
 - [ ] Inseguimento e attacco, vita del giocatore e dei nemici
 - [ ] Gestione dei round: ondate, pausa tra i round, difficoltà crescente
 - [ ] Punteggio, schermata di game over, record salvato in localStorage
@@ -32,6 +34,7 @@ su GitHub Pages e provato su iPad prima di passare alla successiva.
 - [ ] Lobby: gioca da solo, crea stanza, entra con codice
 - [ ] Connessione PeerJS, host autoritativo
 - [ ] Sincronizzazione di giocatori, nemici, colpi e round
+- [ ] L'host invia i volti della sua galleria ai client (solo in memoria, mai salvati)
 - [ ] Rianimare i compagni a terra
 - [ ] Test con 2 dispositivi reali
 

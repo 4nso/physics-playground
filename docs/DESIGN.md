@@ -9,7 +9,8 @@ ondate di nemici dalla faccia fotografica, da solo o con 1-3 amici.
 
 1. **Semplice da avviare**: apri un link e giochi, anche su iPad. Niente installazioni.
 2. **Low-poly e procedurale**: geometrie semplici, colori piatti, texture e suoni
-   generati via codice. Le uniche immagini esterne sono le foto dei volti.
+   generati via codice. Nel progetto non c'è nessuna immagine: le foto dei volti
+   le carica il giocatore.
 3. **Fisica che si sente**: oggetti che volano, nemici che vengono sbalzati,
    casse da usare come coperture.
 4. **Divertente in compagnia**: cooperativa per 2-4 giocatori via link e codice stanza.
@@ -39,11 +40,28 @@ ondate di nemici dalla faccia fotografica, da solo o con 1-3 amici.
 ## Nemici
 
 - Corpo low-poly (torso, braccia, gambe a blocchi) con una semplice animazione di camminata
-- **Volto**: foto presa a caso da `assets/faces/`, applicata come texture sulla
-  parte frontale della testa
+- **Volto**: foto presa a caso dalla galleria volti (vedi sotto), applicata come
+  texture sulla parte frontale della testa
+- Senza foto caricate, i nemici hanno facce low-poly generate dal codice
+  (occhi, bocca, espressioni casuali)
 - Inseguono il giocatore più vicino, attaccano in mischia
 - Barra della vita sopra la testa; alla morte diventano un ragdoll o si sbriciolano
 - Varianti: base, veloce, grosso (lento e resistente)
+
+## Volti dei nemici (privacy prima di tutto)
+
+Il repository e il sito sono pubblici, quindi **le foto non stanno mai nel progetto**.
+
+- Nel menu c'è una **galleria volti**: "Aggiungi volti" apre il selettore di foto del
+  dispositivo (rullino dell'iPad/telefono), con selezione multipla
+- Ogni foto viene ridimensionata nel browser a 256×256, con un ritaglio quadrato
+  centrato e regolabile (trascina e zoom per centrare il viso)
+- Le foto restano **solo nel browser** del giocatore (IndexedDB) e si possono
+  eliminare una a una o tutte insieme
+- Nessuna foto viene mai inviata a un server
+- In multiplayer l'host invia i volti della sua galleria **direttamente** ai giocatori
+  della stanza, tramite la connessione PeerJS. I client li tengono solo in memoria per
+  quella partita, senza salvarli
 
 ## Multiplayer (cooperativo)
 

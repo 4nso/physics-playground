@@ -4,6 +4,10 @@ Un FPS web in stile low-poly, giocabile da browser su iPad, telefono e computer.
 Si gioca a round contro ondate di nemici che hanno per volto delle foto vere,
 con armi diverse e un multiplayer cooperativo per 2-4 giocatori.
 
+**Privacy:** il repository e il sito non contengono foto. Ogni giocatore carica i volti
+dal proprio dispositivo, dentro il gioco. Le foto restano nel suo browser e in
+multiplayer passano solo, direttamente, ai giocatori della stanza.
+
 > Stato: **fase 0 – prototipo**. Per ora il gioco è il prototipo in un unico file
 > (`prototype/physics-playground.html`): un parco giochi fisico con casse, domino,
 > palla demolitrice e palline da lanciare.
@@ -20,7 +24,6 @@ Quando GitHub Pages è attivo, il gioco è online qui:
 
 ```
 prototype/        Prototipo originale in un unico file HTML (riferimento, non si modifica)
-assets/faces/     Foto dei volti dei nemici (vedi assets/faces/README.md)
 docs/             Design del gioco e piano di lavoro
   DESIGN.md       Cosa deve diventare il gioco
   ROADMAP.md      Le fasi di sviluppo, con le checklist
