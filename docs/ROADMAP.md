@@ -6,11 +6,11 @@ su GitHub Pages e provato su iPad prima di passare alla successiva.
 ## Fase 0 – Prototipo ✅
 - [x] Parco giochi fisico in un unico file (`prototype/physics-playground.html`)
 
-## Fase 1 – Progetto vero
-- [ ] Progetto Vite in `src/` con moduli separati (vedi CLAUDE.md)
-- [ ] Three.js e Rapier installati da npm al posto della CDN e di Cannon.js
-- [ ] Porting del prototipo: arena, giocatore, controlli touch e desktop, casse
-- [ ] Aggiornare `.github/workflows/deploy.yml` perché faccia la build con Vite
+## Fase 1 – Progetto vero (in prova su iPad)
+- [x] Progetto Vite in `src/` con moduli separati (vedi CLAUDE.md)
+- [x] Three.js e Rapier installati da npm al posto della CDN e di Cannon.js
+- [x] Porting del prototipo: arena, giocatore, controlli touch e desktop, casse
+- [x] Aggiornare `.github/workflows/deploy.yml` perché faccia la build con Vite
 - [ ] Il gioco è online e funziona su iPad
 
 ## Fase 2 – Armi

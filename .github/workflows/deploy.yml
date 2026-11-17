@@ -1,6 +1,5 @@
 # Pubblica il gioco su GitHub Pages a ogni push su main.
-# Fase 0: pubblica il prototipo così com'è.
-# Dalla fase 1 va sostituito con la build Vite (npm ci && npm run build → dist/).
+# Fa la build con Vite (npm ci && npm run build) e pubblica la cartella dist/.
 name: Deploy su GitHub Pages
 
 on:
@@ -25,13 +24,17 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Prepara il sito
-        run: |
-          mkdir -p _site
-          cp prototype/physics-playground.html _site/index.html
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Installa le dipendenze
+        run: npm ci
+      - name: Build con Vite
+        run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: dist
       - id: deployment
         uses: actions/deploy-pages@v4

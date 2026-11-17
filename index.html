@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#a8d8ff">
+<title>Physics Playground 3D</title>
+</head>
+<body>
+<div id="hud"><div class="pill" id="pTower">🏗️ Torre 0/14</div><div class="pill" id="pDom">🁢 Domino 0/22</div></div>
+<div id="cross"></div>
+<div id="msg"></div>
+<div id="joy"><div id="knob"></div></div>
+<div id="btns">
+  <button id="bFire"><span>●</span>Lancia</button>
+  <button id="bJump"><span>⤒</span>Salta</button>
+  <button id="bGrab"><span>✋</span>Afferra</button>
+  <button id="bBoom"><span>💥</span></button>
+</div>
+<div id="top"><button id="bCrate" title="Nuova cassa">📦</button><button id="bReset" title="Ricomincia">↺</button></div>
+<div id="keys">WASD muovi · Mouse guarda · Clic lancia · E / tasto destro afferra · F boom · Q cassa · Spazio salta · R reset</div>
+<div id="start"><div class="card">
+  <h1>Physics Playground 3D</h1>
+  <p class="sub">Un piccolo mondo dove tutto ha peso, attrito e rimbalzo.</p>
+  <ul id="howto"></ul>
+  <button id="play" disabled>Caricamento…</button>
+</div></div>
+<div id="err"></div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
