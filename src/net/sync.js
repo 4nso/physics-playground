@@ -39,18 +39,67 @@ function renderLobby() {
     .map((p) => `<li><i style="background:${SLOT_COLORS[p.slot % 4]}"></i>${slotName(p.slot)}${p.id === net.myId ? ' (tu)' : ''}</li>`)
     .join('');
   const host = net.mode === 'host';
+  $('lShare').style.display = host && net.code ? '' : 'none';
   $('lStart').style.display = host ? '' : 'none';
   $('lWait').style.display = host ? 'none' : '';
   $('lHelp').textContent = host
-    ? "Gli amici aprono il gioco, toccano \"Entra con codice\" e scrivono questo codice. Da 2 a 4 giocatori."
+    ? 'Manda il link agli amici, oppure dettagli il codice ("Entra con codice"). Da 2 a 4 giocatori.'
     : 'Sei nella stanza:';
   $('lStart').textContent = lobby.length > 1 ? `Inizia partita (${lobby.length} giocatori)` : 'Inizia partita (aspetta almeno un amico)';
+}
+
+/* ---------- Invito con un link ---------- */
+
+/** Link al gioco che fa entrare subito in questa stanza (es. .../physics-playground/?join=ABCDE). */
+function inviteLink() {
+  const params = new URLSearchParams(location.search);
+  params.delete('join');
+  params.set('join', net.code);
+  return `${location.origin}${location.pathname}?${params}`;
+}
+
+/** Apre il menu Condividi del dispositivo; se non c'è, copia il link negli appunti. */
+export async function shareInvite() {
+  if (!net.code) return;
+  const url = inviteLink();
+  const text = `Gioca con me a Shoot Your Friends! Stanza ${net.code}`;
+  $('lShareNote').textContent = '';
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Shoot Your Friends', text, url });
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return; // l'utente ha chiuso il menu Condividi
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    $('lShareNote').textContent = '✅ Link copiato! Incollalo in un messaggio agli amici.';
+  } catch (e) {
+    $('lShareNote').textContent = url; // ultima possibilità: il link da copiare a mano
+  }
+}
+
+/** Se la pagina è stata aperta da un link d'invito (?join=CODICE), entra subito nella stanza. */
+export function joinFromLink() {
+  const params = new URLSearchParams(location.search);
+  const code = (params.get('join') || '').trim().toUpperCase();
+  if (!/^[A-Z0-9]{5}$/.test(code)) return;
+  // tolgo il codice dall'indirizzo: ricaricando la pagina non si rientra in una stanza vecchia
+  params.delete('join');
+  const rest = params.toString();
+  history.replaceState(null, '', location.pathname + (rest ? `?${rest}` : ''));
+  openJoin();
+  $('jCode').value = code;
+  joinWithCode();
 }
 
 function showNetNote(text) { $('netNote').textContent = text || ''; }
 
 export async function openCreateRoom() {
   showNetNote('');
+  $('lShareNote').textContent = '';
+  $('lShare').style.display = 'none';
   hud.hide('start');
   hud.show('lobby');
   $('lCode').textContent = '…';

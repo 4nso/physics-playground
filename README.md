@@ -21,8 +21,9 @@ Quando GitHub Pages è attivo, il gioco è online qui:
   **⏸** per la pausa
 - **Desktop**: WASD per muoverti, mouse per mirare, clic per sparare, 1/2/3 o rotella per
   cambiare arma, R per ricaricare, E per afferrare, Spazio per saltare, Esc per la pausa
-- **In squadra**: uno tocca "Crea stanza" e legge il codice agli amici; gli altri toccano
-  "Entra con codice". Quando tutti sono dentro, l'host tocca "Inizia partita". Se un compagno
+- **In squadra**: uno tocca "Crea stanza" e poi "Invita con un link" per mandare il link agli
+  amici (aprendolo si entra subito nella stanza); in alternativa gli altri toccano
+  "Entra con codice" e scrivono il codice. Quando tutti sono dentro, l'host tocca "Inizia partita". Se un compagno
   è a terra, stagli vicino qualche secondo per rianimarlo
 - **Volti**: nel menu apri "Galleria volti" e aggiungi foto dal dispositivo. Restano solo nel
   tuo browser (IndexedDB) e si possono eliminare quando vuoi

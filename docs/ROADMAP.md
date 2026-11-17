@@ -89,6 +89,19 @@ Nei test 17 nemici su 18 salgono fino al tetto del parcheggio e attraversano il 
 Passo 2 (varietà, dopo la prova): altre zone (piscine, uffici, scale verso stanze strane),
 instancing di casse e palle per alleggerire il parco.
 
+## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
+Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano
+d'ingresso in salita dalla strada, piano terra a livello strada, poi secondo, terzo e quarto piano.
+Metodo deciso:
+1. Il proprietario fotografa le planimetrie di evacuazione di ogni piano, 3-5 ambienti per piano
+   (senza persone riconoscibili) e una vista laterale dell'edificio per il dislivello.
+2. Le foto **non entrano nel repository** (è pubblico): da queste si ricava, un piano alla volta,
+   una mappa a griglia in testo in `docs/levels/universita.md` (stanze, porte, scale, colori).
+3. Un costruttore di livelli legge quel file: per correggere la mappa si modifica il testo.
+4. Fedele ma adattata al gioco (stile low-poly, corridoi un po' più larghi). Si parte dal piano d'ingresso.
+Il negozio, il passaggio segreto e la zona sicura vanno fatti come elementi riutilizzabili,
+così si potranno spostare anche in questa mappa.
+
 ## Fase 6 – Rifinitura (idee)
 - [ ] Oggetti esplosivi, potenziamenti
 - [ ] Funzionamento offline (il gioco è già installabile dalla fase 4b)
