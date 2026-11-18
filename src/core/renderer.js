@@ -84,8 +84,30 @@ function viewSize() {
   const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
   return [Math.max(1, Math.round(w)), Math.max(1, Math.round(h))];
 }
+/**
+ * Difetto noto di iPhone/iPad nelle app aggiunte alla schermata Home: la pagina parte sotto la barra
+ * in alto ma è più corta proprio dell'altezza di quella barra, e in basso resta una striscia vuota.
+ * Lì allunghiamo l'area di gioco (variabile CSS --extra) della quantità che manca.
+ */
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const standalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+const probe = document.createElement('div');
+probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:env(safe-area-inset-top);visibility:hidden;pointer-events:none';
+document.body.appendChild(probe);
+function fixHomeScreenGap() {
+  let extra = 0;
+  if (isIOS && standalone()) {
+    const top = probe.offsetHeight || 0;
+    const landscape = innerWidth > innerHeight;
+    const screenH = landscape ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+    const missing = screenH - innerHeight; // quanto manca rispetto allo schermo intero
+    if (top > 0 && missing > 1) extra = Math.min(top, missing);
+  }
+  document.documentElement.style.setProperty('--extra', extra + 'px');
+}
 let lastW = 0, lastH = 0;
 function fitCamera() {
+  fixHomeScreenGap();
   const [w, h] = viewSize();
   if (w === lastW && h === lastH) return;
   lastW = w; lastH = h;

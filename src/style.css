@@ -2,7 +2,9 @@
 html,body{margin:0;height:100%;overflow:hidden;position:fixed;inset:0;width:100%;-webkit-text-size-adjust:100%;background:#c4dbe8;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:none;overscroll-behavior:none}
 canvas{display:block;touch-action:none}
 /* l'area di gioco copre sempre tutto lo schermo (anche sotto la barra in basso dell'iPad) */
-body>canvas:first-child{position:fixed;left:0;top:0;width:100%!important;height:max(100%,100vh)!important;height:max(100%,100vh,100lvh)!important}
+/* --extra: altezza che manca in basso nelle app dalla schermata Home di iPhone/iPad (vedi core/renderer.js) */
+:root{--extra:0px}
+body>canvas:first-child{position:fixed;left:0;top:0;width:100%!important;height:calc(100% + var(--extra))!important}
 #hud{position:fixed;top:calc(10px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));display:flex;gap:6px;flex-wrap:wrap;pointer-events:none;z-index:5}
 .pill{background:rgba(15,25,40,.62);color:#fff;padding:6px 11px;border-radius:999px;font-size:13px;font-weight:600}
 .pill.hidden,.hidden{display:none!important}
@@ -11,14 +13,14 @@ body>canvas:first-child{position:fixed;left:0;top:0;width:100%!important;height:
 #msg{position:fixed;left:50%;top:22%;transform:translate(-50%,-50%) scale(.9);color:#fff;font-size:26px;font-weight:800;text-shadow:0 2px 10px rgba(0,0,0,.45);opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;text-align:center;z-index:6}
 #msg.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 /* Joystick: a riposo è un'ombra in basso a sinistra, quando appoggi il pollice compare lì */
-#joy{--jr:55px;position:fixed;left:calc(env(safe-area-inset-left) + 22px + var(--jr));top:calc(100% - 22px - var(--jr) - env(safe-area-inset-bottom));width:calc(var(--jr) * 2.1);height:calc(var(--jr) * 2.1);transform:translate(-50%,-50%);border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.3);pointer-events:none;display:none;z-index:5;opacity:.45}
+#joy{--jr:55px;position:fixed;left:calc(env(safe-area-inset-left) + 22px + var(--jr));top:calc(100% - 22px - var(--jr) - env(safe-area-inset-bottom) + var(--extra));width:calc(var(--jr) * 2.1);height:calc(var(--jr) * 2.1);transform:translate(-50%,-50%);border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.3);pointer-events:none;display:none;z-index:5;opacity:.45}
 #joy.on{opacity:1;background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.45)}
 #joy.run{border-color:#ffb627}
 #joy.run #knob{background:rgba(255,182,39,.85)}
 body.touch #joy{display:block}
 #knob{position:absolute;left:50%;top:50%;width:calc(var(--jr) * .95);height:calc(var(--jr) * .95);margin:calc(var(--jr) * -.475) 0 0 calc(var(--jr) * -.475);border-radius:50%;background:rgba(255,255,255,.55)}
 /* Pulsanti touch: il contenitore è un punto nell'angolo, i pulsanti li dispone hud.js ad arco */
-#btns{--bs:1;position:fixed;right:max(10px, calc(env(safe-area-inset-right) + 2px));bottom:max(10px, calc(env(safe-area-inset-bottom) + 2px));width:0;height:0;display:none;z-index:6;pointer-events:none}
+#btns{--bs:1;position:fixed;right:max(10px, calc(env(safe-area-inset-right) + 2px));bottom:calc(max(10px, calc(env(safe-area-inset-bottom) + 2px)) - var(--extra));width:0;height:0;display:none;z-index:6;pointer-events:none}
 #btns button,#top button{position:absolute;border:none;border-radius:50%;color:#fff;font-weight:700;font-size:calc(11px * var(--bs,1));font-family:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;touch-action:none;box-shadow:0 3px 10px rgba(0,0,0,.25);pointer-events:auto}
 #btns button span{font-size:1.9em;line-height:1}
 #bFire{right:0;bottom:0;width:86px;height:86px;background:rgba(230,70,70,.85);font-size:calc(13px * var(--bs,1))!important}
@@ -29,7 +31,7 @@ body.touch #joy{display:block}
 #top{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));width:44px;height:44px;z-index:6;pointer-events:none}
 #top button{position:absolute;top:0;width:44px;height:44px;font-size:20px;background:rgba(15,25,40,.6)}
 #bPause{right:0}
-.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,rgba(30,60,110,.55),rgba(5,10,25,.82));z-index:20;padding:20px;overflow-y:auto;touch-action:pan-y}
+.screen{position:fixed;inset:0;bottom:calc(0px - var(--extra));display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,rgba(30,60,110,.55),rgba(5,10,25,.82));z-index:20;padding:20px;overflow-y:auto;touch-action:pan-y}
 #gallery,#crop{z-index:22}
 .card{max-width:420px;width:100%;margin:auto;background:rgba(255,255,255,.96);border-radius:20px;padding:24px 22px;box-shadow:0 20px 60px rgba(0,0,0,.35);color:#1b2433}
 .card h1{margin:0 0 4px;font-size:26px}
@@ -57,15 +59,15 @@ body.touch #joy{display:block}
 #hBar{width:120px;height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden}
 #hBar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff5a4e,#ffb627);transition:width .15s}
 #minimap{position:fixed;top:calc(84px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));width:130px;height:130px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.55),0 3px 12px rgba(0,0,0,.3);pointer-events:none;z-index:5}
-#hurt{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;background:radial-gradient(ellipse at center,rgba(255,0,0,0) 45%,rgba(220,20,20,.65) 100%)}
+#hurt{position:fixed;inset:0;bottom:calc(0px - var(--extra));pointer-events:none;z-index:4;opacity:0;background:radial-gradient(ellipse at center,rgba(255,0,0,0) 45%,rgba(220,20,20,.65) 100%)}
 #cross.hit i{background:#fff;box-shadow:0 0 4px #fff}
 #cross.kill i{background:#ff5a4e}
-#err{display:none;position:fixed;inset:0;background:#1b2433;color:#fff;align-items:center;justify-content:center;text-align:center;padding:30px;font-size:16px;z-index:30}
+#err{display:none;position:fixed;inset:0;bottom:calc(0px - var(--extra));background:#1b2433;color:#fff;align-items:center;justify-content:center;text-align:center;padding:30px;font-size:16px;z-index:30}
 #play:disabled{opacity:.6;cursor:default}
 #record{text-align:center;margin:0 0 4px;font-weight:600}
 
 /* Mirino: le quattro stanghette si allargano con la dispersione (--g) */
-#cross{position:fixed;left:50%;top:50%;width:0;height:0;pointer-events:none;z-index:5;--g:6px}
+#cross{position:fixed;left:50%;top:calc(50% + var(--extra) / 2);width:0;height:0;pointer-events:none;z-index:5;--g:6px}
 #cross i{position:absolute;background:rgba(255,255,255,.95);box-shadow:0 0 2px rgba(0,0,0,.7)}
 #cross .t,#cross .b{left:-1px;width:2px;height:8px}
 #cross .l,#cross .r{top:-1px;height:2px;width:8px}
@@ -123,7 +125,7 @@ body.touch #wBar{position:absolute;left:12px;right:12px;bottom:3px;height:3px;ma
 body:not(.touch) .touchOnly{display:none}
 
 /* Telefono in verticale: "Ruota il telefono" */
-#rotate{display:none;position:fixed;inset:0;z-index:40;background:#1b2433;color:#fff;align-items:center;justify-content:center;text-align:center}
+#rotate{display:none;position:fixed;inset:0;bottom:calc(0px - var(--extra));z-index:40;background:#1b2433;color:#fff;align-items:center;justify-content:center;text-align:center}
 #rotate b{display:block;font-size:22px;margin-top:10px}
 #rotate span{opacity:.75;font-size:14px}
 #rotate .phone{font-size:56px;animation:rot 1.6s ease-in-out infinite}
@@ -165,7 +167,7 @@ body:not(.touch) .touchOnly{display:none}
 #over.win h1 { color: #ffcf3a; text-shadow: 0 0 18px rgba(255, 190, 40, 0.55); }
 
 /* Mirino del cecchino: cerchio trasparente al centro, nero intorno */
-#scope{position:fixed;inset:0;pointer-events:none;z-index:4;display:none;background:radial-gradient(circle at 50% 50%,transparent 0,transparent min(34vh,34vw),rgba(0,0,0,.92) calc(min(34vh,34vw) + 2px))}
+#scope{position:fixed;inset:0;bottom:calc(0px - var(--extra));pointer-events:none;z-index:4;display:none;background:radial-gradient(circle at 50% 50%,transparent 0,transparent min(34vh,34vw),rgba(0,0,0,.92) calc(min(34vh,34vw) + 2px))}
 #scope.on{display:block}
 #scope i{position:absolute;background:rgba(0,0,0,.85)}
 #scope .h{left:calc(50% - min(34vh,34vw));right:calc(50% - min(34vh,34vw));top:50%;height:2px;margin-top:-1px}
@@ -174,7 +176,7 @@ body.scoped #cross{display:none}
 #bZoom{background:rgba(120,90,200,.88)}
 
 /* Negozio: pannello in basso, tra joystick e pulsanti (sotto il pollice destro su touch) */
-#shop{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:7;background:rgba(15,25,40,.82);color:#fff;border-radius:16px;padding:8px 10px 10px;max-width:min(560px,calc(100vw - 24px));box-shadow:0 6px 24px rgba(0,0,0,.35);border:2px solid #ffcf3a}
+#shop{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom) - var(--extra));transform:translateX(-50%);z-index:7;background:rgba(15,25,40,.82);color:#fff;border-radius:16px;padding:8px 10px 10px;max-width:min(560px,calc(100vw - 24px));box-shadow:0 6px 24px rgba(0,0,0,.35);border:2px solid #ffcf3a}
 #shop.hidden{display:none}
 #shopHead{display:flex;gap:10px;align-items:baseline;font-size:14px;margin:0 2px 6px}
 #shopMoney{color:#ffcf3a;font-weight:800}

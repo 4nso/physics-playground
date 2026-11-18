@@ -206,7 +206,9 @@ function buildPanel(kind) {
 
 function refreshPanel() {
   $('shopMoney').textContent = `★ ${money}`;
-  $('shopHint').textContent = isTouch ? 'Tocca per comprare' : shopping ? 'Clicca per comprare · B per tornare a giocare' : 'Premi B per comprare';
+  $('shopHint').textContent = isTouch ? 'Tocca per comprare'
+    : items.length === 1 ? 'Premi B per comprare'
+    : shopping ? 'Clicca su un oggetto per comprarlo · B per tornare a giocare' : 'Premi B per scegliere col mouse';
   for (const b of $('shopItems').children) {
     const it = items.find((x) => x.id === b.dataset.i);
     const o = offer(it);
@@ -222,6 +224,8 @@ export function toggleShopping() {
   if (isTouch) return;
   if (shopping) { closeShopping(); requestLock(); return; }
   if (!near || !player.alive) { hud.flash('🛒 Vai al negozio (o a una macchina) per comprare', 1.4); return; }
+  // cassa misteriosa e potenziatore: un solo acquisto possibile, B compra subito
+  if (items.length === 1) { buy(items[0]); dirty = true; return; }
   shopping = true;
   setTrigger(false);
   exitLock();
