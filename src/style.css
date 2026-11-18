@@ -1,6 +1,8 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-html,body{margin:0;height:100%;overflow:hidden;position:fixed;inset:0;width:100%;-webkit-text-size-adjust:100%;background:#a8d8ff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:none;overscroll-behavior:none}
+html,body{margin:0;height:100%;overflow:hidden;position:fixed;inset:0;width:100%;-webkit-text-size-adjust:100%;background:#c4dbe8;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:none;overscroll-behavior:none}
 canvas{display:block;touch-action:none}
+/* l'area di gioco copre sempre tutto lo schermo (anche sotto la barra in basso dell'iPad) */
+body>canvas:first-child{position:fixed;left:0;top:0;width:100%!important;height:max(100%,100vh)!important;height:max(100%,100vh,100lvh)!important}
 #hud{position:fixed;top:calc(10px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));display:flex;gap:6px;flex-wrap:wrap;pointer-events:none;z-index:5}
 .pill{background:rgba(15,25,40,.62);color:#fff;padding:6px 11px;border-radius:999px;font-size:13px;font-weight:600}
 .pill.hidden,.hidden{display:none!important}

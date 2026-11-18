@@ -8,7 +8,7 @@ export const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance',
 });
 renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.75 : 2));
-renderer.setSize(innerWidth, innerHeight);
+renderer.setSize(innerWidth, innerHeight, false);
 // Niente ombre in tempo reale: le stanze hanno la luce "dipinta" nei colori dei vertici
 // (molto più leggero sui telefoni).
 renderer.shadowMap.enabled = false;
@@ -75,16 +75,31 @@ function applyFov() {
   camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(r) / view.zoom));
   camera.updateProjectionMatrix();
 }
+/**
+ * Misura vera dell'area di gioco. Su iPad (app dalla schermata Home, finestre di iPadOS)
+ * innerHeight a volte è più bassa dello schermo e restava una striscia vuota in basso:
+ * misuriamo il canvas, che con il CSS copre sempre tutto lo schermo.
+ */
+function viewSize() {
+  const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
+  return [Math.max(1, Math.round(w)), Math.max(1, Math.round(h))];
+}
+let lastW = 0, lastH = 0;
 function fitCamera() {
-  const aspect = innerWidth / innerHeight;
+  const [w, h] = viewSize();
+  if (w === lastW && h === lastH) return;
+  lastW = w; lastH = h;
+  const aspect = w / h;
   const deg = THREE.MathUtils.radToDeg;
   const vMax = deg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(HFOV_MAX / 2)) / aspect));
   camera.aspect = aspect;
   baseFov = Math.min(VFOV, vMax);
   applyFov();
-  renderer.setSize(innerWidth, innerHeight);
+  renderer.setSize(w, h, false); // false: la dimensione sullo schermo la decide il CSS (tutto lo schermo)
 }
 fitCamera();
 addEventListener('resize', fitCamera);
-// su iPhone le misure nuove a volte arrivano un attimo dopo la rotazione
-addEventListener('orientationchange', () => setTimeout(fitCamera, 250));
+if (window.visualViewport) visualViewport.addEventListener('resize', fitCamera);
+if (window.ResizeObserver) new ResizeObserver(fitCamera).observe(canvas);
+// su iPhone/iPad le misure nuove a volte arrivano un attimo dopo la rotazione
+addEventListener('orientationchange', () => { setTimeout(fitCamera, 250); setTimeout(fitCamera, 800); });
