@@ -42,10 +42,10 @@ body.touch #joy{display:block}
 .btn.danger{background:#fde4e1;color:#c0201a}
 .btn:active{filter:brightness(.92)}
 .row{display:flex;gap:8px}.row .btn{flex:1}
-#gGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-bottom:8px;max-height:45vh;overflow-y:auto}
+#gGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px;margin-bottom:8px;max-height:45vh;overflow-y:auto}
 .face{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#ddd}
 .face img{width:100%;height:100%;object-fit:cover;display:block}
-.face button{position:absolute;top:4px;right:4px;width:28px;height:28px;border:none;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:14px;cursor:pointer}
+.face button.del{position:absolute;top:4px;right:4px;width:28px;height:28px;border:none;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:14px;cursor:pointer}
 #cView{position:relative;width:100%;max-width:340px;aspect-ratio:1;margin:0 auto 10px;border-radius:12px;overflow:hidden;background:#000;touch-action:none}
 #cCanvas{width:100%;height:100%;cursor:grab}
 #cGuide{position:absolute;left:20%;top:12%;width:60%;height:76%;border:3px dashed rgba(255,255,255,.75);border-radius:50%;pointer-events:none}
@@ -205,3 +205,11 @@ body:not(.touch) #shop{bottom:calc(52px + env(safe-area-inset-bottom))}
 #shop.single #shopItems button .i{font-size:28px}
 #shop.single #shopItems button .n{font-size:12px}
 #shop.single #shopItems button .s{display:block!important}
+
+/* Galleria: sotto ogni volto i simboli dei tipi di nemico (nessuno acceso = tutti) */
+.faceCard{display:flex;flex-direction:column;gap:4px}
+.fTypes{display:flex;justify-content:space-between;gap:2px}
+.fTypes button{flex:1;min-width:0;height:30px;border:none;border-radius:8px;background:#e8ecf2;font-size:15px;padding:0;cursor:pointer;opacity:.55;touch-action:manipulation}
+.fTypes button.on{background:#ff7a45;opacity:1;box-shadow:0 0 0 2px #ff7a45 inset}
+.fLabel{font-size:11px;text-align:center;color:#556;line-height:1.2;min-height:14px}
+.typesHelp{font-size:12px}

@@ -171,6 +171,9 @@ Il repository e il sito sono pubblici, quindi **le foto non stanno mai nel proge
   centrato e regolabile (trascina e zoom per centrare il viso)
 - Le foto restano **solo nel browser** del giocatore (IndexedDB) e si possono
   eliminare una a una o tutte insieme
+- Sotto ogni volto ci sono i simboli dei tipi di nemico (🔵 base, 🔴 veloce, 🟢 grosso,
+  🛡️ corazzato, 👑 boss): si può dare un volto solo a certi tipi. Nessun simbolo = tutti i nemici.
+  Un tipo senza volti suoi usa quelli "per tutti"; se non ce ne sono, facce disegnate dal gioco
 - Nessuna foto viene mai inviata a un server
 - In multiplayer l'host invia i volti della sua galleria **direttamente** ai giocatori
   della stanza, tramite la connessione PeerJS. I client li tengono solo in memoria per

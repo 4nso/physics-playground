@@ -29,11 +29,12 @@ export function buildShop(b, ctx, x, z, facing = '+z') {
     b.box(Math.min(ax, bx), y0, Math.min(az, bz), Math.max(ax, bx), y1, Math.max(az, bz), color, o);
   };
   const H = 3.2;
-  // pavimento a piastrelle, appena sopra il prato (mai sullo stesso piano dei vialetti)
-  for (let i = 0; i < 7; i++) {
+  // pavimento a piastrelle, appena sopra il prato: solo dentro il chiosco (tra le pareti e dietro il banco),
+  // così nessun bordo sporge fuori a terra
+  for (let i = 0; i < 8; i++) {
     for (let j = 0; j < 4; j++) {
       const c = (i + j) % 2 ? 0x2c3e66 : 0xdfe6f2;
-      box(-3.5 + i, 0, -4.5 + j * 1.15, -2.5 + i, 0.06, -3.35 + j * 1.15, c, { collide: false, skip: SKIP.BOTTOM });
+      box(-3.2 + i * 0.8, 0, -4.2 + j * 0.9, -2.4 + i * 0.8, 0.06, -3.3 + j * 0.9, c, { collide: false, skip: SKIP.BOTTOM });
     }
   }
   // pareti: fondo e lati

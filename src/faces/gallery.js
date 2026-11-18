@@ -1,12 +1,22 @@
 // Galleria volti: elenco, aggiunta dal dispositivo, eliminazione, e materiali per le teste dei nemici.
 import * as THREE from 'three';
-import { listFaces, addFace, deleteFace, clearFaces } from './store.js';
+import { listFaces, addFace, deleteFace, clearFaces, setFaceTypes } from './store.js';
 import { cropImage } from './crop.js';
 import { proceduralFace, edgeColor } from './procedural.js';
 
 const $ = (id) => document.getElementById(id);
 let onChange = () => {};
 const urls = [];
+
+/** Tipi di nemico che si possono scegliere per ogni volto (stessi nomi di enemies/model.js). */
+export const FACE_TYPES = [
+  { id: 'base', icon: '🔵', name: 'Base' },
+  { id: 'fast', icon: '🔴', name: 'Veloce' },
+  { id: 'big', icon: '🟢', name: 'Grosso' },
+  { id: 'armored', icon: '🛡️', name: 'Corazzato' },
+  { id: 'boss', icon: '👑', name: 'Boss' },
+];
+const typesLabel = (types) => (types && types.length ? types.map((t) => FACE_TYPES.find((x) => x.id === t)?.name).join(', ') : 'Tutti i nemici');
 
 export async function countFaces() {
   return (await listFaces()).length;
@@ -21,11 +31,28 @@ async function render() {
   for (const f of faces) {
     const u = URL.createObjectURL(f.blob);
     urls.push(u);
-    const item = document.createElement('div');
-    item.className = 'face';
-    item.innerHTML = `<img alt="Volto" src="${u}"><button title="Elimina" aria-label="Elimina">✕</button>`;
-    item.querySelector('button').onclick = async () => { await deleteFace(f.id); render(); };
-    grid.appendChild(item);
+    const card = document.createElement('div');
+    card.className = 'faceCard';
+    let types = Array.isArray(f.types) ? [...f.types] : [];
+    card.innerHTML = `<div class="face"><img alt="Volto" src="${u}"><button class="del" title="Elimina" aria-label="Elimina">✕</button></div>
+      <div class="fTypes">${FACE_TYPES.map((t) => `<button data-t="${t.id}" title="${t.name}" aria-label="${t.name}">${t.icon}</button>`).join('')}</div>
+      <div class="fLabel"></div>`;
+    const paint = () => {
+      card.querySelectorAll('[data-t]').forEach((b) => b.classList.toggle('on', types.includes(b.dataset.t)));
+      card.querySelector('.fLabel').textContent = typesLabel(types);
+    };
+    paint();
+    card.querySelector('.del').onclick = async () => { await deleteFace(f.id); render(); };
+    // tocca un simbolo: il volto va (o non va più) a quel tipo di nemico; nessuno scelto = tutti
+    card.querySelector('.fTypes').onclick = async (e) => {
+      const b = e.target.closest('[data-t]');
+      if (!b) return;
+      const t = b.dataset.t;
+      types = types.includes(t) ? types.filter((x) => x !== t) : [...types, t];
+      paint();
+      try { await setFaceTypes(f.id, types); } catch (err) { /* archivio non disponibile */ }
+    };
+    grid.appendChild(card);
   }
   $('gEmpty').style.display = faces.length ? 'none' : 'block';
   $('gClear').style.display = faces.length ? '' : 'none';
@@ -97,15 +124,40 @@ export async function loadFaceMaterials() {
   disposeCurrent();
   const faces = await listFaces();
   for (const f of faces) {
-    try { current.push(await setFromBlob(f.blob)); } catch (e) { /* immagine non leggibile: la saltiamo */ }
+    try {
+      const set = await setFromBlob(f.blob);
+      set.types = Array.isArray(f.types) ? f.types : [];
+      current.push(set);
+    } catch (e) { /* immagine non leggibile: la saltiamo */ }
   }
-  if (!current.length) {
-    for (let i = 0; i < 10; i++) {
-      const p = proceduralFace();
-      current.push(makeSet(p.canvas, p.side, p.top));
-    }
+  // facce disegnate dal gioco: tutte "per tutti" se la galleria è vuota; altrimenti solo di riserva,
+  // per i tipi di nemico a cui non è stato dato nessun volto
+  const reserve = current.length > 0;
+  for (let i = 0; i < (reserve ? 5 : 10); i++) {
+    const p = proceduralFace();
+    const set = makeSet(p.canvas, p.side, p.top);
+    set.types = [];
+    set.reserve = reserve;
+    current.push(set);
   }
   return current;
+}
+
+/**
+ * Sceglie il volto per un nemico del tipo `variant` (indice in sets):
+ * prima i volti scelti per quel tipo, poi quelli "per tutti", poi le facce di riserva.
+ */
+export function pickFaceIndex(sets, variant) {
+  const pick = (ok) => {
+    const list = [];
+    sets.forEach((s, i) => { if (ok(s)) list.push(i); });
+    return list.length ? list[(Math.random() * list.length) | 0] : -1;
+  };
+  let i = pick((s) => !s.reserve && s.types && s.types.includes(variant));
+  if (i < 0) i = pick((s) => !s.reserve && (!s.types || !s.types.length));
+  if (i < 0) i = pick((s) => s.reserve);
+  if (i < 0) i = (Math.random() * sets.length) | 0;
+  return i;
 }
 
 /**

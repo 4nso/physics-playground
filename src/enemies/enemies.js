@@ -7,6 +7,7 @@ import { updateFields, nodeAt, steer, findSpawn } from '../world/nav.js';
 import { VARIANTS, MODEL_HEIGHT, buildEnemyModel, animateModel, flashModel } from './model.js';
 import { crumbleModel, updateDebris, clearDebris } from './debris.js';
 import { speedFor } from '../game/difficulty.js';
+import { pickFaceIndex } from '../faces/gallery.js';
 import { WALK_SPEED } from '../player/player.js';
 
 export const enemies = [];
@@ -48,7 +49,7 @@ function spawnPoint() {
  */
 export function spawnEnemy(variant, opts) {
   const v = VARIANTS[variant];
-  const faceIdx = (Math.random() * faceSets.length) | 0;
+  const faceIdx = pickFaceIndex(faceSets, variant); // il volto può essere scelto per tipo di nemico (galleria)
   const model = buildEnemyModel(variant, faceSets[faceIdx]);
   const half = 0.45 * v.scale, radius = 0.33 * v.scale, centerY = half + radius;
   const sp = spawnPoint();
