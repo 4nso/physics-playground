@@ -198,3 +198,10 @@ body.touch #shop{left:auto;transform:none;right:calc(var(--arc,200px) + 8px + en
   #shopHead{margin-bottom:4px;font-size:12px}
 }
 body:not(.touch) #shop{bottom:calc(52px + env(safe-area-inset-bottom))}
+/* cassa misteriosa e potenziatore: un solo pulsante grande */
+#shop.single #shopItems{grid-template-columns:1fr}
+#shop.single{min-width:240px}
+#shop.single #shopItems button{flex-direction:row;gap:10px;padding:8px 12px;justify-content:center}
+#shop.single #shopItems button .i{font-size:28px}
+#shop.single #shopItems button .n{font-size:12px}
+#shop.single #shopItems button .s{display:block!important}

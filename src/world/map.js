@@ -18,6 +18,10 @@ export const map = {
   bounds: { minX: ZONES[0].x0, minZ: Z0, maxX: ZONES[ZONES.length - 1].x1, maxZ: Z1 },
   walls: [],         // rettangoli per la minimappa [x0, z0, x1, z1]
   ramps: [],
+  safeZones: [],    // zone sicure { x0, z0, x1, z1, door } (vedi world/safezone.js)
+  boxes: [],        // casse misteriose
+  upgraders: [],    // potenziatori
+  safeSigns: [],
   shops: [],        // negozi: { x, z, y, fx, fz, signX, signY, signZ } (vedi world/shop.js)
 };
 /** Corpo fisso a cui è appesa la palla demolitrice. */
@@ -42,9 +46,9 @@ function clearWorld() {
 export function buildWorld(seed) {
   clearWorld();
   const b = new Builder();
-  const ctx = { props: [], wreck: null, spawn: null, shops: [] };
+  const ctx = { props: [], wreck: null, spawn: null, shops: [], safeZones: [], boxes: [], upgraders: [], safeSigns: [] };
   buildZones(b, makeRng(seed), ctx);
-  Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn, shops: ctx.shops });
+  Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn, shops: ctx.shops, safeZones: ctx.safeZones, boxes: ctx.boxes, upgraders: ctx.upgraders, safeSigns: ctx.safeSigns, secretZ: ctx.secretZ });
 
   // mesh unite: una per blocco da 12×12 m (quelle fuori dalla visuale non si disegnano)
   for (const ch of b.chunks.values()) {
@@ -64,6 +68,7 @@ export function buildWorld(seed) {
   for (const c of b.colliders) {
     const d = RAPIER.ColliderDesc.cuboid(c.hx, c.hy, c.hz).setTranslation(c.x, c.y, c.z).setFriction(0.5);
     if (c.q) d.setRotation({ x: c.q.x, y: c.q.y, z: c.q.z, w: c.q.w });
+    if (c.groups) d.setCollisionGroups(c.groups);
     const col = world.createCollider(d, staticBody);
     staticSurface.set(col.handle, c.surface);
   }
@@ -81,6 +86,12 @@ export function buildWorld(seed) {
   map.triangles = built.reduce((s, m) => s + m.geometry.attributes.position.count / 3, 0);
   map.chunks = built.length;
   return map;
+}
+
+/** true se il punto è dentro una zona sicura (i nemici non entrano). */
+export function inSafeZone(x, z) {
+  for (const s of map.safeZones) if (x > s.x0 && x < s.x1 && z > s.z0 && z < s.z1) return true;
+  return false;
 }
 
 /** Zona in un punto (per la minimappa e i messaggi). */

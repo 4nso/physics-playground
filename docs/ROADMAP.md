@@ -109,13 +109,12 @@ Passo 2 – Armi e negozio:
 - [x] Tabella di prezzi e bilanciamento scritta in DESIGN.md
 
 Passo 3 – Passaggio segreto e zona sicura:
-- [ ] Muro appena più giallo nelle backrooms (posizione dal seed) che porta alla zona sicura
-- [ ] Zona sicura in cui i nemici non entrano
-- [ ] Cassa misteriosa a prezzo fisso con animazione
-- [ ] Potenziatore: 2 livelli per arma, strisce viola, poi viola e arancione
-- [ ] Negozio, passaggio e zona sicura come elementi riutilizzabili in altre mappe
-- [ ] Multiplayer: punti e acquisti per giocatore, decisi dall'host
-      (già fatto per il negozio nel passo 2; mancano cassa e potenziatore)
+- [x] Muro appena più giallo nelle backrooms (posizione dal seed) che porta alla zona sicura
+- [x] Zona sicura in cui i nemici non entrano
+- [x] Cassa misteriosa a prezzo fisso con animazione
+- [x] Potenziatore: 2 livelli per arma, strisce viola, poi viola e arancione
+- [x] Negozio, passaggio e zona sicura come elementi riutilizzabili in altre mappe
+- [x] Multiplayer: punti e acquisti per giocatore, decisi dall'host
 
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano

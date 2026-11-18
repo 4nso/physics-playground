@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { SKIP } from './builder.js';
 import { buildShop } from './shop.js';
+import { buildSecretPassage, buildSafeRoom } from './safezone.js';
 
 export const Z0 = -36, Z1 = 36;          // la mappa va da z = -36 a 36
 export const ZONES = [
@@ -366,6 +367,8 @@ function backrooms(b, rng, ctx, doors) {
   }
   // porte verso il parco: una per gruppo di righe, la riga cambia col seed
   for (const g of [[2, 6], [10, 13], [17, 21]]) doors.push(Z0 + (g[0] + rng.int(g[1] - g[0] + 1)) * S + S / 2);
+  // passaggio segreto: in un corridoio lungo il muro est (la riga cambia col seed), lontano dagli angoli
+  ctx.secretZ = Z0 + (3 + rng.int(NZ - 6)) * S + S / 2;
 }
 
 /** Costruisce tutta la mappa. ctx = { props, wreck, spawn }. */
@@ -392,11 +395,16 @@ export function buildZones(b, rng, ctx) {
     wallLine(b, 'z', Z1, zn.x0, zn.x1, OUTER_H, [], inside[zn.id], OUT);
   }
   wallLine(b, 'x', -45, Z0, Z1, OUTER_H, [], OUT, CONC);
-  wallLine(b, 'x', 45, Z0, Z1, OUTER_H, [], PAPER, OUT);
+  // muro est delle backrooms: c'è il buco del passaggio segreto (coperto dal pannello finto)
+  const SD = [1.8, 2.6];
+  // il pannello finto è alto quanto il muro: così l'ombreggiatura è identica e cambia solo (di pochissimo) il colore
+  wallLine(b, 'x', 45, Z0, Z1, OUTER_H, [[ctx.secretZ, SD[0], OUTER_H]], PAPER, OUT);
+  buildSecretPassage(b, 45, ctx.secretZ, '+x', { width: SD[0], height: OUTER_H, thick: 0.15, color: PAPER, backColor: 0xcfe8de });
+  buildSafeRoom(b, ctx, 45, ctx.secretZ, '+x', { width: 10, depth: 10, height: 3.2, wallThick: 0.15, door: SD });
   // pilastri agli angoli e agli incroci dei muri
   for (const x of [-45, -15, 15, 45]) for (const z of [Z0, Z1]) {
     b.box(x - 0.25, 0, z - 0.25, x + 0.25, OUTER_H + 0.1, z + 0.25, 0x8a857c, { skip: SKIP.BOTTOM });
   }
   // pavimento di sicurezza sotto tutto (invisibile)
-  b.box(-50, -3, Z0 - 5, 50, -2.5, Z1 + 5, 0, { visible: false, nav: false });
+  b.box(-50, -3, Z0 - 5, 60, -2.5, Z1 + 5, 0, { visible: false, nav: false });
 }

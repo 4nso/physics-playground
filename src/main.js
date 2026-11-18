@@ -16,6 +16,7 @@ import { throwHeld, toggleGrab, updateHeld, updateCrosshair } from './player/int
 import { weaponScene } from './weapons/viewmodel.js';
 import { initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, nextWeapon, toggleZoom, hasZoom } from './weapons/weapons.js';
 import { updateShop, toggleShopping, closeShopping, isShopping } from './game/shop.js';
+import { updateSafeZones } from './game/safezone.js';
 import { updateEnemies } from './enemies/enemies.js';
 import { initGallery, openGallery } from './faces/gallery.js';
 import { updatePickups } from './game/pickups.js';
@@ -82,6 +83,7 @@ function loop(now) {
   }
   updateWeapons(gdt, player.lookDX, player.lookDY);
   updateShop(dt, playing && !game.overlay, myMoney());
+  updateSafeZones(gdt, playing);
   netUpdate(dt);
   if (game.state !== 'menu') updateMinimap(dt);
   if (playing && net.mode !== 'client') updateCrosshair();

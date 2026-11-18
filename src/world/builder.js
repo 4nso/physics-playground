@@ -53,7 +53,8 @@ export class Builder {
 
   /**
    * Scatola allineata agli assi da (x0,y0,z0) a (x1,y1,z1).
-   * o = { collide: true, visible: true, surface: 'stone', glow: false, skip: 0, nav: true, ao: true }
+   * o = { collide: true, visible: true, surface: 'stone', glow: false, skip: 0, nav: true, ao: true, groups }
+   * (groups = gruppi di collisione speciali, ad esempio la barriera che ferma solo i nemici)
    */
   box(x0, y0, z0, x1, y1, z1, color, o = {}) {
     if (x0 > x1) [x0, x1] = [x1, x0];
@@ -67,7 +68,7 @@ export class Builder {
       this._box(mat4, null, color, o, y0);
     }
     if (o.collide !== false) {
-      this.colliders.push({ hx, hy, hz, x: cx, y: cy, z: cz, q: null, surface: o.surface || 'stone' });
+      this.colliders.push({ hx, hy, hz, x: cx, y: cy, z: cz, q: null, surface: o.surface || 'stone', groups: o.groups });
       if (o.nav !== false) this.shapes.push({ k: 0, x0, y0, z0, x1, y1, z1 });
     }
   }

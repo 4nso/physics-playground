@@ -8,7 +8,7 @@ import { castWorld } from '../world/raycast.js';
 import { enemies, damageEnemy } from '../enemies/enemies.js';
 import { objects } from '../world/objects.js';
 import { player, pushPlayer } from '../player/player.js';
-import { WEAPONS } from './defs.js';
+import { WEAPONS, weaponStats } from './defs.js';
 import { impact } from './effects.js';
 import { boomSound, bounceSound } from './sounds.js';
 
@@ -120,10 +120,10 @@ const pos = new THREE.Vector3(), step = new THREE.Vector3(), n = new THREE.Vecto
 /**
  * Lancia un proiettile. o = punto di partenza, d = direzione (unitaria), wi = indice dell'arma.
  * pid = numero che identifica il proiettile in rete. auth = true se qui si decidono i danni.
- * ignore = mesh da saltare (l'oggetto in mano).
+ * ignore = mesh da saltare (l'oggetto in mano). level = livello del potenziatore (più danno).
  */
-export function spawnProjectile(pid, wi, o, d, owner, auth, ignore = null) {
-  const w = WEAPONS[wi];
+export function spawnProjectile(pid, wi, o, d, owner, auth, ignore = null, level = 0) {
+  const w = WEAPONS[wi] && weaponStats(wi, level);
   if (!w || !w.projectile) return;
   const P = w.projectile;
   const mesh = takeMesh(P.kind);

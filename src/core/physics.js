@@ -14,13 +14,16 @@ let acc = 0;
 export let alpha = 0;
 
 /** Gruppi di collisione: [appartenenza << 16] | filtro. */
-const G = { STATIC: 1, PLAYER: 2, ENEMY: 4, OBJECT: 8, DEBRIS: 16 };
+const G = { STATIC: 1, PLAYER: 2, ENEMY: 4, OBJECT: 8, DEBRIS: 16, BARRIER: 32 };
 const groups = (member, filter) => ((member & 0xffff) << 16) | (filter & 0xffff);
 export const GROUPS = {
   player: groups(G.PLAYER, 0xffff),
   enemy: groups(G.ENEMY, 0xffff),
   // i pezzi dei nemici distrutti non ostacolano giocatore e nemici
   debris: groups(G.DEBRIS, G.STATIC | G.OBJECT | G.DEBRIS),
+  // muro invisibile che ferma i nemici ma non i giocatori (ingresso della zona sicura);
+  // i colpi si fermano lì (raycast senza filtro), così dalla zona sicura non si spara fuori
+  barrier: groups(G.BARRIER, G.ENEMY),
 };
 
 const beforeStep = [];

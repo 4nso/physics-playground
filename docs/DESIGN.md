@@ -141,6 +141,20 @@ Punti: ogni nemico dà i suoi punti a chi l'ha colpito per ultimo; il bonus di f
      - livello 1: strisce **viola**
      - livello 2 (massimo): strisce **viola e arancione**
 
+#### Valori attuali (passo 3)
+- Il passaggio è nel muro est delle backrooms (il confine della mappa), in una riga scelta dal seed.
+  Il pannello finto ha il colore del muro con +7 rosso, +4 verde, −6 blu: si nota solo guardando bene.
+- Una barriera invisibile ferma i nemici; i giocatori passano. Anche i colpi si fermano lì, come
+  su un muro vero: dalla zona sicura non si spara fuori (altrimenti si vincerebbe senza rischi).
+- Chi è nella zona sicura non viene inseguito né colpito; i round però non vanno avanti da soli.
+- **Cassa misteriosa: 950 punti.** Arma a caso tra quelle del negozio che non hai già (mai la pistola);
+  le armi girano per circa 3 secondi, poi l'arma arriva in mano (sostituisce quella in mano se ne hai 3).
+- **Potenziatore** (arma in mano): livello 1 = 5000, livello 2 = 9000.
+  Danno ×1,7 / ×2,6 · caricatore e scorta ×1,5 / ×2 · tempo tra i colpi ×0,85 / ×0,72.
+  Il livello resta legato a quel tipo di arma per tutta la partita. Il nome dell'arma mostra ★ o ★★.
+- Codice: `src/world/safezone.js` (passaggio e stanza, riutilizzabili), `src/game/safezone.js` (cassa e
+  potenziatore), `src/world/shop.js` (chiosco del negozio, riutilizzabile).
+
 ### Regole
 - Negozio, passaggio segreto e zona sicura sono **elementi riutilizzabili**, da posizionare
   in qualsiasi mappa (serviranno anche per la futura mappa dell'università)

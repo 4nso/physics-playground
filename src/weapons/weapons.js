@@ -3,8 +3,8 @@ import * as THREE from 'three';
 import { camera, setZoom } from '../core/renderer.js';
 import { castWorld } from '../world/raycast.js';
 import { player, addRecoil } from '../player/player.js';
-import { WEAPONS, START_WEAPONS, MAX_SLOTS, weaponIndex } from './defs.js';
-import { models, showModel, hideModel, kickModel, setReloadProgress, muzzleWorld, updateViewModel } from './viewmodel.js';
+import { WEAPONS, START_WEAPONS, MAX_SLOTS, weaponIndex, weaponStats } from './defs.js';
+import { models, showModel, hideModel, kickModel, setReloadProgress, muzzleWorld, updateViewModel, setSkin } from './viewmodel.js';
 import { spawnProjectile, updateProjectiles, clearProjectiles, projHooks, newPid } from './projectiles.js';
 import { addTracer, impact, muzzleFlash, updateEffects } from './effects.js';
 import { shotSound, reloadSound, emptySound, switchSound } from './sounds.js';
@@ -26,18 +26,22 @@ const state = {
   bloom: 0,       // dispersione extra dovuta al fuoco continuo
   emptyClick: false,
   zoomed: false,  // mirino del cecchino
+  levels: WEAPONS.map(() => 0), // livello del potenziatore per ogni arma (0, 1, 2)
 };
+/** Valori dell'arma wi con il suo livello di potenziamento. */
+const stats = (wi) => weaponStats(wi, state.levels[wi]);
 /**
  * Collegamenti verso gioco e rete:
  *  onEnemyHit(killed, headshot, shooterId) · onShot(origin, dirs, ends, weaponIndex)
  *  onProjectile(pid, origin, dir, weaponIndex) · isAuthority() → true se questo dispositivo decide i danni
+ *  levelOf(shooterId, weaponIndex) → livello di potenziamento dell'arma di un altro giocatore (host)
  */
-export const weaponHooks = { onEnemyHit: null, onShot: null, onProjectile: null, isAuthority: null };
+export const weaponHooks = { onEnemyHit: null, onShot: null, onProjectile: null, isAuthority: null, levelOf: null };
 /** Mesh da ignorare negli spari (ad esempio l'oggetto che teniamo in mano). */
 export const shotFilter = { ignore: null };
 projHooks.onHit = (killed, owner) => { if (weaponHooks.onEnemyHit) weaponHooks.onEnemyHit(killed, false, owner); };
 
-export const currentWeapon = () => WEAPONS[state.current];
+export const currentWeapon = () => stats(state.current);
 export const currentWeaponIndex = () => state.current;
 /** Armi in mano (indici in WEAPONS). */
 export const ownedWeapons = () => state.slots;
@@ -84,12 +88,12 @@ export function nextWeapon(dir) {
  * Se hai già MAX_SLOTS armi, sostituisce quella in mano. Restituisce il nome dell'arma sostituita (o null).
  */
 export function giveWeapon(wi) {
-  const w = WEAPONS[wi];
+  const w = stats(wi);
   refillWeapon(wi);
   if (ownsWeapon(wi)) { equip(state.slots.indexOf(wi)); return null; }
   let replaced = null;
   if (state.slots.length < MAX_SLOTS) state.slots.push(wi);
-  else { replaced = WEAPONS[state.slots[state.slot]].name; state.slots[state.slot] = wi; }
+  else { replaced = stats(state.slots[state.slot]).name; state.slots[state.slot] = wi; }
   hud.setSlots(state.slots.map((i) => WEAPONS[i]), state.slot);
   equip(state.slots.indexOf(wi));
   hud.flash(`${w.icon} ${w.name}!`, 1.6);
@@ -98,20 +102,29 @@ export function giveWeapon(wi) {
 
 /** Munizioni piene per un'arma. */
 export function refillWeapon(wi) {
-  const w = WEAPONS[wi];
+  const w = stats(wi);
   state.ammo[wi].mag = w.mag;
   state.ammo[wi].reserve = w.reserve;
   if (wi === state.current) { state.reloadT = 0; setReloadProgress(0); }
   refreshHud();
 }
 
+/** Potenziatore: l'arma wi passa al livello `level` (munizioni piene e strisce colorate). */
+export function setWeaponLevel(wi, level) {
+  state.levels[wi] = level;
+  setSkin(wi, level);
+  refillWeapon(wi);
+}
+export const weaponLevel = (wi) => state.levels[wi];
+export const currentWeaponLevel = () => state.levels[state.current];
+
 /** Potenziamento "ricarica veloce": mul = 1 normale, 0.8 = 20% più veloce... */
 export function setReloadMul(mul) { state.reloadMul = mul; }
 
 /** Aggiunge munizioni di riserva (raccolte da terra). */
 export function addAmmo() {
-  WEAPONS.forEach((w, i) => {
-    const a = state.ammo[i];
+  WEAPONS.forEach((w0, i) => {
+    const a = state.ammo[i], w = stats(i);
     if (a.reserve !== Infinity) a.reserve = Math.min(w.reserve * 2, a.reserve + w.mag * 2);
   });
   refreshHud();
@@ -128,6 +141,8 @@ function resetSlots() {
 export function resetWeapons() {
   state.trigger = false;
   state.reloadMul = 1;
+  state.levels.fill(0);
+  WEAPONS.forEach((w, i) => setSkin(i, 0));
   clearProjectiles();
   refillAmmo();
   resetSlots();
@@ -155,7 +170,7 @@ function finishReload() {
 
 /** Ricarica tutte le armi al massimo (usato quando si ricomincia). */
 export function refillAmmo() {
-  WEAPONS.forEach((w, i) => { state.ammo[i].mag = w.mag; state.ammo[i].reserve = w.reserve; });
+  WEAPONS.forEach((w0, i) => { const w = stats(i); state.ammo[i].mag = w.mag; state.ammo[i].reserve = w.reserve; });
   state.reloadT = 0;
   setReloadProgress(0);
   refreshHud();
@@ -242,7 +257,7 @@ function shoot() {
     const r = Math.sqrt(Math.random()) * spread, a2 = Math.random() * Math.PI * 2;
     dir.copy(fwd).addScaledVector(right, Math.cos(a2) * r).addScaledVector(up, Math.sin(a2) * r).normalize();
     const pid = newPid();
-    spawnProjectile(pid, state.current, muzzle, dir, 'local', authority, shotFilter.ignore);
+    spawnProjectile(pid, state.current, muzzle, dir, 'local', authority, shotFilter.ignore, state.levels[state.current]);
     if (weaponHooks.onProjectile) weaponHooks.onProjectile(pid, muzzle, dir, state.current);
   } else for (let p = 0; p < w.pellets; p++) {
     // direzione casuale dentro un cono (distribuzione uniforme nel disco)
@@ -268,7 +283,8 @@ function shoot() {
 const pv = new THREE.Vector3(), pd = new THREE.Vector3();
 export function resolveRemoteProjectile(shooterId, pid, o, d, wi) {
   if (!WEAPONS[wi] || !WEAPONS[wi].projectile) return;
-  spawnProjectile(pid, wi, pv.set(o[0], o[1], o[2]), pd.set(d[0], d[1], d[2]).normalize(), shooterId, true);
+  const lvl = weaponHooks.levelOf ? weaponHooks.levelOf(shooterId, wi) : 0;
+  spawnProjectile(pid, wi, pv.set(o[0], o[1], o[2]), pd.set(d[0], d[1], d[2]).normalize(), shooterId, true, null, lvl);
   shotSound(WEAPONS[wi], 0.45);
 }
 /** Client: mostra la granata o il razzo di un altro giocatore (solo da vedere). */
@@ -284,7 +300,8 @@ export function showRemoteProjectile(pid, o, d, wi) {
  */
 const remoteO = new THREE.Vector3(), remoteD = new THREE.Vector3(), remoteFrom = new THREE.Vector3();
 export function resolveRemoteShot(shooterId, o, dirs, wi) {
-  const w = WEAPONS[wi] || WEAPONS[0];
+  if (!WEAPONS[wi]) wi = 0;
+  const w = weaponStats(wi, weaponHooks.levelOf ? weaponHooks.levelOf(shooterId, wi) : 0);
   remoteO.set(o[0], o[1], o[2]);
   remoteFrom.set(o[0], o[1] - 0.25, o[2]);
   const ends = [];

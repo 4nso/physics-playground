@@ -2,19 +2,23 @@
 // Su touch si compra con un tocco; con mouse e tastiera si preme B per liberare il mouse e cliccare.
 // I punti (la moneta) li decide chi comanda la partita: da solo questo dispositivo, in multiplayer l'host.
 // Il negozio è una zona tranquilla ma NON sicura: i nemici possono arrivare anche qui.
+// Lo stesso pannello serve anche per la cassa misteriosa e il potenziatore della zona sicura
+// (le "postazioni": shop, box, pap).
 import * as THREE from 'three';
 import { scene, isTouch } from '../core/renderer.js';
 import { exitLock, requestLock } from '../core/input.js';
 import { thud } from '../core/audio.js';
 import { player, MAX_HEALTH } from '../player/player.js';
-import { WEAPONS, UPGRADES } from '../weapons/defs.js';
-import { giveWeapon, refillWeapon, ownsWeapon, slotsFull, currentWeapon, setReloadMul, setTrigger } from '../weapons/weapons.js';
+import { WEAPONS, UPGRADES, BOX_PRICE, PAP } from '../weapons/defs.js';
+import { giveWeapon, refillWeapon, ownsWeapon, slotsFull, currentWeapon, setReloadMul, setTrigger, ownedWeapons, currentWeaponIndex, currentWeaponLevel, setWeaponLevel } from '../weapons/weapons.js';
+import { boxBusy, boxHooks, upgraderFx } from './safezone.js';
 import { map } from '../world/map.js';
 import { net } from '../net/net.js';
 import { hud } from '../ui/hud.js';
 
 const $ = (id) => document.getElementById(id);
 const NEAR = 2.8;          // distanza dal punto davanti al banco per vedere il pannello
+const NEAR_MACHINE = 1.9;  // distanza per cassa misteriosa e potenziatore
 const HOST_NEAR = 4.5;     // l'host è un po' più largo (le posizioni dei client arrivano in ritardo)
 
 /** Rete (impostato da net/sync.js): manda una richiesta d'acquisto all'host. */
@@ -27,7 +31,17 @@ const ITEMS = [
   { id: 'hp', up: 'hp' },
   { id: 'reload', up: 'reload' },
 ];
-const PISTOL = { id: 'w0', wi: 0 };
+const ITEMS_BY = { shop: ITEMS, box: [{ id: 'box' }], pap: [{ id: 'pap' }] };
+const TITLES = { shop: '🛒 Negozio', box: '🎁 Cassa misteriosa', pap: '🔮 Potenziatore' };
+
+/** Postazioni della mappa: { kind, idx, x, z, y } (punto dove si mette il giocatore). */
+function stations() {
+  const list = [];
+  map.shops.forEach((s, idx) => list.push({ kind: 'shop', idx, x: s.x, z: s.z, y: s.y, r: NEAR }));
+  map.boxes.forEach((s, idx) => list.push({ kind: 'box', idx, x: s.ux, z: s.uz, y: 0, r: NEAR_MACHINE }));
+  map.upgraders.forEach((s, idx) => list.push({ kind: 'pap', idx, x: s.ux, z: s.uz, y: 0, r: NEAR_MACHINE }));
+  return list;
+}
 
 /** Livelli dei potenziamenti di questo giocatore (copia locale, per prezzi e pulsanti). */
 const mine = { hp: 0, reload: 0 };
@@ -42,6 +56,15 @@ export function resetShop() {
 
 /** Cosa succede premendo un oggetto: { kind: 'weapon' | 'ammo' | 'up', price, label } (o null se non si può). */
 function offer(it) {
+  if (it.id === 'box') {
+    if (near && boxBusy(near.idx)) return { kind: 'box', price: 0, done: true, label: 'Sta girando…' };
+    return { kind: 'box', price: BOX_PRICE, label: 'Arma a caso' };
+  }
+  if (it.id === 'pap') {
+    const w = WEAPONS[currentWeaponIndex()], lvl = currentWeaponLevel();
+    if (lvl >= PAP.prices.length) return { kind: 'pap', price: 0, done: true, label: `${w.name}: al massimo` };
+    return { kind: 'pap', price: PAP.prices[lvl], label: `${w.name} → ${'★'.repeat(lvl + 1)}` };
+  }
   if (it.up) {
     const u = UPGRADES[it.up], lvl = mine[it.up];
     if (lvl >= u.prices.length) return { kind: 'up', price: 0, done: true, label: 'Al massimo' };
@@ -57,19 +80,34 @@ function offer(it) {
 
 /* ---------- Host (o da solo): decide se l'acquisto si può fare ---------- */
 /**
- * m = membro della squadra che compra, id = oggetto, kind = 'weapon' | 'ammo' | 'up'.
- * Toglie i punti e applica gli effetti decisi dall'host (vita massima).
- * Restituisce { ok: true, level } oppure { ok: false, why }.
+ * m = membro della squadra che compra, id = oggetto, kind = 'weapon' | 'ammo' | 'up' | 'box' | 'pap'.
+ * extra = { own: armi che ha in mano, wi: arma in mano } (servono a cassa e potenziatore).
+ * Toglie i punti e applica gli effetti decisi dall'host (vita massima, giro della cassa).
+ * Restituisce { ok: true, level } oppure { ok: false, why }. Per la cassa level = arma uscita.
  */
-export function serverBuy(m, id, kind) {
+export function serverBuy(m, id, kind, extra = {}) {
   if (!m || m.down) return { ok: false, why: 'Sei a terra' };
   const p = m.local ? player.pos : m;
-  if (!map.shops.some((s) => Math.hypot(p.x - s.x, p.z - s.z) < HOST_NEAR && Math.abs(p.y - 1 - s.y) < 2.5)) {
-    return { ok: false, why: 'Sei troppo lontano dal negozio' };
-  }
+  const want = kind === 'box' ? 'box' : kind === 'pap' ? 'pap' : 'shop';
+  const st = stations().find((s) => s.kind === want && Math.hypot(p.x - s.x, p.z - s.z) < HOST_NEAR && Math.abs(p.y - 1 - s.y) < 2.5);
+  if (!st) return { ok: false, why: 'Sei troppo lontano' };
   if (!m.upg) m.upg = { hp: 0, reload: 0 };
-  let price;
-  if (kind === 'up') {
+  if (!m.wlv) m.wlv = {};
+  let price, level = 0, boxWeapon = -1;
+  if (kind === 'box') {
+    if (boxBusy(st.idx)) return { ok: false, why: 'La cassa sta già girando' };
+    const own = Array.isArray(extra.own) ? extra.own : [];
+    const pool = WEAPONS.map((w, i) => i).filter((i) => WEAPONS[i].id !== 'pistol' && !own.includes(i));
+    if (!pool.length) return { ok: false, why: 'Hai già tutto!' };
+    price = BOX_PRICE;
+    boxWeapon = pool[(Math.random() * pool.length) | 0];
+  } else if (kind === 'pap') {
+    const wi = extra.wi | 0;
+    if (!WEAPONS[wi]) return { ok: false, why: '?' };
+    const lvl = m.wlv[wi] || 0;
+    if (lvl >= PAP.prices.length) return { ok: false, why: 'Già al massimo' };
+    price = PAP.prices[lvl];
+  } else if (kind === 'up') {
     const u = UPGRADES[id];
     if (!u || m.upg[id] >= u.prices.length) return { ok: false, why: 'Già al massimo' };
     price = u.prices[m.upg[id]];
@@ -81,7 +119,11 @@ export function serverBuy(m, id, kind) {
   }
   if ((m.money || 0) < price) return { ok: false, why: `Servono ${price} punti` };
   m.money -= price;
-  let level = 0;
+  if (kind === 'box') {
+    level = boxWeapon;
+    if (boxHooks.spin) boxHooks.spin(st.idx, boxWeapon, m.id); // tutti vedono la cassa girare
+  }
+  if (kind === 'pap') level = m.wlv[extra.wi | 0] = (m.wlv[extra.wi | 0] || 0) + 1;
   if (kind === 'up') {
     level = ++m.upg[id];
     if (id === 'hp') { m.maxHealth = MAX_HEALTH + 25 * level; m.health = Math.min(m.maxHealth, m.health + 25); }
@@ -90,9 +132,15 @@ export function serverBuy(m, id, kind) {
 }
 
 /* ---------- Questo giocatore: effetto dell'acquisto riuscito ---------- */
-export function applyBuy(id, kind, level) {
+export function applyBuy(id, kind, level, wi) {
   thud(0.25, 520);
-  if (kind === 'up') {
+  if (kind === 'box') {
+    hud.flash('🎁 La cassa gira…', 1.4); // l'arma arriva alla fine dell'animazione (game/safezone.js)
+  } else if (kind === 'pap') {
+    setWeaponLevel(wi, level);
+    upgraderFx(near && near.kind === 'pap' ? near.idx : 0);
+    hud.flash(`🔮 ${WEAPONS[wi].name} potenziato!<br><small>${level === 1 ? 'Strisce viola: più danno, colpi e cadenza' : 'Livello massimo: viola e arancione!'}</small>`, 2.2);
+  } else if (kind === 'up') {
     mine[id] = level;
     if (id === 'reload') setReloadMul(UPGRADES.reload.mul[level]);
     hud.flash(id === 'hp' ? `❤️ Vita massima +25!` : `⏱️ Ricarica più veloce!`, 1.6);
@@ -118,31 +166,40 @@ function buy(it) {
   const o = offer(it);
   if (!o || o.done) return;
   const key = it.up || it.id;
+  const extra = { own: [...ownedWeapons()], wi: currentWeaponIndex() };
   if (net.mode === 'client') {
-    if (shopNet.toHost) shopNet.toHost({ t: 'buy', id: key, k: o.kind });
+    if (shopNet.toHost) shopNet.toHost({ t: 'buy', id: key, k: o.kind, ...extra });
     return;
   }
-  const r = serverBuy(localMember && localMember(), key, o.kind);
-  if (r.ok) applyBuy(key, o.kind, r.level);
+  const r = serverBuy(localMember && localMember(), key, o.kind, extra);
+  if (r.ok) applyBuy(key, o.kind, r.level, extra.wi);
   else buyFailed(r.why);
 }
 
 /* ---------- Pannello ---------- */
-let near = null, shopping = false, dirty = true, refreshT = 0, built = false;
+let near = null, shopping = false, dirty = true, refreshT = 0, built = false, panelKind = '';
 let money = 0;
+let items = ITEMS;
 
-function buildPanel() {
-  built = true;
-  $('shopItems').innerHTML = ITEMS.map((it) => {
-    const icon = it.up ? UPGRADES[it.up].icon : WEAPONS[it.wi].icon;
-    const name = it.up ? UPGRADES[it.up].name : WEAPONS[it.wi].name;
+const ITEM_LOOK = { box: ['🎁', 'Cassa misteriosa'], pap: ['🔮', "Potenzia l'arma in mano"] };
+function buildPanel(kind) {
+  panelKind = kind;
+  items = ITEMS_BY[kind];
+  $('shopTitle').textContent = TITLES[kind];
+  $('shop').classList.toggle('single', items.length === 1);
+  $('shopItems').innerHTML = items.map((it) => {
+    const look = ITEM_LOOK[it.id];
+    const icon = look ? look[0] : it.up ? UPGRADES[it.up].icon : WEAPONS[it.wi].icon;
+    const name = look ? look[1] : it.up ? UPGRADES[it.up].name : WEAPONS[it.wi].name;
     return `<button data-i="${it.id}"><span class="i">${icon}</span><span class="n">${name}</span><span class="n s"></span><span class="p"></span></button>`;
   }).join('');
+  if (built) return;
+  built = true;
   $('shopItems').addEventListener('pointerdown', (e) => {
     const b = e.target.closest('[data-i]');
     if (!b) return;
     e.preventDefault(); e.stopPropagation();
-    const it = ITEMS.find((x) => x.id === b.dataset.i);
+    const it = items.find((x) => x.id === b.dataset.i);
     if (it && player.alive) buy(it);
   });
 }
@@ -151,7 +208,7 @@ function refreshPanel() {
   $('shopMoney').textContent = `★ ${money}`;
   $('shopHint').textContent = isTouch ? 'Tocca per comprare' : shopping ? 'Clicca per comprare · B per tornare a giocare' : 'Premi B per comprare';
   for (const b of $('shopItems').children) {
-    const it = ITEMS.find((x) => x.id === b.dataset.i);
+    const it = items.find((x) => x.id === b.dataset.i);
     const o = offer(it);
     b.querySelector('.s').textContent = o.label;
     b.querySelector('.p').textContent = o.done ? '✓' : `★ ${o.price}`;
@@ -164,7 +221,7 @@ function refreshPanel() {
 export function toggleShopping() {
   if (isTouch) return;
   if (shopping) { closeShopping(); requestLock(); return; }
-  if (!near || !player.alive) { hud.flash('🛒 Vai al negozio per comprare', 1.4); return; }
+  if (!near || !player.alive) { hud.flash('🛒 Vai al negozio (o a una macchina) per comprare', 1.4); return; }
   shopping = true;
   setTrigger(false);
   exitLock();
@@ -181,16 +238,17 @@ export const isShopping = () => shopping;
 
 /** A ogni frame: il pannello compare quando sei davanti al banco. myMoney = punti di questo giocatore. */
 export function updateShop(dt, playing, myMoney) {
-  if (!built) buildPanel();
   let s = null;
   if (playing && player.alive) {
     const p = player.pos;
-    for (const sh of map.shops) {
-      if (Math.hypot(p.x - sh.x, p.z - sh.z) < NEAR && Math.abs(p.y - 0.85 - sh.y) < 1.5) { s = sh; break; }
+    for (const st of stations()) {
+      if (Math.hypot(p.x - st.x, p.z - st.z) < st.r && Math.abs(p.y - 0.85 - st.y) < 1.5) { s = st; break; }
     }
   }
-  if (s !== near) {
+  const key = s ? s.kind + s.idx : '';
+  if (key !== (near ? near.kind + near.idx : '')) {
     near = s;
+    if (near && near.kind !== panelKind) buildPanel(near.kind);
     $('shop').classList.toggle('hidden', !near);
     if (!near && shopping) { closeShopping(); }
     dirty = true;

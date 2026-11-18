@@ -121,3 +121,37 @@ export const UPGRADES = {
   hp: { name: 'Vita massima +25', icon: '❤️', prices: [2500, 4000] },
   reload: { name: 'Ricarica veloce', icon: '⏱️', prices: [2000, 3500], mul: [1, 0.8, 0.65] },
 };
+
+/**
+ * Potenziatore della zona sicura: 2 livelli per arma.
+ * Ogni livello moltiplica danno, caricatore (e scorta) e velocità di sparo.
+ */
+export const PAP = {
+  prices: [5000, 9000],
+  damage: [1, 1.7, 2.6],
+  mag: [1, 1.5, 2],
+  rate: [1, 0.85, 0.72],    // tempo tra i colpi (più basso = spara più veloce)
+};
+/** Prezzo della cassa misteriosa (fisso). */
+export const BOX_PRICE = 950;
+
+const statCache = new Map();
+/** Valori dell'arma wi al livello di potenziamento `level` (0 = normale). */
+export function weaponStats(wi, level = 0) {
+  const key = wi * 10 + level;
+  let s = statCache.get(key);
+  if (!s) {
+    const w = WEAPONS[wi];
+    s = level ? {
+      ...w,
+      level,
+      name: `${w.name} ${'★'.repeat(level)}`,
+      damage: w.damage * PAP.damage[level],
+      mag: Math.max(w.mag + 1, Math.round(w.mag * PAP.mag[level])),
+      reserve: w.reserve === Infinity ? Infinity : Math.round(w.reserve * PAP.mag[level]),
+      rate: w.rate * PAP.rate[level],
+    } : { ...w, level: 0 };
+    statCache.set(key, s);
+  }
+  return s;
+}

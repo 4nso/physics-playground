@@ -54,6 +54,10 @@ function part(g, geo, m, size, pos, rotX = 0) {
 }
 const box = (g, m, size, pos, rotX) => part(g, boxGeo, m, size, pos, rotX);
 const cyl = (g, m, r, len, pos) => part(g, cylGeo, m, [r, r, len], pos);
+// parti che cambiano colore col potenziatore (strisce viola, poi viola e arancione)
+let skinParts = [];
+const sk = (mesh) => { skinParts.push(mesh); return mesh; };
+const SKIN = [mat(0x9b4dff, { roughness: 0.4, emissive: 0x2a0a55 }), mat(0xff8a1f, { roughness: 0.4, emissive: 0x4a1c00 })];
 
 function finish(g, muzzlePos, base) {
   const muzzle = new THREE.Object3D();
@@ -64,7 +68,8 @@ function finish(g, muzzlePos, base) {
   flash.position.z = -0.04;
   flash.visible = false;
   muzzle.add(flash);
-  g.userData = { muzzle, flash, base: new THREE.Vector3(...base) };
+  g.userData = { muzzle, flash, base: new THREE.Vector3(...base), skin: skinParts.map((m) => ({ m, mat: m.material })) };
+  skinParts = [];
   g.visible = false;
   viewRoot.add(g);
   return g;
@@ -72,11 +77,11 @@ function finish(g, muzzlePos, base) {
 
 function pistol() {
   const g = new THREE.Group();
-  box(g, GM.metal, [0.036, 0.04, 0.2], [0, 0.02, -0.05]);       // carrello
+  sk(box(g, GM.metal, [0.036, 0.04, 0.2], [0, 0.02, -0.05]));       // carrello
   box(g, GM.dark, [0.032, 0.026, 0.16], [0, -0.012, -0.04]);     // telaio
   box(g, GM.dark, [0.03, 0.11, 0.046], [0, -0.065, 0.035], 0.25); // impugnatura
   box(g, GM.dark, [0.008, 0.03, 0.04], [0, -0.035, -0.02]);      // grilletto
-  box(g, GM.accent, [0.01, 0.012, 0.012], [0, 0.046, -0.14]);    // mirino
+  sk(box(g, GM.accent, [0.01, 0.012, 0.012], [0, 0.046, -0.14]));    // mirino
   cyl(g, GM.dark, 0.009, 0.02, [0, 0.02, -0.155]);
   return finish(g, [0, 0.02, -0.17], [0.16, -0.155, -0.42]);
 }
@@ -85,9 +90,9 @@ function shotgun() {
   const g = new THREE.Group();
   cyl(g, GM.metal, 0.016, 0.62, [0, 0.022, -0.36]);              // canna
   cyl(g, GM.dark, 0.013, 0.46, [0, -0.014, -0.29]);              // serbatoio tubolare
-  box(g, GM.wood, [0.048, 0.046, 0.15], [0, -0.016, -0.3]);      // pompa
+  sk(box(g, GM.wood, [0.048, 0.046, 0.15], [0, -0.016, -0.3]));      // pompa
   box(g, GM.dark, [0.052, 0.072, 0.19], [0, 0.004, -0.02]);      // castello
-  box(g, GM.wood, [0.04, 0.085, 0.26], [0, -0.035, 0.2], -0.12); // calcio
+  sk(box(g, GM.wood, [0.04, 0.085, 0.26], [0, -0.035, 0.2], -0.12)); // calcio
   box(g, GM.wood, [0.034, 0.09, 0.045], [0, -0.07, 0.07], 0.35); // impugnatura
   box(g, GM.accent, [0.008, 0.01, 0.01], [0, 0.043, -0.65]);     // mirino
   return finish(g, [0, 0.022, -0.68], [0.17, -0.18, -0.56]);
@@ -96,9 +101,9 @@ function shotgun() {
 function smg() {
   const g = new THREE.Group();
   box(g, GM.dark, [0.05, 0.07, 0.28], [0, 0, -0.08]);            // corpo
-  box(g, GM.metal, [0.052, 0.02, 0.24], [0, 0.044, -0.08]);      // coperchio
+  sk(box(g, GM.metal, [0.052, 0.02, 0.24], [0, 0.044, -0.08]));      // coperchio
   cyl(g, GM.metal, 0.011, 0.14, [0, 0.01, -0.29]);               // canna
-  box(g, GM.metal, [0.03, 0.16, 0.05], [0, -0.11, -0.12], 0.15); // caricatore
+  sk(box(g, GM.metal, [0.03, 0.16, 0.05], [0, -0.11, -0.12], 0.15)); // caricatore
   box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.08, 0.04], 0.25);  // impugnatura
   box(g, GM.dark, [0.02, 0.05, 0.2], [0, -0.01, 0.16]);          // calcio
   box(g, GM.accent, [0.03, 0.02, 0.03], [0, 0.064, 0.0]);        // tacca di mira
@@ -109,11 +114,11 @@ function rifle() {
   const g = new THREE.Group();
   box(g, GM.dark, [0.05, 0.075, 0.34], [0, 0, -0.1]);            // corpo
   box(g, GM.metal, [0.03, 0.03, 0.2], [0, 0.055, -0.08]);        // slitta
-  box(g, GM.sand, [0.056, 0.06, 0.2], [0, -0.004, -0.33]);       // paramano
+  sk(box(g, GM.sand, [0.056, 0.06, 0.2], [0, -0.004, -0.33]));       // paramano
   cyl(g, GM.metal, 0.011, 0.2, [0, 0.012, -0.5]);                // canna
   box(g, GM.metal, [0.03, 0.15, 0.06], [0, -0.1, -0.15], -0.2);  // caricatore curvo
   box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.08, 0.03], 0.25);  // impugnatura
-  box(g, GM.sand, [0.045, 0.09, 0.22], [0, -0.02, 0.2]);         // calcio
+  sk(box(g, GM.sand, [0.045, 0.09, 0.22], [0, -0.02, 0.2]));         // calcio
   box(g, GM.accent, [0.012, 0.03, 0.012], [0, 0.07, -0.42]);     // mirino
   return finish(g, [0, 0.012, -0.61], [0.16, -0.17, -0.55]);
 }
@@ -122,12 +127,12 @@ function sniper() {
   const g = new THREE.Group();
   box(g, GM.olive, [0.05, 0.07, 0.46], [0, 0, -0.08]);           // calciatura
   cyl(g, GM.metal, 0.012, 0.5, [0, 0.02, -0.55]);                // canna lunga
-  cyl(g, GM.dark, 0.026, 0.24, [0, 0.085, -0.08]);               // ottica
+  sk(cyl(g, GM.dark, 0.026, 0.24, [0, 0.085, -0.08]));               // ottica
   cyl(g, GM.glass, 0.022, 0.01, [0, 0.085, 0.045]);              // lente
   box(g, GM.dark, [0.02, 0.04, 0.03], [0, 0.05, -0.12]);         // attacco ottica
   box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.08, 0.05], 0.25);  // impugnatura
-  box(g, GM.olive, [0.045, 0.11, 0.2], [0, -0.03, 0.24]);        // calcio
-  box(g, GM.metal, [0.03, 0.08, 0.05], [0, -0.07, -0.12]);       // caricatore
+  sk(box(g, GM.olive, [0.045, 0.11, 0.2], [0, -0.03, 0.24]));        // calcio
+  sk(box(g, GM.metal, [0.03, 0.08, 0.05], [0, -0.07, -0.12]));       // caricatore
   return finish(g, [0, 0.02, -0.81], [0.15, -0.17, -0.5]);
 }
 
@@ -135,10 +140,10 @@ function launcher() {
   const g = new THREE.Group();
   cyl(g, GM.olive, 0.045, 0.34, [0, 0.01, -0.25]);               // canna grossa
   cyl(g, GM.dark, 0.05, 0.03, [0, 0.01, -0.43]);                 // bocca
-  cyl(g, GM.metal, 0.06, 0.12, [0, -0.01, -0.04]);               // tamburo
+  sk(cyl(g, GM.metal, 0.06, 0.12, [0, -0.01, -0.04]));               // tamburo
   box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.09, 0.06], 0.25);  // impugnatura
   box(g, GM.dark, [0.03, 0.09, 0.04], [0, -0.07, -0.22]);        // impugnatura davanti
-  box(g, GM.olive, [0.04, 0.08, 0.2], [0, -0.03, 0.2]);          // calcio
+  sk(box(g, GM.olive, [0.04, 0.08, 0.2], [0, -0.03, 0.2]));          // calcio
   box(g, GM.accent, [0.01, 0.05, 0.01], [0, 0.075, -0.3]);       // mirino
   return finish(g, [0, 0.01, -0.45], [0.16, -0.17, -0.5]);
 }
@@ -146,12 +151,12 @@ function launcher() {
 function bazooka() {
   const g = new THREE.Group();
   cyl(g, GM.olive, 0.06, 0.78, [0, 0.03, -0.22]);                // tubo sulla spalla
-  cyl(g, GM.dark, 0.068, 0.05, [0, 0.03, -0.6]);                 // anello davanti
-  cyl(g, GM.dark, 0.068, 0.05, [0, 0.03, 0.15]);                 // anello dietro
+  sk(cyl(g, GM.dark, 0.068, 0.05, [0, 0.03, -0.6]));                 // anello davanti
+  sk(cyl(g, GM.dark, 0.068, 0.05, [0, 0.03, 0.15]));                 // anello dietro
   box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.08, -0.08], 0.2);  // impugnatura
   box(g, GM.dark, [0.03, 0.09, 0.04], [0, -0.07, -0.34]);
   box(g, GM.accent, [0.03, 0.05, 0.05], [-0.065, 0.075, -0.3]);  // mirino laterale
-  box(g, GM.sand, [0.125, 0.02, 0.02], [0, 0.03, -0.45]);        // striscia
+  sk(box(g, GM.sand, [0.125, 0.02, 0.02], [0, 0.03, -0.45]));        // striscia
   return finish(g, [0, 0.03, -0.63], [0.2, -0.16, -0.5]);
 }
 
@@ -180,6 +185,11 @@ export function showModel(i) {
   models.forEach((m, k) => { m.visible = k === i && !hidden; });
   anim.current = i;
   anim.draw = 1;
+}
+/** Colori del potenziatore: livello 0 normale, 1 strisce viola, 2 viola e arancione alternate. */
+export function setSkin(i, level) {
+  const list = models[i].userData.skin;
+  list.forEach((p, k) => { p.m.material = level === 0 ? p.mat : level === 1 ? SKIN[0] : SKIN[k % 2]; });
 }
 /** Nasconde l'arma (mentre si guarda nel mirino del cecchino). */
 export function hideModel(on) {

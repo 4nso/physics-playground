@@ -19,6 +19,7 @@ const out = { point: new THREE.Vector3(), normal: new THREE.Vector3(), distance:
 export function castWorld(origin, dir, far, ignore = null) {
   ray.origin.x = origin.x; ray.origin.y = origin.y; ray.origin.z = origin.z;
   ray.dir.x = dir.x; ray.dir.y = dir.y; ray.dir.z = dir.z;
+  // nota: i colpi si fermano anche sulla barriera della zona sicura (da lì dentro non si spara fuori)
   const sh = world.castRayAndGetNormal(ray, far, true, ONLY_STATIC);
   const sDist = sh ? sh.timeOfImpact : Infinity;
 

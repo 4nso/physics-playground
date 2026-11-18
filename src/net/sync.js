@@ -9,6 +9,7 @@ import { objects, applyObjectState } from '../world/objects.js';
 import { weaponHooks, resolveRemoteShot, showRemoteShot, currentWeaponIndex, resolveRemoteProjectile, showRemoteProjectile } from '../weapons/weapons.js';
 import { projHooks, remoteBoom } from '../weapons/projectiles.js';
 import { shopNet, serverBuy, applyBuy, buyFailed } from '../game/shop.js';
+import { startBoxSpin } from '../game/safezone.js';
 import { loadFaceMaterials, faceBuffers, facesFromBuffers } from '../faces/gallery.js';
 import { pickupSnapshot, applyPickupSnapshot } from '../game/pickups.js';
 import { game, team, gameNet, startGame, gameOver, toMenu, applyPick, syncLocalMember, removeMember, announce } from '../game/game.js';
@@ -285,10 +286,12 @@ on('boom', (msg) => { if (net.mode === 'client') remoteBoom(msg.pid, msg.x / 100
 shopNet.toHost = (msg) => sendHost(msg);
 on('buy', (msg, id) => {
   if (net.mode !== 'host' || game.state === 'menu') return;
-  const r = serverBuy(team.get(id), msg.id, msg.k);
-  sendTo(id, r.ok ? { t: 'bought', id: msg.id, k: msg.k, l: r.level } : { t: 'nobuy', why: r.why });
+  const r = serverBuy(team.get(id), msg.id, msg.k, { own: msg.own, wi: msg.wi });
+  sendTo(id, r.ok ? { t: 'bought', id: msg.id, k: msg.k, l: r.level, wi: msg.wi } : { t: 'nobuy', why: r.why });
 });
-on('bought', (msg) => applyBuy(msg.id, msg.k, msg.l));
+on('bought', (msg) => applyBuy(msg.id, msg.k, msg.l, msg.wi));
+// cassa misteriosa: l'host dice a tutti che gira e quale arma uscirà
+on('boxfx', (msg) => { if (net.mode === 'client') startBoxSpin(msg.s, msg.wi, msg.by === net.myId); });
 on('nobuy', (msg) => buyFailed(msg.why));
 
 /* ---------- Host: nemici uccisi ---------- */

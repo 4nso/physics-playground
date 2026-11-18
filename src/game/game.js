@@ -15,6 +15,8 @@ import { dropHeld } from '../player/interact.js';
 import { net } from '../net/net.js';
 import { hud } from '../ui/hud.js';
 import { resetShop, setShopMember, closeShopping } from './shop.js';
+import { setupSafeZones, startBoxSpin, boxHooks } from './safezone.js';
+import { inSafeZone } from '../world/map.js';
 
 const $ = (id) => document.getElementById(id);
 const BREAK_TIME = 12;
@@ -50,7 +52,7 @@ export function setupTeam(members) {
     team.set(m.id, {
       id: m.id, slot: m.slot, local: m.id === net.myId, health: MAX_HEALTH, maxHealth: MAX_HEALTH, down: false, reviveT: 0,
       x: 0, y: 0, z: 0, yaw: 0, pitch: 0, weapon: 0, speed: 0,
-      money: 0, upg: { hp: 0, reload: 0 }, // punti da spendere e potenziamenti comprati (decisi da solo / dall'host)
+      money: 0, upg: { hp: 0, reload: 0 }, wlv: {}, // punti, potenziamenti e livelli delle armi (decisi da solo / dall'host)
     });
   }
 }
@@ -67,7 +69,8 @@ export function teamTargets() {
   targets.length = 0;
   for (const m of team.values()) {
     const p = posOf(m);
-    targets.push({ id: m.id, x: p.x, y: p.y, z: p.z, alive: !m.down });
+    // chi è nella zona sicura è "invisibile" per i nemici: non lo inseguono e non lo colpiscono
+    targets.push({ id: m.id, x: p.x, y: p.y, z: p.z, alive: !m.down && !inSafeZone(p.x, p.z) });
   }
   return targets;
 }
@@ -165,6 +168,13 @@ weaponHooks.onEnemyHit = (killed, head, shooterId) => {
   else if (gameNet.sendTo) gameNet.sendTo(shooterId, { t: 'hit', k: killed ? 1 : 0 });
 };
 weaponHooks.isAuthority = () => net.mode !== 'client';
+// host: livello del potenziatore dell'arma di un altro giocatore (per i danni dei suoi colpi)
+weaponHooks.levelOf = (id, wi) => { const m = team.get(id); return m && m.wlv ? m.wlv[wi] || 0 : 0; };
+// cassa misteriosa pagata: tutti vedono l'animazione, l'arma va a chi ha pagato
+boxHooks.spin = (idx, wi, by) => {
+  startBoxSpin(idx, wi, by === net.myId);
+  if (net.mode === 'host' && gameNet.toAll) gameNet.toAll({ t: 'boxfx', s: idx, wi, by });
+};
 pickupHooks.onPick = (kind, id) => {
   const m = team.get(id);
   if (!m) return;
@@ -292,6 +302,7 @@ export function startGame(faceSets, members, seed) {
   resetPlayer(net.mySlot);
   resetWeapons();
   resetShop();
+  setupSafeZones();
   Object.assign(game, { state: 'playing', phase: 'break', overlay: false, round: 0, score: 0, kills: 0, timer: 3 });
   hud.setRound(1);
   hud.setScore(0);
