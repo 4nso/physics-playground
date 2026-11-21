@@ -176,10 +176,16 @@ Note: la zona centrale passa da 30 a 48 m di larghezza (la mappa intera è 108×
 "Luna park" nella minimappa. Le aree della ruota e delle montagne russe sono per ora cantieri
 con il cartellone "Prossimamente!". I giochi di prima stanno in 10 piazzole ai lati.
 
-Passo 2 – Ruota panoramica:
-- [ ] Ruota con cabine, sali/scendi, si spara da seduti
-- [ ] Cabina di comando (avvia, ferma, velocità), avvio ritardato da soli
-- [ ] Multiplayer: uno aziona, gli altri sono a bordo (stato deciso dall'host)
+Passo 2 – Ruota panoramica (in prova su iPad):
+- [x] Ruota con cabine, sali/scendi, si spara da seduti
+- [x] Cabina di comando (avvia, ferma, velocità), avvio ritardato da soli
+- [x] Multiplayer: uno aziona, gli altri sono a bordo (stato deciso dall'host)
+- [ ] Provato su iPad (e in multiplayer con 2 dispositivi)
+
+Note: la ruota è nell'area a nord-ovest della piazza (8 cabine, cima a ~20 m). Tasti: F sali/scendi,
+G avvia/ferma, V velocità; su touch compaiono i pulsanti in basso. Da soli: "Avvia" aspetta 6 secondi
+se nessuno è seduto. Dall'alto la nebbia si allontana e si vede tutta la mappa. Scendendo in alto si
+salta giù senza danni. Verificato in headless: da soli e con host + client (server PeerJS locale).
 
 Passo 3 – Montagne russe:
 - [ ] Percorso a spline dal seed che passa sopra la mappa e torna al luna park

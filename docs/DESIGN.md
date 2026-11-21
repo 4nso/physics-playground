@@ -322,9 +322,27 @@ più strutturata: un **luna park**. Restano gli elementi giocosi di oggi, ma si 
     con 4 bancarelle (popcorn, zucchero filato, bibite, gelati), tavolini e alberi
   - **Arco d'ingresso** in fondo al viale: due torrette-biglietteria, insegna "LUNA PARK" luminosa
   - **Aree delle giostre** a nord (oltre il vialetto): ruota panoramica a ovest, montagne russe
-    a est; per ora cantieri con basamento, transenne e cartellone "Prossimamente!"
+    a est (per ora cantiere con basamento, transenne e cartellone "Prossimamente!")
   - **Giochi** in 10 piazzole: 4 per lato più 2 vicino all'ingresso (scelti e mescolati dal seed)
 - Le scritte delle insegne sono texture disegnate in un canvas (`src/world/signs.js`)
+
+#### Valori attuali (passo 2: ruota panoramica, in `src/world/wheel.js` e `src/game/rides.js`)
+- Ruota di raggio 9,5 m con 8 cabine, mozzo a circa 12 m: la cabina più alta arriva a ~20 m
+  (sopra i muri di 11 m). Piano della ruota lungo x, gambe ad A davanti e dietro, recinto con varco
+- **Salire**: ci si avvicina a una cabina libera che sfiora la pedana (anche con la ruota in moto
+  lento) → pulsante "Sali" (tasto F). Seduti si guarda e si spara, non si cammina
+- **Scendere**: "Scendi" (F). Se la cabina è in basso si scende sulla pedana; se è in alto si salta
+  giù (nessun danno da caduta). A fine corsa la ruota gira piano e fa scendere chi passa in basso
+- **Cabina di comando** davanti a destra: "Avvia/Ferma" (G) e "Velocità 1-2-3" (V).
+  Velocità 0,10 / 0,17 / 0,26 rad/s (un giro in circa 63 / 37 / 24 s); la corsa dura 75 s
+- **Avvio ritardato**: se nessuno è seduto, "Avvia" aspetta 6 secondi per correre a sedersi
+- Da ferma la ruota si allinea da sola con una cabina sulla pedana
+- Dall'alto la nebbia si allontana (fino a ~110 m) e si vede tutta la mappa
+- Le cabine non hanno collider: chi è seduto segue il posto da programma (corpo senza gravità e
+  senza collisioni). I nemici non salgono: restano dove si è saliti e colpiscono solo quando la
+  cabina passa in basso
+- Multiplayer: l'host decide angolo, velocità, stato e posti e li manda nelle istantanee; i client
+  chiedono "sali/scendi/avvia/ferma/velocità" e correggono piano l'angolo
 
 ## Grafica (fase 10)
 

@@ -10,6 +10,7 @@ import { weaponHooks, resolveRemoteShot, showRemoteShot, currentWeaponIndex, res
 import { projHooks, remoteBoom } from '../weapons/projectiles.js';
 import { shopNet, serverBuy, applyBuy, buyFailed } from '../game/shop.js';
 import { startBoxSpin } from '../game/safezone.js';
+import { rideNet, serverRide, rideSnapshot, applyRideSnapshot } from '../game/rides.js';
 import { loadFaceMaterials, faceBuffers, facesFromBuffers, appendFaces, playerFaceSet } from '../faces/gallery.js';
 import { initMyFace, showMyFace, myFacePayload } from '../faces/myface.js';
 import { pickupSnapshot, applyPickupSnapshot } from '../game/pickups.js';
@@ -360,6 +361,14 @@ on('bought', (msg) => applyBuy(msg.id, msg.k, msg.l, msg.wi));
 on('boxfx', (msg) => { if (net.mode === 'client') startBoxSpin(msg.s, msg.wi, msg.by === net.myId); });
 on('nobuy', (msg) => buyFailed(msg.why));
 
+/* ---------- Giostre: chiede il client, decide l'host ---------- */
+rideNet.toHost = (msg) => sendHost(msg);
+on('ride', (msg, id) => {
+  if (net.mode !== 'host' || game.state === 'menu') return;
+  const text = serverRide(id, msg.r | 0, String(msg.a), msg.c | 0);
+  if (text) sendTo(id, { t: 'msg', text, s: 1.8 });
+});
+
 /* ---------- Host: nemici uccisi ---------- */
 const origKill = enemyHooks.onKill;
 enemyHooks.onKill = (e, head, dir, force) => {
@@ -407,6 +416,7 @@ on('s', (msg) => {
   applyEnemySnapshot(msg.en);
   for (const o of msg.ob) applyObjectState(o[0], o[1] / 100, o[2] / 100, o[3] / 100, o[4] / 1000, o[5] / 1000, o[6] / 1000, o[7] / 1000);
   applyPickupSnapshot(msg.pk);
+  applyRideSnapshot(msg.rd);
 });
 
 /* ---------- Ogni frame ---------- */
@@ -447,7 +457,7 @@ function snapshot() {
   return {
     t: 's',
     g: [game.round, Math.max(0, PHASES.indexOf(game.phase)), Math.round(game.timer * 10), game.score, enemies.length + game.toSpawn, game.kills],
-    pl, en, ob, pk: pickupSnapshot(),
+    pl, en, ob, pk: pickupSnapshot(), rd: rideSnapshot(),
   };
 }
 

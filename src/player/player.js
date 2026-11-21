@@ -31,6 +31,9 @@ export const player = {
   alive: true,
   /** Posizione interpolata tra due passi fisici: è quella da usare per disegnare. */
   pos: { x: SPAWN.x, y: SPAWN.y, z: SPAWN.z },
+  /** Seduto su una giostra: il corpo segue il posto (seatPos, centro della capsula) e non si cammina. */
+  seated: false,
+  seatPos: { x: 0, y: 0, z: 0 },
 };
 const prev = { x: SPAWN.x, y: SPAWN.y, z: SPAWN.z };
 
@@ -66,6 +69,7 @@ export function spawnPoint(slot = 0) {
 }
 /** slot = posto del giocatore in multiplayer (0..3). */
 export function resetPlayer(slot = 0) {
+  if (player.seated) standUp(0, 0, 0);
   spawn = spawnPoint(slot);
   player.body.setTranslation(spawn, true);
   player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
@@ -80,6 +84,28 @@ export function resetPlayer(slot = 0) {
 }
 
 export function jump() { player.jumpReq = true; }
+
+/** Si siede su una giostra: niente collisioni né gravità, la posizione la decide game/rides.js. */
+export function sitDown(x, y, z) {
+  player.seated = true;
+  player.collider.setEnabled(false);
+  player.body.setGravityScale(0, true);
+  player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+  Object.assign(player.seatPos, { x, y, z });
+  player.body.setTranslation(player.seatPos, true);
+  Object.assign(prev, player.seatPos);
+}
+/** Si alza dalla giostra e si ritrova in (x, y, z) (centro della capsula). */
+export function standUp(x, y, z) {
+  player.seated = false;
+  player.collider.setEnabled(true);
+  player.body.setGravityScale(1, true);
+  player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+  const p = { x, y, z };
+  player.body.setTranslation(p, true);
+  Object.assign(prev, p);
+  Object.assign(player.pos, p);
+}
 
 // Raggi verso il basso (centro + 4 punti sul bordo) per capire se tocchiamo terra.
 const ray = new RAPIER.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 });
@@ -102,6 +128,15 @@ export function updatePlayer(dt) {
   if (!player.alive) return;
   player.yaw += lx;
   player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch + ly));
+  if (player.seated) {
+    // seduti: si guarda e si spara, ma non ci si muove (il posto si muove da solo)
+    player.body.setTranslation(player.seatPos, true);
+    player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    player.jumpReq = false;
+    player.speed = 0;
+    player.grounded = true;
+    return;
+  }
 
   const k = input.keys;
   let f = input.joy.y, r = input.joy.x;
@@ -145,11 +180,16 @@ export function addRecoil(pitch, yaw) {
 
 let shakeT = 0;
 export function updateCamera(dt, alpha) {
-  const t = player.body.translation();
-  // Interpolazione tra l'ultimo e il penultimo passo fisico: movimento fluido anche a 120 Hz
-  player.pos.x = prev.x + (t.x - prev.x) * alpha;
-  player.pos.y = prev.y + (t.y - prev.y) * alpha;
-  player.pos.z = prev.z + (t.z - prev.z) * alpha;
+  if (player.seated) {
+    // sulla giostra la posizione arriva già liscia da game/rides.js (niente interpolazione della fisica)
+    Object.assign(player.pos, player.seatPos);
+  } else {
+    const t = player.body.translation();
+    // Interpolazione tra l'ultimo e il penultimo passo fisico: movimento fluido anche a 120 Hz
+    player.pos.x = prev.x + (t.x - prev.x) * alpha;
+    player.pos.y = prev.y + (t.y - prev.y) * alpha;
+    player.pos.z = prev.z + (t.z - prev.z) * alpha;
+  }
 
   const decay = Math.exp(-dt * 8);
   player.recoilTarget *= decay;

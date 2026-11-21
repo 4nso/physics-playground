@@ -20,6 +20,7 @@ import { inSafeZone } from '../world/map.js';
 import { faceByName } from '../faces/gallery.js';
 import { drawPoster } from '../faces/poster.js';
 import { placePosters } from '../world/posters.js';
+import { resetRides } from './rides.js';
 
 const $ = (id) => document.getElementById(id);
 const BREAK_TIME = 12;
@@ -356,6 +357,7 @@ export function startGame(faceSets, members, seed) {
   resetWeapons();
   resetShop();
   setupSafeZones();
+  resetRides();
   Object.assign(game, { state: 'playing', phase: 'break', overlay: false, round: 0, score: 0, kills: 0, timer: 3, killedBy: '' });
   game.friendKills.clear();
   game.killedByCount.clear();

@@ -3,7 +3,7 @@
 // Pianta (il nord è -z, come nella minimappa; XC = asse del viale):
 //
 //   z -36 ┌──────────────────────────────────────────────┐
-//         │  area RUOTA PANORAMICA  │  area MONTAGNE RUSSE│  (cantieri: le giostre arrivano nei passi 2 e 3)
+//         │  RUOTA PANORAMICA       │  area MONTAGNE RUSSE│  (ruota: world/wheel.js; montagne russe: passo 3)
 //   z -12 ├──── vialetto ─────────────────────────────────┤
 //         │ gioco │        NEGOZIO (edificio)       │gioco│
 //         │       │   PIAZZA rotonda + palla demol.  │     │  ← partenza
@@ -20,6 +20,7 @@
 import * as THREE from 'three';
 import { SKIP } from './builder.js';
 import { buildShop } from './shop.js';
+import { buildWheel } from './wheel.js';
 import { Z0, Z1 } from './zones.js';
 import { TOYS, BRIGHT, METAL, YEL, RED, WOOD, cone, ico, tree, bench, crate, ball } from './toys.js';
 
@@ -128,14 +129,19 @@ function billboard(b, ctx, x, z, text, sub, color) {
   bulbRow(b, x - 3, 4.5, z + 0.1, x + 3, 4.5, z + 0.1, 12);
 }
 
-/** Area di una giostra futura: pavimentazione, cantiere, basamento e cartellone. */
-function rideArea(b, rng, ctx, x0, z0, x1, z1, slab, title) {
+/** Pavimentazione di un'area giostra con il cordolo colorato. */
+function ridePave(b, x0, z0, x1, z1) {
   b.box(x0, 0, z0, x1, 0.04, z1, 0xcdbb9c, { collide: false, skip: SKIP.BOTTOM });
   // cordolo colorato: le strisce lungo x vanno tra quelle lungo z (nessuna sovrapposizione)
   b.box(x0, 0, z0, x0 + 0.3, 0.06, z1, RED, { collide: false, skip: SKIP.BOTTOM });
   b.box(x1 - 0.3, 0, z0, x1, 0.06, z1, RED, { collide: false, skip: SKIP.BOTTOM });
   b.box(x0 + 0.3, 0, z0, x1 - 0.3, 0.06, z0 + 0.3, RED, { collide: false, skip: SKIP.BOTTOM });
   b.box(x0 + 0.3, 0, z1 - 0.3, x1 - 0.3, 0.06, z1, RED, { collide: false, skip: SKIP.BOTTOM });
+}
+
+/** Area di una giostra futura: pavimentazione, cantiere, basamento e cartellone. */
+function rideArea(b, rng, ctx, x0, z0, x1, z1, slab, title) {
+  ridePave(b, x0, z0, x1, z1);
   // basamento (ci si sale) e transenne intorno, con un varco verso la piazza
   const [sx0, sz0, sx1, sz1] = slab;
   b.box(sx0, 0, sz0, sx1, 0.25, sz1, 0xa9acb1, { skip: SKIP.BOTTOM });
@@ -265,8 +271,10 @@ export function lunaPark(b, rng, ctx, x0, x1) {
   // lampioni lungo il vialetto nord
   for (const x of [x0 + 4, x0 + 12, x0 + 20, XC + 5, XC + 13, XC + 21]) lamp(b, x, -13.3);
 
-  // aree delle giostre (ruota panoramica a ovest, montagne russe a est)
-  rideArea(b, rng, ctx, x0 + 1.5, Z0 + 1.5, XC - 3.5, -15, [XC - 17, -27, XC - 9, -23], 'RUOTA PANORAMICA');
+  // aree delle giostre: ruota panoramica a ovest (world/wheel.js), montagne russe a est (per ora cantiere)
+  ridePave(b, x0 + 1.5, Z0 + 1.5, XC - 3.5, -15);
+  buildWheel(b, ctx, XC - 13, -25);
+  for (const [x, z] of [[x0 + 3, -17], [XC - 5, -17]]) lamp(b, x, z);
   rideArea(b, rng, ctx, XC + 3.5, Z0 + 1.5, x1 - 1.5, -15, [XC + 7, -27, XC + 18, -23], 'MONTAGNE RUSSE');
 
   // piazzole con i giochi di sempre: colonne ai lati e due vicino all'ingresso

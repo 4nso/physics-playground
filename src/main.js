@@ -17,6 +17,7 @@ import { weaponScene } from './weapons/viewmodel.js';
 import { initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, nextWeapon, toggleZoom, hasZoom } from './weapons/weapons.js';
 import { updateShop, toggleShopping, closeShopping, isShopping } from './game/shop.js';
 import { updateSafeZones } from './game/safezone.js';
+import { updateRides, rideAction } from './game/rides.js';
 import { updateEnemies } from './enemies/enemies.js';
 import { initGallery, openGallery } from './faces/gallery.js';
 import { updatePickups } from './game/pickups.js';
@@ -44,11 +45,12 @@ const actions = {
   reload,
   weapon: selectWeapon,
   nextWeapon,
-  grab() { if (net.mode !== 'client' && player.alive) { setTrigger(false); toggleGrab(); } },
+  grab() { if (net.mode !== 'client' && player.alive && !player.seated) { setTrigger(false); toggleGrab(); } },
   // tasto destro: mirino se l'arma ce l'ha, altrimenti afferra
   alt() { if (hasZoom()) toggleZoom(); else actions.grab(); },
   zoom() { if (player.alive) toggleZoom(); },
   shop: toggleShopping,
+  ride(what) { if (game.state === 'playing') rideAction(what); },
   jump,
   pause() { if (closeShopping()) { requestLock(); return; } pauseGame(); },
   // il mouse liberato per comprare non mette in pausa
@@ -63,6 +65,7 @@ function loop(now) {
   const gdt = playing ? dt : 0;
   const authority = net.mode !== 'client'; // da solo o host: qui si simula tutto
 
+  updateRides(gdt, authority, playing && !game.overlay); // prima del giocatore: chi è seduto segue il posto
   if (playing) {
     updatePlayer(dt);
     updateHeld();
@@ -151,8 +154,8 @@ async function start() {
 
 // Solo in sviluppo (npm run dev): oggetti utili per i test automatici. Non finisce nel sito pubblicato.
 if (import.meta.env.DEV) {
-  Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js'), import('./game/game.js')]).then(([m, v, g]) => {
-    window.__pp = { game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team, map, renderer, nav };
+  Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js'), import('./game/game.js'), import('./game/rides.js')]).then(([m, v, g, r]) => {
+    window.__pp = { game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team, map, renderer, nav, rides: r };
   });
 }
 

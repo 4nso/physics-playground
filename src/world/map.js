@@ -8,6 +8,7 @@ import { Builder } from './builder.js';
 import { buildZones, ZONES, Z0, Z1 } from './zones.js';
 import { buildNav } from './nav.js';
 import { buildSigns, clearSigns } from './signs.js';
+import { buildRideVisuals, clearRideVisuals } from './wheel.js';
 
 /** Stato della mappa attuale. */
 export const map = {
@@ -23,6 +24,7 @@ export const map = {
   boxes: [],        // casse misteriose
   upgraders: [],    // potenziatori
   safeSigns: [],
+  rides: [],        // giostre: { kind, x, y, z, R, n, ctrl, exitZ, plat } (vedi world/wheel.js, game/rides.js)
   shops: [],        // negozi: { x, z, y, fx, fz, signX, signY, signZ } (vedi world/shop.js)
 };
 /** Corpo fisso a cui è appesa la palla demolitrice. */
@@ -42,15 +44,16 @@ function clearWorld() {
   staticBody = wreckAnchor = null;
   staticSurface.clear();
   clearSigns();
+  clearRideVisuals();
 }
 
 /** Costruisce (o ricostruisce) il mondo per questo seed. */
 export function buildWorld(seed) {
   clearWorld();
   const b = new Builder();
-  const ctx = { props: [], wreck: null, spawn: null, shops: [], safeZones: [], boxes: [], upgraders: [], safeSigns: [], signs: [] };
+  const ctx = { props: [], wreck: null, spawn: null, shops: [], safeZones: [], boxes: [], upgraders: [], safeSigns: [], signs: [], rides: [] };
   buildZones(b, makeRng(seed), ctx);
-  Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn, shops: ctx.shops, safeZones: ctx.safeZones, boxes: ctx.boxes, upgraders: ctx.upgraders, safeSigns: ctx.safeSigns, secretZ: ctx.secretZ });
+  Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn, shops: ctx.shops, safeZones: ctx.safeZones, boxes: ctx.boxes, upgraders: ctx.upgraders, safeSigns: ctx.safeSigns, secretZ: ctx.secretZ, rides: ctx.rides });
 
   // mesh unite: una per blocco da 12×12 m (quelle fuori dalla visuale non si disegnano)
   for (const ch of b.chunks.values()) {
@@ -66,6 +69,7 @@ export function buildWorld(seed) {
   }
 
   buildSigns(ctx.signs); // scritte delle insegne (luna park)
+  buildRideVisuals(ctx.rides); // parti mobili delle giostre (la logica è in game/rides.js)
 
   // fisica: un solo corpo fisso con tutti i collider
   staticBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
