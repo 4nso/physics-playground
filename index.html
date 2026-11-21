@@ -74,6 +74,7 @@
 <div id="over" class="screen hidden"><div class="card">
   <h1 id="overTitle">Game over</h1>
   <p class="sub" id="overInfo"></p>
+  <div id="overPosters"></div>
   <p id="overRecord" class="note"></p>
   <p id="overWait" class="note">Aspetta che l'host faccia ripartire la partita.</p>
   <button id="again" class="btn primary big">Rigioca</button>
@@ -88,6 +89,25 @@
   <button id="lShare" class="btn share">📤 Invita con un link</button>
   <p id="lShareNote" class="note"></p>
   <ul id="lPlayers" class="players"></ul>
+  <div id="meBox">
+    <div class="meRow">
+      <div id="meFace"><img id="meImg" alt="Il tuo volto"><span id="meNoImg">🪖</span></div>
+      <div class="meCtl">
+        <b>Il tuo volto</b> <span id="meName" class="note"></span>
+        <div class="row">
+          <label for="meSelfie" class="btn">📸 Selfie</label>
+          <button id="meFromGal" class="btn" type="button">🖼️ Galleria</button>
+          <button id="meDel" class="btn" type="button" aria-label="Togli il volto">✕</button>
+        </div>
+      </div>
+    </div>
+    <input id="meSelfie" type="file" accept="image/*" capture="user" hidden>
+    <div id="mePick" class="hidden"></div>
+    <div id="meConsent">
+      <label class="chk"><input type="checkbox" id="meShare"> Mostra il mio volto agli altri nella stanza</label>
+      <label class="chk"><input type="checkbox" id="meZombie"> Il mio volto può diventare la faccia degli zombi</label>
+    </div>
+  </div>
   <button id="lStart" class="btn primary big">Inizia partita</button>
   <p id="lWait" class="note">In attesa che l'host inizi la partita…</p>
   <button id="lLeave" class="btn">Esci</button>

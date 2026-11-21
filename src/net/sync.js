@@ -10,11 +10,12 @@ import { weaponHooks, resolveRemoteShot, showRemoteShot, currentWeaponIndex, res
 import { projHooks, remoteBoom } from '../weapons/projectiles.js';
 import { shopNet, serverBuy, applyBuy, buyFailed } from '../game/shop.js';
 import { startBoxSpin } from '../game/safezone.js';
-import { loadFaceMaterials, faceBuffers, facesFromBuffers } from '../faces/gallery.js';
+import { loadFaceMaterials, faceBuffers, facesFromBuffers, appendFaces, playerFaceSet } from '../faces/gallery.js';
+import { initMyFace, showMyFace, myFacePayload } from '../faces/myface.js';
 import { pickupSnapshot, applyPickupSnapshot } from '../game/pickups.js';
 import { game, team, gameNet, startGame, gameOver, toMenu, applyPick, syncLocalMember, removeMember, announce, noteFriendKill, noteKilledBy } from '../game/game.js';
 import { net, on, createRoom, joinRoom, broadcast, sendTo, sendHost, leaveRoom, setAccepting } from './net.js';
-import { setAvatar, removeAvatar, clearAvatars, updateAvatars, slotName, SLOT_COLORS } from './avatars.js';
+import { setAvatar, removeAvatar, clearAvatars, updateAvatars, slotName, SLOT_COLORS, setPlayerFace, clearPlayerFaces, playerName } from './avatars.js';
 import { VARIANT_KEYS, applyEnemySnapshot, killProxy, updateProxies, clearProxies, setProxyFaces } from './proxies.js';
 import { hud } from '../ui/hud.js';
 import { randomSeed } from '../world/rng.js';
@@ -33,13 +34,14 @@ gameNet.sendTo = (id, msg) => sendTo(id, msg);
 gameNet.toAll = (msg) => broadcast(msg);
 
 /* ---------- Lobby ---------- */
-let lobby = [];  // [{ id, slot }] giocatori nella stanza (host compreso)
+let lobby = [];  // [{ id, slot, name? }] giocatori nella stanza (host compreso)
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 function renderLobby() {
   $('lCode').textContent = net.code || '-----';
   $('lPlayers').innerHTML = lobby
     .slice().sort((a, b) => a.slot - b.slot)
-    .map((p) => `<li><i style="background:${SLOT_COLORS[p.slot % 4]}"></i>${slotName(p.slot)}${p.id === net.myId ? ' (tu)' : ''}</li>`)
+    .map((p) => `<li><i style="background:${SLOT_COLORS[p.slot % 4]}"></i>${esc(p.name || slotName(p.slot))}${p.face ? ' 🙂' : ''}${p.zombie ? ' 🧟' : ''}${p.id === net.myId ? ' (tu)' : ''}</li>`)
     .join('');
   const host = net.mode === 'host';
   $('lShare').style.display = host && net.code ? '' : 'none';
@@ -49,6 +51,48 @@ function renderLobby() {
     ? 'Manda il link agli amici, oppure dettagli il codice ("Entra con codice"). Da 2 a 4 giocatori.'
     : 'Sei nella stanza:';
   $('lStart').textContent = lobby.length > 1 ? `Inizia partita (${lobby.length} giocatori)` : 'Inizia partita (aspetta almeno un amico)';
+}
+
+/* ---------- Il volto di ogni giocatore (con il suo consenso) ---------- */
+// Host: id → { b: JPEG, n: nome, z: può fare lo zombi }. Solo in memoria, solo per questa stanza.
+const memberFaces = new Map();
+const MAX_FACE_BYTES = 400 * 1024;
+/** I dati binari arrivano come ArrayBuffer o Uint8Array, a seconda del browser: sempre ArrayBuffer. */
+const toBuf = (x) => (x instanceof ArrayBuffer ? x : ArrayBuffer.isView(x) ? x.buffer.slice(x.byteOffset, x.byteOffset + x.byteLength) : null);
+
+/** Host: registra (o toglie) il volto di un giocatore e aggiorna la lista della stanza. */
+function setMemberFace(id, f) {
+  if (f) memberFaces.set(id, f); else memberFaces.delete(id);
+  const p = lobby.find((x) => x.id === id);
+  if (p) { p.name = f ? f.n : ''; p.face = !!f; p.zombie = !!(f && f.z); }
+  broadcast({ t: 'lobby', list: lobby });
+  if (game.state === 'menu') renderLobby();
+}
+
+/** Il mio volto o il consenso sono cambiati: lo dico alla stanza (o lo ritiro). */
+function sendMyFace() {
+  if (net.mode === 'solo') return;
+  const f = myFacePayload();
+  if (net.mode === 'host') setMemberFace('host', f);
+  else sendHost(f ? { t: 'myface', b: f.b, n: f.n, z: f.z ? 1 : 0 } : { t: 'myface', b: null });
+}
+initMyFace(sendMyFace);
+
+on('myface', (msg, id) => {
+  if (net.mode !== 'host') return;
+  const b = toBuf(msg.b);
+  const ok = b && b.byteLength < MAX_FACE_BYTES;
+  setMemberFace(id, ok ? { b, n: typeof msg.n === 'string' ? msg.n.slice(0, 14) : '', z: !!msg.z } : null);
+});
+
+/** Crea i volti dei giocatori per gli omini (tranne il mio: io non mi vedo). list = [[id, { b, n }]] */
+async function buildPlayerFaces(list) {
+  clearPlayerFaces();
+  for (const [id, f] of list) {
+    if (id === net.myId) continue;
+    const set = await playerFaceSet(f.b, f.n);
+    if (set) setPlayerFace(id, set);
+  }
 }
 
 /* ---------- Invito con un link ---------- */
@@ -119,12 +163,16 @@ export async function openCreateRoom() {
       },
       onLeave(id) {
         lobby = lobby.filter((p) => p.id !== id);
+        memberFaces.delete(id);
         broadcast({ t: 'lobby', list: lobby });
         if (game.state === 'menu') renderLobby();
         else memberLeft(id);
       },
     });
     lobby = [{ id: 'host', slot: 0 }];
+    memberFaces.clear();
+    showMyFace();
+    sendMyFace();
     renderLobby();
   } catch (e) {
     hud.hide('lobby');
@@ -151,6 +199,8 @@ export async function joinWithCode() {
     lobby = [{ id: 'host', slot: 0 }, { id: me.id, slot: me.slot }];
     hud.hide('join');
     hud.show('lobby');
+    showMyFace();
+    sendMyFace();
     renderLobby();
   } catch (e) {
     $('jErr').textContent = e.message;
@@ -162,6 +212,8 @@ export async function joinWithCode() {
 export function leaveToMenu() {
   if (net.mode !== 'solo') leaveRoom();
   lobby = [];
+  memberFaces.clear();
+  clearPlayerFaces();
   cleanupNet();
   toMenu();
 }
@@ -170,6 +222,7 @@ function hostGone(reason) {
   if (net.mode !== 'client') return;
   leaveRoom();
   lobby = [];
+  clearPlayerFaces();
   cleanupNet();
   toMenu();
   showNetNote(reason);
@@ -190,10 +243,16 @@ const faceBuf = [];
 /** Host: manda i volti e fa partire tutti. Da solo: parte e basta. */
 export async function startMatch() {
   if (net.mode === 'client') return;
-  const sets = await loadFaceMaterials();
+  let sets = await loadFaceMaterials();
   const seed = matchSeed();
   if (net.mode === 'host') {
     setAccepting(false);
+    // i volti dei giocatori che lo permettono diventano anche facce degli zombi
+    const zombies = [...memberFaces.values()].filter((f) => f.z);
+    if (zombies.length) sets = await appendFaces(zombies);
+    // i volti dei giocatori per i loro omini (solo di chi ha scelto di condividerlo)
+    for (const [id, f] of memberFaces) broadcast({ t: 'pface', id, b: f.b, n: f.n });
+    await buildPlayerFaces([...memberFaces]);
     const bufs = await faceBuffers();
     // I volti vanno direttamente ai giocatori della stanza; loro li tengono solo in memoria.
     bufs.forEach((f, i) => broadcast({ t: 'face', i, b: f.b, n: f.n }));
@@ -206,11 +265,18 @@ export async function startMatch() {
 }
 
 on('lobby', (msg) => { lobby = msg.list; if (game.state === 'menu') renderLobby(); });
+const pfaceBuf = new Map();
+on('pface', (msg) => {
+  const b = toBuf(msg.b);
+  if (net.mode === 'client' && b) pfaceBuf.set(msg.id, { b, n: typeof msg.n === 'string' ? msg.n.slice(0, 14) : '' });
+});
 on('face', (msg) => { faceBuf[msg.i] = { b: msg.b, n: typeof msg.n === 'string' ? msg.n : '' }; });
 on('start', async (msg) => {
   const sets = await facesFromBuffers(faceBuf.slice(0, msg.n));
   faceBuf.length = 0;
   clearAvatars();
+  await buildPlayerFaces([...pfaceBuf]);
+  pfaceBuf.clear();
   clearProxies();
   setProxyFaces(sets);
   lobby = msg.members;
@@ -233,7 +299,7 @@ function memberLeft(id) {
   if (b) { world.removeRigidBody(b); remoteBodies.delete(id); }
   removeAvatar(id);
   removeMember(id);
-  if (m) announce(`${slotName(m.slot)} ha lasciato la partita`, 2);
+  if (m) announce(`${esc(playerName(id, m.slot))} ha lasciato la partita`, 2);
 }
 
 on('p', (msg, id) => {

@@ -17,6 +17,9 @@ import { hud } from '../ui/hud.js';
 import { resetShop, setShopMember, closeShopping } from './shop.js';
 import { setupSafeZones, startBoxSpin, boxHooks } from './safezone.js';
 import { inSafeZone } from '../world/map.js';
+import { faceByName } from '../faces/gallery.js';
+import { drawPoster } from '../faces/poster.js';
+import { placePosters } from '../world/posters.js';
 
 const $ = (id) => document.getElementById(id);
 const BREAK_TIME = 12;
@@ -38,6 +41,7 @@ export const game = {
   cfg: null,
   friendKills: new Map(), // nome dell'amico → quante volte l'ho eliminato (solo questo dispositivo)
   killedBy: '',           // nome dell'amico che mi ha messo a terra l'ultima volta
+  killedByCount: new Map(), // nome dell'amico → quante volte mi ha messo a terra
 };
 
 /* ---------- Messaggi con i nomi degli amici ---------- */
@@ -53,6 +57,7 @@ export function noteFriendKill(name) {
 export function noteKilledBy(name) {
   if (!name) return;
   game.killedBy = name;
+  game.killedByCount.set(name, (game.killedByCount.get(name) || 0) + 1);
   hud.feed('Ti ha ucciso ', name, '', 3);
 }
 
@@ -114,7 +119,6 @@ export function showRecord() {
 /* ---------- Difficoltà dei round (formule in difficulty.js) ---------- */
 function nextVariant() {
   const v = pickVariant(game.cfg, game.spawned);
-  if (v === 'boss') announce('👹 Arriva il boss!', 2.2);
   return v;
 }
 
@@ -287,6 +291,7 @@ export function gameOver(info) {
   hud.setPlaying(false);
   hud.hide('pause');
   hud.flash('', 0); // niente messaggi sopra la schermata finale
+  hud.clearFeed();
   const r = info || { round: game.round, score: game.score, kills: game.kills };
   const win = !!r.win;
   if (net.mode === 'host' && gameNet.toAll) gameNet.toAll({ t: 'over', round: r.round, score: r.score, kills: r.kills, win: win ? 1 : 0 });
@@ -302,10 +307,32 @@ export function gameOver(info) {
     $('overInfo').textContent = `${many ? 'La squadra è arrivata' : 'Sei arrivato'} al round ${r.round} con ${r.score} punti (${r.kills} nemici eliminati).`;
   }
   if (game.killedBy && !win) $('overInfo').innerHTML = `${esc($('overInfo').textContent)}<br>💀 Ti ha ucciso <b>${esc(game.killedBy)}</b>`;
+  showWanted();
   $('overRecord').textContent = isRecord ? '🏆 Nuovo record!' : rec.score ? `Record: ${rec.score} punti · round ${rec.round}` : '';
   $('again').style.display = net.mode === 'client' ? 'none' : '';
   $('overWait').style.display = net.mode === 'client' ? '' : 'none';
   hud.show('over');
+}
+
+/* ---------- Statistiche di fine partita: manifesti "RICERCATO" ---------- */
+const top = (m) => { let best = null; for (const [k, n] of m) if (!best || n > best[1]) best = [k, n]; return best; };
+function showWanted() {
+  const box = $('overPosters');
+  box.innerHTML = '';
+  const list = [];
+  const most = top(game.friendKills), killer = top(game.killedByCount);
+  if (most) list.push([most[0], `L'hai eliminato ${most[1] === 1 ? 'una volta' : most[1] + ' volte'}`]);
+  if (killer) list.push([killer[0], `Ti ha ucciso ${killer[1] === 1 ? 'una volta' : killer[1] + ' volte'}`]);
+  list.forEach(([name, line], i) => {
+    const set = faceByName(name);
+    const fig = document.createElement('figure');
+    const cv = drawPoster(set ? set.canvas : null, name, line, i + 3);
+    const cap = document.createElement('figcaption');
+    cap.textContent = i === 0 && most ? 'Il più eliminato' : 'Il tuo assassino';
+    fig.append(cv, cap);
+    box.appendChild(fig);
+  });
+  box.style.display = list.length ? '' : 'none';
 }
 
 /* ---------- Comandi del menu ---------- */
@@ -323,6 +350,7 @@ export function startGame(faceSets, members, seed) {
   setObjectsRemote(net.mode === 'client');
   if (seed && seed !== map.seed) buildWorld(seed); // nuova mappa (stesso seed = stessa mappa)
   buildLevel();
+  placePosters(faceSets); // manifesti "RICERCATO" con le facce sui muri
   setupTeam(members);
   resetPlayer(net.mySlot);
   resetWeapons();
@@ -330,6 +358,7 @@ export function startGame(faceSets, members, seed) {
   setupSafeZones();
   Object.assign(game, { state: 'playing', phase: 'break', overlay: false, round: 0, score: 0, kills: 0, timer: 3, killedBy: '' });
   game.friendKills.clear();
+  game.killedByCount.clear();
   hud.setRound(1);
   hud.setScore(0);
   hud.setEnemies(0);
@@ -404,7 +433,11 @@ export function updateGame(dt) {
   // combattimento: fa comparire i nemici un po' alla volta
   game.spawnT -= dt;
   if (game.toSpawn > 0 && game.spawnT <= 0 && enemies.length < game.cfg.maxAlive) {
-    spawnEnemy(nextVariant(), game.cfg);
+    const e = spawnEnemy(nextVariant(), game.cfg);
+    if (e.variant === 'boss') {
+      const name = enemyName(e);
+      announce(name ? `👹 Arriva il boss: <b>${esc(name.toUpperCase())}</b>!` : '👹 Arriva il boss!', 2.6);
+    }
     game.toSpawn--;
     game.spawned++;
     game.spawnT = game.cfg.interval * (0.6 + Math.random() * 0.8);

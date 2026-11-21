@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { scene } from '../core/renderer.js';
 import { buildEnemyModel, animateModel, disposeModel, topOf } from '../enemies/model.js';
+import { disposeSet } from '../faces/gallery.js';
 
 export const SLOT_COLORS = ['#ff7a45', '#2ec4b6', '#a26bff', '#ffd23f'];
 const mat = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.8, flatShading: true });
@@ -47,14 +48,28 @@ function nameTag(text, color) {
 export const slotName = (slot) => (slot === 0 ? 'Host' : `Giocatore ${slot + 1}`);
 
 const avatars = new Map();
+/** id del giocatore → materiali del suo volto (se l'ha condiviso). Solo in memoria. */
+const faces = new Map();
+const names = new Map();
+/** Volto e nome di un giocatore della stanza (set = null per toglierlo). */
+export function setPlayerFace(id, set) {
+  const old = faces.get(id);
+  if (old && old !== set) disposeSet(old);
+  if (set) { faces.set(id, set); names.set(id, set.name || ''); } else { faces.delete(id); names.delete(id); }
+}
+export function clearPlayerFaces() { for (const id of [...faces.keys()]) setPlayerFace(id, null); }
+/** Nome da mostrare per un giocatore: quello del suo volto, altrimenti "Giocatore N". */
+export const playerName = (id, slot) => names.get(id) || slotName(slot);
 
 /** Aggiorna (o crea) l'avatar di un giocatore. s = { slot, x, y, z, yaw, pitch, speed, down } */
 export function setAvatar(id, s) {
   let a = avatars.get(id);
   if (!a) {
     const look = looks[s.slot % looks.length];
-    const model = buildEnemyModel(look.variant, look.face);
-    const tag = nameTag(slotName(s.slot), SLOT_COLORS[s.slot % 4]);
+    const pf = faces.get(id);
+    // con il volto del giocatore; il nome resta nel cartellino colorato (non quello degli zombi)
+    const model = buildEnemyModel(look.variant, pf ? { front: pf.front, side: pf.side, top: pf.top } : look.face);
+    const tag = nameTag(playerName(id, s.slot), SLOT_COLORS[s.slot % 4]);
     tag.sprite.position.y = topOf(look.variant) + 0.3;
     model.group.add(tag.sprite);
     model.group.position.set(s.x, s.y - 0.8, s.z);
@@ -65,7 +80,7 @@ export function setAvatar(id, s) {
   a.tx = s.x; a.ty = s.y; a.tz = s.z;
   a.tyaw = s.yaw; a.pitch = s.pitch || 0; a.speed = s.speed || 0;
   a.down = !!s.down;
-  const label = a.down ? '⛑ Aiutami!' : slotName(s.slot);
+  const label = a.down ? '⛑ Aiutami!' : playerName(id, s.slot);
   if (label !== a.label) { a.tag.draw(label); a.label = label; }
 }
 

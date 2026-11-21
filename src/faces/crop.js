@@ -15,17 +15,17 @@ export { preloadDetector };
  * Mostra l'editor per un file immagine.
  * Restituisce una Promise con { blob, name }, oppure null se l'utente salta la foto.
  */
-export function cropImage(file, label) {
+export function cropImage(file, label, name = '') {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
-    img.onload = () => edit(img, label, (r) => { URL.revokeObjectURL(url); resolve(r); });
+    img.onload = () => edit(img, label, (r) => { URL.revokeObjectURL(url); resolve(r); }, name);
     img.src = url;
   });
 }
 
-function edit(img, label, done) {
+function edit(img, label, done, presetName = '') {
   const screen = $('crop'), cv = $('cCanvas'), g = cv.getContext('2d', { willReadFrequently: true }), zoomEl = $('cZoom');
   const status = $('cAuto'), cutBtn = $('cCut');
   const w = img.naturalWidth, h = img.naturalHeight;
@@ -33,7 +33,7 @@ function edit(img, label, done) {
   let zoom = 1, cx = VIEW / 2, cy = VIEW / 2;
   let cut = true, closed = false, cutTimer = 0;
   $('cCount').textContent = label || '';
-  $('cName').value = '';
+  $('cName').value = presetName;
   zoomEl.max = MAX_ZOOM;
   zoomEl.value = 1;
   screen.classList.remove('hidden');

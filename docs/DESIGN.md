@@ -229,6 +229,19 @@ sguardo**, anche da lontano e su un telefono, e gli amici devono essere protagon
   (`<input type="file" accept="image/*" capture="user">`) o sceglierne una dalla galleria, e il
   suo personaggio la mostra. Gli zombi possono usare anche le facce di chi è nella stanza
 
+#### Valori attuali (passo 3)
+- Manifesti a fine partita (`src/faces/poster.js`, disegnati in un canvas): "Il più eliminato" e
+  "Il tuo assassino", solo per i volti con un nome
+- Boss: testa ×1,35 (invece di rimpicciolirsi come negli altri nemici grossi); ogni 0,2 s un raggio
+  verso l'alto misura il soffitto e la testa si riduce fino a starci (minimo ×0,5). Nome grande sopra
+  la testa, visibile entro 45 m, e "👹 Arriva il boss: NOME!"
+- Manifesti sui muri (`src/world/posters.js`): 5 per zona, almeno 7 m l'uno dall'altro, a 1,7 m da
+  terra, solo su muri dritti e larghi; mai sulla zona sicura né sul muro del passaggio segreto.
+  Usano i volti della galleria (o le facce disegnate se è vuota)
+- Volto del giocatore (`src/faces/myface.js`): selfie o galleria, ritaglio automatico come in galleria.
+  L'host riceve i volti condivisi e li manda a tutti all'inizio della partita, insieme a quelli
+  degli zombi; i client li tengono solo in memoria
+
 ### Consenso e privacy
 - Valgono tutte le regole di "Volti dei nemici": niente foto nel repository o su server,
   galleria solo in IndexedDB, in multiplayer le foto viaggiano solo tra i giocatori della stanza

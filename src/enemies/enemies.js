@@ -4,7 +4,7 @@ import { scene, camera } from '../core/renderer.js';
 import { world, RAPIER, GROUPS, onBeforeStep, contactHandlers, prevSpeed } from '../core/physics.js';
 import { pickables } from '../world/arena.js';
 import { updateFields, nodeAt, steer, findSpawn } from '../world/nav.js';
-import { VARIANTS, topOf, buildEnemyModel, animateModel, flashModel, disposeModel } from './model.js';
+import { VARIANTS, modelTop, fitHead, buildEnemyModel, animateModel, flashModel, disposeModel } from './model.js';
 import { crumbleModel, updateDebris, clearDebris } from './debris.js';
 import { speedFor } from '../game/difficulty.js';
 import { pickFaceIndex } from '../faces/gallery.js';
@@ -277,12 +277,13 @@ export function updateEnemies(dt, alpha, active, targets) {
     g.scale.setScalar(e.spawnT < 1 ? 0.2 + 0.8 * e.spawnT : 1);
     e.walk = walk;
     animateModel(e.model, e.phase, walk, e.attackT, dt, e.health / e.maxHealth);
+    fitHead(e.model, g.position.x, g.position.y, g.position.z, dt);
 
     // barra della vita (solo se ferito)
     const b = e.bar;
     b.g.visible = e.health < e.maxHealth;
     if (b.g.visible) {
-      b.g.position.set(g.position.x, g.position.y + topOf(e.v) + 0.2, g.position.z);
+      b.g.position.set(g.position.x, g.position.y + modelTop(e.model) + 0.2, g.position.z);
       b.g.quaternion.copy(camera.quaternion);
       b.fg.scale.x = Math.max(0.001, e.health / e.maxHealth);
     }

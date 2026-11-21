@@ -138,17 +138,17 @@ function faceTexture(photo, side) {
 /** Cartellino con il nome, da mettere sopra la testa (uno per volto, condiviso da tutti i nemici). */
 function nameTagMaterial(name) {
   const c = document.createElement('canvas');
-  c.width = 256; c.height = 64;
+  c.width = 512; c.height = 128;
   const g = c.getContext('2d');
-  g.font = 'bold 34px system-ui, sans-serif';
-  const w = Math.min(248, g.measureText(name).width + 34);
+  g.font = 'bold 68px system-ui, sans-serif';
+  const w = Math.min(496, g.measureText(name).width + 68);
   g.fillStyle = 'rgba(15,25,40,.72)';
   g.beginPath();
-  if (g.roundRect) g.roundRect(128 - w / 2, 6, w, 52, 26); else g.rect(128 - w / 2, 6, w, 52);
+  if (g.roundRect) g.roundRect(256 - w / 2, 12, w, 104, 52); else g.rect(256 - w / 2, 12, w, 104);
   g.fill();
   g.fillStyle = '#ffd23f';
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText(name, 128, 33, 230);
+  g.fillText(name, 256, 66, 460);
   const map = new THREE.CanvasTexture(c);
   map.colorSpace = THREE.SRGBColorSpace;
   return new THREE.SpriteMaterial({ map, depthWrite: false, fog: false });
@@ -179,11 +179,7 @@ function makeSet(src, side, top, name = '') {
  * oppure 10 facce procedurali se la galleria è vuota.
  */
 function disposeCurrent() {
-  for (const s of current) {
-    s.front.map.dispose(); s.front.dispose(); s.side.dispose();
-    if (s.top !== s.side) s.top.dispose();
-    if (s.tagMat) { s.tagMat.map.dispose(); s.tagMat.dispose(); }
-  }
+  for (const s of current) disposeSet(s);
   current = [];
 }
 
@@ -216,9 +212,49 @@ export async function loadFaceMaterials() {
     const set = makeSet(p.canvas, p.side, p.top);
     set.types = [];
     set.reserve = reserve;
+    set.procedural = true;
     current.push(set);
   }
   return current;
+}
+
+/** I volti della partita in corso (materiali + foto + nome). */
+export function currentFaces() { return current; }
+
+/** Il volto (della partita in corso) con questo nome, o null. */
+export function faceByName(name) {
+  return (name && current.find((s) => s.name === name)) || null;
+}
+
+/**
+ * Host: aggiunge ai volti degli zombi quelli dei giocatori che lo permettono ([{ b, n }]).
+ * Le facce disegnate dal gioco diventano di riserva, così si vedono prima le facce vere.
+ */
+export async function appendFaces(items) {
+  let added = 0;
+  for (const it of items) {
+    try {
+      const set = await setFromBlob(new Blob([it.b], { type: 'image/jpeg' }), it.n);
+      set.types = [];
+      current.push(set);
+      added++;
+    } catch (e) { /* saltato */ }
+  }
+  if (added) for (const s of current) if (s.procedural) s.reserve = true;
+  return current;
+}
+
+/** Materiali per la testa di un giocatore (il suo volto), fuori dall'elenco degli zombi. */
+export async function playerFaceSet(buffer, name) {
+  try { return await setFromBlob(new Blob([buffer], { type: 'image/jpeg' }), name); } catch (e) { return null; }
+}
+
+/** Libera i materiali di un volto creato con playerFaceSet. */
+export function disposeSet(s) {
+  if (!s) return;
+  s.front.map.dispose(); s.front.dispose(); s.side.dispose();
+  if (s.top !== s.side) s.top.dispose();
+  if (s.tagMat) { s.tagMat.map.dispose(); s.tagMat.dispose(); }
 }
 
 /**

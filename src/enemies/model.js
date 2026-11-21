@@ -1,6 +1,7 @@
 // Modello low-poly del nemico (blocchi) con animazione di camminata e attacco.
 import * as THREE from 'three';
 import { camera } from '../core/renderer.js';
+import { world, RAPIER } from '../core/physics.js';
 
 const box = (w, h, d, oy = 0) => {
   const g = new THREE.BoxGeometry(w, h, d);
@@ -45,7 +46,8 @@ function capGeometry() {
   return g;
 }
 /** Le teste non crescono quanto il corpo nei nemici grossi (altrimenti sbattono contro i soffitti). */
-const headScale = (v) => (v.scale > 1 ? Math.pow(v.scale, -0.75) : 1);
+// Il boss invece ha un testone enorme (bigHead), che si schiaccia sotto i soffitti bassi (fitHead).
+const headScale = (v) => (v.bigHead || (v.scale > 1 ? Math.pow(v.scale, -0.75) : 1));
 /** Altezza della cima della testa da terra per questa variante (per barra della vita e nome). */
 export const topOf = (v) => v.scale * (NECK_Y + HEAD_R[1] * 2 * headScale(v));
 
@@ -69,7 +71,7 @@ export const VARIANTS = {
   // corazzato: lento e resistentissimo, con elmo e piastra sul petto (dal round 8)
   armored: { shirt: mat(0x6b7280), pants: mat(0x30343b), armor: mat(0xa9b1bc), scale: 1.2, speed: 0.55, health: 4.5, damage: 18, points: 450, mass: 12 },
   // boss: uno ogni 5 round, grande, con corna e spalline
-  boss: { shirt: mat(0x4a1f5c), pants: mat(0x1d1424), armor: mat(0xd4a017), scale: 1.65, speed: 0.8, health: 14, damage: 25, points: 2500, mass: 40 },
+  boss: { shirt: mat(0x4a1f5c), pants: mat(0x1d1424), armor: mat(0xd4a017), scale: 1.65, speed: 0.8, health: 14, damage: 25, points: 2500, mass: 40, bigHead: 1.35 },
 };
 /** Materiale bianco usato per un attimo quando il nemico viene colpito. */
 export const HIT_MAT = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.6 });
@@ -134,26 +136,49 @@ export function buildEnemyModel(variant, faceSet) {
     hl.scale.setScalar(1.5); hr.scale.setScalar(1.5);
     parts.push(hl, hr, mesh(GEO.pad, v.armor, -0.42, 1.55, 0), mesh(GEO.pad, v.armor, 0.42, 1.55, 0));
   }
-  // nome dell'amico sopra la testa (si vede solo da vicino)
-  let tag = null;
+  // nome dell'amico sopra la testa (si vede solo da vicino; quello del boss, grande, anche da lontano)
+  let tag = null, tagDist2 = 11 * 11;
   if (faceSet.tagMat) {
     tag = new THREE.Sprite(faceSet.tagMat);
-    tag.scale.set(1.3, 0.325, 1);
-    tag.position.y = (NECK_Y + HEAD_R[1] * 2 * hs) + 0.5;
+    const big = v.bigHead ? 2.2 : 1;
+    tag.scale.set(1.3 * big, 0.325 * big, 1);
+    tag.position.y = HEAD_R[1] * 2 + 0.3 * big;
     tag.visible = false;
-    inner.add(tag);
+    holder.add(tag);
+    if (v.bigHead) tagDist2 = 45 * 45;
   }
 
   return {
-    group, inner,
-    parts, head, faceMat, tag,
+    group, inner, v, holder, hs, fitT: 0,
+    parts, head, faceMat, tag, tagDist2,
     pivots: { hipL, hipR, shL, shR, neck },
     squash: 0, t: Math.random() * 10,
   };
 }
 
-const TAG_DIST2 = 11 * 11; // il nome si vede entro 11 metri
 const tmpV = new THREE.Vector3();
+
+/** Altezza attuale della cima della testa da terra (per la barra della vita). */
+export const modelTop = (m) => m.v.scale * (NECK_Y + HEAD_R[1] * 2 * m.holder.scale.y);
+
+/* Testone del boss: sotto un soffitto basso (parcheggio, backrooms) si rimpicciolisce, all'aperto torna enorme. */
+const upRay = new RAPIER.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: 1, z: 0 });
+const ONLY_STATIC = RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC | RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC;
+/** x, feetY, z = posizione dei piedi. Da chiamare ogni frame per i modelli con bigHead. */
+export function fitHead(m, x, feetY, z, dt) {
+  if (!m.v.bigHead) return;
+  m.fitT -= dt;
+  if (m.fitT <= 0) {
+    m.fitT = 0.2;
+    upRay.origin.x = x; upRay.origin.y = feetY + 1; upRay.origin.z = z;
+    const hit = world.castRay(upRay, 8, true, ONLY_STATIC);
+    const room = hit ? hit.timeOfImpact + 1 : 99;            // spazio libero sopra i piedi
+    const allowed = room - 0.12 - m.v.scale * NECK_Y;        // altezza possibile per la testa
+    m.fitTarget = Math.max(0.5, Math.min(m.hs, allowed / (m.v.scale * HEAD_R[1] * 2)));
+  }
+  const cur = m.holder.scale.y, f = 1 - Math.exp(-dt * 6);
+  m.holder.scale.setScalar(cur + ((m.fitTarget || m.hs) - cur) * f);
+}
 
 /**
  * walk: 0..1 quanto cammina; attack: 0..1 avanzamento del colpo (0 = nessun attacco).
@@ -189,7 +214,7 @@ export function animateModel(m, phase, walk, attack, dt = 0, hp = 1) {
       m.red = true;
     } else if (m.red) { m.faceMat.color.setRGB(1, 1, 1); m.red = false; }
   }
-  if (m.tag) m.tag.visible = tmpV.copy(m.group.position).distanceToSquared(camera.position) < TAG_DIST2;
+  if (m.tag) m.tag.visible = tmpV.copy(m.group.position).distanceToSquared(camera.position) < m.tagDist2;
 }
 
 export function flashModel(m, on) {

@@ -145,12 +145,23 @@ quando si aggiunge una foto. Se il viso non si trova, o il motore non parte, res
 Verificato in headless con volti disegnati via codice (foto 3024×4032 e 4032×3024, anche viso piccolo):
 viso trovato in circa 1 s la prima volta (caricamento), poi in meno di 0,2 s.
 
-Passo 3 – Amici protagonisti:
-- [ ] Statistiche di fine partita con manifesto "RICERCATO"
-- [ ] Boss con testone e nome dell'amico
-- [ ] Manifesti con le facce appesi nella mappa
-- [ ] Multiplayer: selfie o volto dalla galleria per il proprio personaggio
-- [ ] Multiplayer: consenso nella lobby (condividere il volto, usarlo per gli zombi)
+Passo 3 – Amici protagonisti (in prova su iPad):
+- [x] Statistiche di fine partita con manifesto "RICERCATO"
+- [x] Boss con testone e nome dell'amico
+- [x] Manifesti con le facce appesi nella mappa
+- [x] Multiplayer: selfie o volto dalla galleria per il proprio personaggio
+- [x] Multiplayer: consenso nella lobby (condividere il volto, usarlo per gli zombi)
+- [ ] Provato su iPad (e in multiplayer con 2 dispositivi)
+
+Note: a fine partita compaiono fino a 2 manifesti: l'amico che hai eliminato più volte e quello che
+ti ha ucciso più volte (conta solo questo dispositivo). Il boss ha la testa 1,35 volte più grande
+(≈4,4 m di altezza) e si rimpicciolisce sotto i soffitti bassi; il suo nome si legge da 45 m e
+compare nell'annuncio. 5 manifesti per zona, posizioni dal seed (uguali per tutti in multiplayer).
+Nella stanza: 📸 Selfie o 🖼️ Galleria; "Mostra il mio volto" (acceso di base quando scegli un volto)
+e "Può diventare la faccia degli zombi" (spento di base). Senza consenso il volto non parte dal
+dispositivo. Il proprio volto si ricorda solo in questo browser. Verificato in headless anche con
+host + client (server PeerJS locale): nomi nella lista, omino con la faccia, volto tra gli zombi.
+Corretto anche il deploy su GitHub Pages: build e pubblicazione in due job separati.
 
 ## Fase 9 – Luna park centrale
 Dettagli in `docs/DESIGN.md`, sezione "Mondo" → "Luna park centrale".

@@ -97,6 +97,7 @@ export const hud = {
     setTimeout(() => { line.style.opacity = '0'; }, seconds * 1000);
     setTimeout(() => line.remove(), seconds * 1000 + 450);
   },
+  clearFeed() { const box = $('feed'); if (box) box.innerHTML = ''; },
   setRound(n) { setText('pRound', `Round ${n}/${MAX_ROUNDS}`); },
   setEnemies(n) { setText('pEnemies', `👾 ${n}`); },
   /** Punti da spendere (la moneta del negozio). */
