@@ -1,7 +1,7 @@
 // Galleria volti: elenco, aggiunta dal dispositivo, eliminazione, e materiali per le teste dei nemici.
 import * as THREE from 'three';
 import { listFaces, addFace, deleteFace, clearFaces, setFaceTypes, setFaceName } from './store.js';
-import { cropImage, cleanName, NAME_MAX } from './crop.js';
+import { cropImage, cleanName, NAME_MAX, preloadDetector } from './crop.js';
 import { renderer } from '../core/renderer.js';
 import { proceduralFace, edgeColor } from './procedural.js';
 
@@ -74,6 +74,8 @@ export function initGallery(changed) {
   $('gClear').onclick = async () => {
     if (confirm('Eliminare tutti i volti da questo dispositivo?')) { await clearFaces(); render(); }
   };
+  // mentre l'utente sceglie le foto, il gioco carica il riconoscimento del viso
+  document.querySelector('label[for="gFile"]').addEventListener('click', preloadDetector);
   $('gFile').onchange = async (e) => {
     const files = [...e.target.files];
     e.target.value = '';

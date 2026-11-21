@@ -133,10 +133,17 @@ o sotto la foto in galleria (max 14 lettere) e si vede sopra la testa entro 11 m
 In multiplayer i nomi viaggiano con i volti, dall'host ai client. Verificato in headless
 (1180×820 e 844×390, anche host + client con server PeerJS locale): nessun errore in console.
 
-Passo 2 – Ritaglio intelligente:
-- [ ] Riconoscimento del viso nel browser, centratura e zoom automatici
-- [ ] Scontorno dello sfondo; ritaglio manuale come riserva
+Passo 2 – Ritaglio intelligente (in prova su iPad/iPhone):
+- [x] Riconoscimento del viso nel browser, centratura e zoom automatici
+- [x] Scontorno dello sfondo; ritaglio manuale come riserva
 - [ ] Provato su foto prese dal rullino dell'iPhone (anche verticali e grandi)
+
+Note: MediaPipe (BlazeFace + segmentazione "selfie"), tutto sul dispositivo. I due modelli
+(480 KB in tutto) sono in `public/models/`; il motore WASM (14 MB, 4 MB compresso) non sta nel
+repository: `vite.config.js` lo copia da `node_modules` nella build e il browser lo scarica solo
+quando si aggiunge una foto. Se il viso non si trova, o il motore non parte, resta il ritaglio a mano.
+Verificato in headless con volti disegnati via codice (foto 3024×4032 e 4032×3024, anche viso piccolo):
+viso trovato in circa 1 s la prima volta (caricamento), poi in meno di 0,2 s.
 
 Passo 3 – Amici protagonisti:
 - [ ] Statistiche di fine partita con manifesto "RICERCATO"

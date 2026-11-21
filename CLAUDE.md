@@ -26,7 +26,8 @@
 ## Stack (dalla fase 1)
 - Vite + JavaScript moderno (ES modules). TypeScript non serve.
 - Three.js per la grafica, Rapier (`@dimforge/rapier3d-compat`) per la fisica,
-  PeerJS per il multiplayer.
+  PeerJS per il multiplayer. MediaPipe (`@mediapipe/tasks-vision`) per trovare il viso e togliere
+  lo sfondo nelle foto: modelli in `public/models/`, motore WASM copiato nella build da `vite.config.js`.
 - Niente asset esterni: modelli, texture e suoni si generano nel codice.
   Estetica low-poly, flat shading.
 - `vite.config.js` deve avere `base: '/physics-playground/'` per GitHub Pages.

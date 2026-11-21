@@ -206,6 +206,15 @@ sguardo**, anche da lontano e su un telefono, e gli amici devono essere protagon
   sotto il 30% di vita pulsa di rosso; camminando la testa dondola sul collo
 - Nome: massimo 14 lettere, cartellino giallo sopra la testa visibile entro 11 m
 
+#### Valori attuali (passo 2, in `src/faces/detect.js`)
+- Riconoscimento: BlazeFace "short range" su tutta la foto rimpicciolita a 1024 px; se non trova niente
+  riprova su 4 zone sovrapposte (60% della foto), utile per visi piccoli. Si prende il viso più grande
+- Inquadratura: quadrato di 1,6 × il riquadro del viso, centro un po' più in alto (per i capelli);
+  zoom fino a ×12 per le foto grandi del telefono. L'utente può sempre correggere con le dita
+- Scontorno: segmentazione "selfie" sul ritaglio 512×512; lo sfondo diventa un colore pieno preso dalla
+  pelle (più scuro del 18%), che è anche il colore della testa in gioco. Pulsante per lasciare lo sfondo
+- I modelli sono di Google MediaPipe, con licenza Apache 2.0
+
 ### Gli amici protagonisti
 - **Nome per ogni volto**: quando si carica una foto si scrive un nome (es. "Marco").
   Il nome compare sopra la testa (solo da vicino, per non affollare lo schermo) e nei messaggi:
