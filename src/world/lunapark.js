@@ -3,7 +3,7 @@
 // Pianta (il nord è -z, come nella minimappa; XC = asse del viale):
 //
 //   z -36 ┌──────────────────────────────────────────────┐
-//         │  RUOTA PANORAMICA       │  area MONTAGNE RUSSE│  (ruota: world/wheel.js; montagne russe: passo 3)
+//         │  RUOTA PANORAMICA       │ MONTAGNE RUSSE (staz.)│  (world/wheel.js, world/coaster.js)
 //   z -12 ├──── vialetto ─────────────────────────────────┤
 //         │ gioco │        NEGOZIO (edificio)       │gioco│
 //         │       │   PIAZZA rotonda + palla demol.  │     │  ← partenza
@@ -21,8 +21,9 @@ import * as THREE from 'three';
 import { SKIP } from './builder.js';
 import { buildShop } from './shop.js';
 import { buildWheel } from './wheel.js';
+import { buildCoaster } from './coaster.js';
 import { Z0, Z1 } from './zones.js';
-import { TOYS, BRIGHT, METAL, YEL, RED, WOOD, cone, ico, tree, bench, crate, ball } from './toys.js';
+import { TOYS, BRIGHT, METAL, YEL, RED, WOOD, cone, ico, tree, bench } from './toys.js';
 
 const sc = new THREE.Vector3();
 const disc = new THREE.CylinderGeometry(1, 1, 1, 28);
@@ -108,27 +109,6 @@ function table(b, x, z) {
   bench(b, x, z - 0.9); bench(b, x, z + 0.9);
 }
 
-/** Transenne da cantiere bianche e rosse lungo un segmento allineato agli assi, con un varco. */
-function barrier(b, x0, z0, x1, z1, gap) {
-  const alongX = Math.abs(x1 - x0) > Math.abs(z1 - z0);
-  const a0 = alongX ? x0 : z0, a1 = alongX ? x1 : z1, len = a1 - a0, n = Math.round(len / 2);
-  for (let i = 0; i < n; i++) {
-    const s0 = a0 + (len * i) / n + 0.05, s1 = a0 + (len * (i + 1)) / n - 0.05, mid = (s0 + s1) / 2;
-    if (gap && mid > gap[0] && mid < gap[1]) continue;
-    const col = i % 2 ? WHITE : RED;
-    if (alongX) b.box(s0, 0, z0 - 0.08, s1, 1.0, z0 + 0.08, col, { skip: SKIP.BOTTOM, surface: 'metal' });
-    else b.box(x0 - 0.08, 0, s0, x0 + 0.08, 1.0, s1, col, { skip: SKIP.BOTTOM, surface: 'metal' });
-  }
-}
-
-/** Cartellone su due pali rivolto verso +z (verso la piazza). */
-function billboard(b, ctx, x, z, text, sub, color) {
-  for (const dx of [-2.6, 2.6]) b.box(x + dx - 0.1, 0, z - 0.1, x + dx + 0.1, 4.6, z + 0.1, METAL, { surface: 'metal', skip: SKIP.BOTTOM });
-  b.box(x - 3, 2.4, z - 0.12, x + 3, 4.4, z + 0.08, color, { surface: 'wood' });
-  sign(ctx, { text, sub, x, y: 3.4, z: z + 0.1, w: 5.6, h: 1.7, bg: '#fff6dc', fg: '#' + color.toString(16).padStart(6, '0'), subColor: '#2c3e66' });
-  bulbRow(b, x - 3, 4.5, z + 0.1, x + 3, 4.5, z + 0.1, 12);
-}
-
 /** Pavimentazione di un'area giostra con il cordolo colorato. */
 function ridePave(b, x0, z0, x1, z1) {
   b.box(x0, 0, z0, x1, 0.04, z1, 0xcdbb9c, { collide: false, skip: SKIP.BOTTOM });
@@ -137,26 +117,6 @@ function ridePave(b, x0, z0, x1, z1) {
   b.box(x1 - 0.3, 0, z0, x1, 0.06, z1, RED, { collide: false, skip: SKIP.BOTTOM });
   b.box(x0 + 0.3, 0, z0, x1 - 0.3, 0.06, z0 + 0.3, RED, { collide: false, skip: SKIP.BOTTOM });
   b.box(x0 + 0.3, 0, z1 - 0.3, x1 - 0.3, 0.06, z1, RED, { collide: false, skip: SKIP.BOTTOM });
-}
-
-/** Area di una giostra futura: pavimentazione, cantiere, basamento e cartellone. */
-function rideArea(b, rng, ctx, x0, z0, x1, z1, slab, title) {
-  ridePave(b, x0, z0, x1, z1);
-  // basamento (ci si sale) e transenne intorno, con un varco verso la piazza
-  const [sx0, sz0, sx1, sz1] = slab;
-  b.box(sx0, 0, sz0, sx1, 0.25, sz1, 0xa9acb1, { skip: SKIP.BOTTOM });
-  const bx0 = sx0 - 2.5, bx1 = sx1 + 2.5, bz0 = sz0 - 2.5, bz1 = sz1 + 2.5, mx = (bx0 + bx1) / 2;
-  barrier(b, bx0, bz0, bx1, bz0);
-  barrier(b, bx0, bz1, bx1, bz1, [mx - 2, mx + 2]);
-  barrier(b, bx0, bz0, bx0, bz1, [(bz0 + bz1) / 2 - 1.5, (bz0 + bz1) / 2 + 1.5]);
-  barrier(b, bx1, bz0, bx1, bz1);
-  for (let k = 0; k < 5; k++) {
-    const x = rng.range(sx0 - 1.5, sx1 + 1.5), z = rng.chance(0.5) ? sz0 - 1.2 : sz1 + 1.2;
-    b.geo(cone, x, 0.36, z, 0xff7a2f, { scale: sc.set(0.25, 0.7, 0.25) });
-  }
-  crate(ctx, sx0 + 1, 0.25, (sz0 + sz1) / 2); crate(ctx, sx0 + 1, 1.27, (sz0 + sz1) / 2, 0.8);
-  crate(ctx, sx1 - 1.2, 0.25, sz0 + 1); ball(ctx, sx1 - 1.5, 0.25, sz1 - 1, 0.5);
-  billboard(b, ctx, (x0 + x1) / 2, z1 - 1.2, title, 'Prossimamente!', title.startsWith('R') ? 0x3d8bff : 0xb45cff);
 }
 
 /** Arco d'ingresso con due torrette (biglietterie), insegna e lampadine. Il viale ci passa sotto. */
@@ -271,11 +231,11 @@ export function lunaPark(b, rng, ctx, x0, x1) {
   // lampioni lungo il vialetto nord
   for (const x of [x0 + 4, x0 + 12, x0 + 20, XC + 5, XC + 13, XC + 21]) lamp(b, x, -13.3);
 
-  // aree delle giostre: ruota panoramica a ovest (world/wheel.js), montagne russe a est (per ora cantiere)
+  // aree delle giostre: ruota panoramica a ovest (world/wheel.js), stazione delle montagne russe a est (in fondo)
   ridePave(b, x0 + 1.5, Z0 + 1.5, XC - 3.5, -15);
   buildWheel(b, ctx, XC - 13, -25);
   for (const [x, z] of [[x0 + 3, -17], [XC - 5, -17]]) lamp(b, x, z);
-  rideArea(b, rng, ctx, XC + 3.5, Z0 + 1.5, x1 - 1.5, -15, [XC + 7, -27, XC + 18, -23], 'MONTAGNE RUSSE');
+  ridePave(b, XC + 3.5, Z0 + 1.5, x1 - 1.5, -15);
 
   // piazzole con i giochi di sempre: colonne ai lati e due vicino all'ingresso
   const slots = [];
@@ -284,4 +244,16 @@ export function lunaPark(b, rng, ctx, x0, x1) {
   const list = rng.shuffle(Object.keys(TOYS));
   while (list.length < slots.length) list.push(rng.pick(['torre', 'piscinaPalline', 'fortino', 'trampolini', 'pallone', 'boschetto']));
   slots.forEach(([cx, cz], i) => TOYS[list[i]](b, rng, ctx, cx, cz));
+
+  // montagne russe (world/coaster.js): i sostegni non cadono su giochi, piazza, viale, negozio, bancarelle, ruota
+  const noPost = [
+    ...slots.map(([cx, cz]) => [cx - 4.3, cz - 5.3, cx + 4.3, cz + 5.3]),
+    [XC - 10.8, -11.5, XC + 10.8, 10.8],          // piazza e negozio
+    [XC - 3.8, 9, XC + 3.8, Z1],                  // viale
+    [XC - 6.2, 25.6, XC + 6.2, 28.4],             // arco d'ingresso
+    [XC - 15.5, 12.4, XC - 3.4, 23.6], [XC + 3.4, 12.4, XC + 15.5, 23.6], // zone ristoro
+    [XC - 20.8, -29.8, XC - 5.2, -17.9],          // recinto della ruota
+    [XC + 2, -31.5, x1, -21.5],                   // stazione e comandi delle montagne russe
+  ];
+  buildCoaster(b, ctx, rng, noPost);
 }

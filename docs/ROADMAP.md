@@ -187,11 +187,21 @@ G avvia/ferma, V velocità; su touch compaiono i pulsanti in basso. Da soli: "Av
 se nessuno è seduto. Dall'alto la nebbia si allontana e si vede tutta la mappa. Scendendo in alto si
 salta giù senza danni. Verificato in headless: da soli e con host + client (server PeerJS locale).
 
-Passo 3 – Montagne russe:
-- [ ] Percorso a spline dal seed che passa sopra la mappa e torna al luna park
-- [ ] Carrelli con più posti, stessa logica di comando e multiplayer della ruota
-- [ ] Prestazioni: binari e sostegni con instancing, 30+ fps su iPhone
-- [ ] (Facoltativo) terza giostra: catene, autoscontri o tagadà
+Passo 3 – Montagne russe (in prova su iPad):
+- [x] Percorso a spline dal seed che passa sopra la mappa e torna al luna park
+- [x] Carrelli con più posti, stessa logica di comando e multiplayer della ruota
+- [x] Prestazioni: binari e sostegni nella geometria unita della mappa (nessuna chiamata di disegno
+      in più, meglio dell'instancing); si muovono solo i 3 vagoni
+- [ ] 30+ fps su iPhone (da misurare sul telefono vero)
+- [ ] (Facoltativo) terza giostra: catene, autoscontri o tagadà — non fatta
+- [ ] Provato su iPad (e in multiplayer con 2 dispositivi)
+
+Note: stazione a nord-est della piazza (banchina con la pensilina viola), comandi nella casetta
+viola accanto. Una corsa = 2 giri (~280 m l'uno): salita sopra le backrooms, passaggio sopra il
+luna park e il parcheggio, ritorno lungo il muro nord. Si sale e si scende solo in stazione.
+Il codice delle giostre ora ha un "motore" per tipo (ruota, montagne russe) in `src/game/rides.js`.
+Verificato in headless: da soli (partenza, salita, frenata, arrivo e discesa sulla banchina) e con
+host + client (server PeerJS locale).
 
 ## Fase 10 – Grafica
 Dettagli in `docs/DESIGN.md`, sezione "Grafica".

@@ -8,7 +8,7 @@ import { Builder } from './builder.js';
 import { buildZones, ZONES, Z0, Z1 } from './zones.js';
 import { buildNav } from './nav.js';
 import { buildSigns, clearSigns } from './signs.js';
-import { buildRideVisuals, clearRideVisuals } from './wheel.js';
+import { buildRideVisuals, clearRideVisuals } from './rideVisuals.js';
 
 /** Stato della mappa attuale. */
 export const map = {

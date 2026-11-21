@@ -2,12 +2,11 @@
 //
 // buildWheel(...) disegna le parti FISSE nella geometria unita della mappa (gambe ad A, asse, pedana,
 // recinto, cabina di comando) e aggiunge a ctx.rides la descrizione della giostra.
-// buildRideVisuals(...) crea le parti che SI MUOVONO (ruota e cabine), mesh normali di Three.js
-// aggiornate a ogni frame da game/rides.js con l'angolo della ruota.
+// makeWheelVisual(...) crea le parti che SI MUOVONO (ruota e cabine), mesh normali di Three.js
+// aggiornate a ogni frame da game/rides.js con l'angolo della ruota (vedi world/rideVisuals.js).
 // Le cabine non hanno collider: chi è seduto segue il posto da programma (vedi player.js).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { scene } from '../core/renderer.js';
 import { SKIP } from './builder.js';
 
 export const WHEEL = {
@@ -181,40 +180,34 @@ function cabinGeometry(color) {
   return mergeGeometries(list);
 }
 
-let visuals = [];
-
-export function clearRideVisuals() {
-  for (const v of visuals) {
-    scene.remove(v.group);
-    for (const g of v.geos) g.dispose();
+/** Mesh della ruota e delle cabine: { group, geos, pose(angle) }. */
+export function makeWheelVisual(def) {
+  const group = new THREE.Group();
+  const rotor = new THREE.Group();
+  rotor.position.set(def.x, def.y, def.z);
+  const { solid, glow } = rotorGeometry(def);
+  rotor.add(new THREE.Mesh(solid, solidMat), new THREE.Mesh(glow, glowMat));
+  group.add(rotor);
+  const geos = [solid, glow], cabins = [];
+  for (let k = 0; k < def.n; k++) {
+    const g = cabinGeometry(BRIGHT[k % BRIGHT.length]);
+    geos.push(g);
+    const m = new THREE.Mesh(g, solidMat);
+    group.add(m);
+    cabins.push(m);
   }
-  visuals = [];
-}
-
-/** Crea ruota e cabine per ogni giostra della mappa. */
-export function buildRideVisuals(defs) {
-  clearRideVisuals();
-  for (const def of defs || []) {
-    if (def.kind !== 'wheel') continue;
-    const group = new THREE.Group();
-    const rotor = new THREE.Group();
-    rotor.position.set(def.x, def.y, def.z);
-    const { solid, glow } = rotorGeometry(def);
-    rotor.add(new THREE.Mesh(solid, solidMat), new THREE.Mesh(glow, glowMat));
-    group.add(rotor);
-    const geos = [solid, glow], cabins = [];
-    for (let k = 0; k < def.n; k++) {
-      const g = cabinGeometry(BRIGHT[k % BRIGHT.length]);
-      geos.push(g);
-      const m = new THREE.Mesh(g, solidMat);
-      group.add(m);
-      cabins.push(m);
-    }
-    scene.add(group);
-    const v = { def, group, rotor, cabins, geos };
-    visuals.push(v);
-    def.visual = v;
-  }
+  const tmp = { x: 0, y: 0, z: 0 };
+  return {
+    group, geos,
+    // ruota all'angolo dato; le cabine restano sempre dritte
+    pose(angle) {
+      rotor.rotation.z = angle;
+      for (let k = 0; k < def.n; k++) {
+        cabinPivot(def, angle, k, tmp);
+        cabins[k].position.set(tmp.x, tmp.y, tmp.z);
+      }
+    },
+  };
 }
 
 /** Posizione del perno della cabina k con la ruota all'angolo `angle`. */
@@ -226,14 +219,3 @@ export function cabinPivot(def, angle, k, out) {
   return out;
 }
 
-const tmp = { x: 0, y: 0, z: 0 };
-/** Mette ruota e cabine all'angolo dato (le cabine restano sempre dritte). */
-export function poseRide(def, angle) {
-  const v = def.visual;
-  if (!v) return;
-  v.rotor.rotation.z = angle;
-  for (let k = 0; k < def.n; k++) {
-    cabinPivot(def, angle, k, tmp);
-    v.cabins[k].position.set(tmp.x, tmp.y, tmp.z);
-  }
-}

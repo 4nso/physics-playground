@@ -321,8 +321,8 @@ più strutturata: un **luna park**. Restano gli elementi giocosi di oggi, ma si 
   - **Viale** largo 6 m verso sud, con lampioni e festoni di lampadine; ai lati due zone ristoro
     con 4 bancarelle (popcorn, zucchero filato, bibite, gelati), tavolini e alberi
   - **Arco d'ingresso** in fondo al viale: due torrette-biglietteria, insegna "LUNA PARK" luminosa
-  - **Aree delle giostre** a nord (oltre il vialetto): ruota panoramica a ovest, montagne russe
-    a est (per ora cantiere con basamento, transenne e cartellone "Prossimamente!")
+  - **Aree delle giostre** a nord (oltre il vialetto): ruota panoramica a ovest, stazione delle
+    montagne russe a est
   - **Giochi** in 10 piazzole: 4 per lato più 2 vicino all'ingresso (scelti e mescolati dal seed)
 - Le scritte delle insegne sono texture disegnate in un canvas (`src/world/signs.js`)
 
@@ -343,6 +343,27 @@ più strutturata: un **luna park**. Restano gli elementi giocosi di oggi, ma si 
   cabina passa in basso
 - Multiplayer: l'host decide angolo, velocità, stato e posti e li manda nelle istantanee; i client
   chiedono "sali/scendi/avvia/ferma/velocità" e correggono piano l'angolo
+
+#### Valori attuali (passo 3: montagne russe, in `src/world/coaster.js` e `src/game/rides.js`)
+- Percorso chiuso di circa 280 m (curva Catmull-Rom con 26 punti; altezze della cima e della gobba
+  e alcune curve cambiano con il seed). In ordine: stazione nel luna park (in piano, lungo x),
+  salita a catena fino a ~21 m sopra le backrooms, discesa e gobba, curva verso ovest, passaggio a
+  ~14 m sopra il luna park (sul vialetto a z = 24), grande curva sopra il parcheggio (≥ 12 m, sopra
+  i lampioni del tetto), ritorno basso lungo il muro nord, frenata e stazione
+- Trenino di 3 vagoni da 2 posti (6 posti). Si sale solo con il treno fermo in stazione ("Sali", F);
+  in corsa "Scendi" non si può: a fine corsa il treno si ferma e tutti scendono sulla banchina
+- Comandi nella casetta viola a est della banchina: "Avvia" (G), "Ferma" (si ferma alla prossima
+  stazione: in aria non si frena), "Velocità 1-2-3" (V). Avvio ritardato di 6 s se nessuno è seduto
+- Una corsa = 2 giri. Velocità: catena 2,8 / 3,5 / 4,5 m/s; in discesa conta l'altezza persa
+  (√(3,5² + 2·g·dislivello) × 0,8 / 1 / 1,15, massimo 22 m/s ≈ 80 km/h); 6 m/s nella frenata prima
+  della stazione, 4 m/s in stazione
+- Binari, traversine, trave centrale e sostegni sono fermi: stanno nella geometria unita della mappa
+  (stesso vantaggio dell'instancing, nessuna chiamata di disegno in più). Sostegni ogni ~5 m: a
+  terra nel luna park (ma non su giochi, piazza, viale, bancarelle, ruota), sul tetto del parcheggio
+  (lontano da auto, lampioni e rampa), sul soffitto delle backrooms. Si muovono solo i 3 vagoni
+- Il percorso si vede nella minimappa come linea viola
+- Misure headless 844×390: ~60 chiamate di disegno a fotogramma in piazza, ~85 dalla cima della
+  ruota con la vista lunga, ~20-25 sopra il parcheggio e in stazione
 
 ## Grafica (fase 10)
 

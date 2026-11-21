@@ -21,6 +21,16 @@ function drawPlan() {
   }
   g.fillStyle = 'rgba(255,255,255,.55)';
   for (const [x0, z0, x1, z1] of map.ramps || []) g.fillRect(X(x0), Z(z0), (x1 - x0) * PX, (z1 - z0) * PX);
+  // percorso delle montagne russe (linea viola)
+  g.strokeStyle = 'rgba(180,92,255,.85)';
+  g.lineWidth = 2;
+  for (const r of map.rides || []) {
+    if (!r.line) continue;
+    g.beginPath();
+    r.line.forEach(([x, z], i) => (i ? g.lineTo(X(x), Z(z)) : g.moveTo(X(x), Z(z))));
+    g.closePath();
+    g.stroke();
+  }
   g.fillStyle = '#26221c';
   for (const [x0, z0, x1, z1] of map.walls) g.fillRect(X(x0), Z(z0), Math.max(1.5, (x1 - x0) * PX), Math.max(1.5, (z1 - z0) * PX));
   planSeed = map.seed;
