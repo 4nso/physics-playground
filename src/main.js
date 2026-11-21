@@ -27,6 +27,7 @@ import { net } from './net/net.js';
 import { startMatch, openCreateRoom, openJoin, joinWithCode, leaveToMenu, netBeforePhysics, netUpdate, shareInvite, joinFromLink } from './net/sync.js';
 import { hud } from './ui/hud.js';
 import { initSettings } from './ui/settings.js';
+import { quality, updateQuality, LEVEL_NAMES } from './core/quality.js';
 import { initMobile } from './ui/mobile.js';
 
 const $ = (id) => document.getElementById(id);
@@ -59,9 +60,12 @@ const actions = {
 
 function loop(now) {
   requestAnimationFrame(loop);
-  const dt = Math.min(0.05, (now - last) / 1000);
+  const rawDt = Math.max(0, (now - last) / 1000);
+  const dt = Math.min(0.05, rawDt);
   last = now;
   const playing = game.state === 'playing';
+  updateQuality(rawDt, playing && !game.overlay);
+  showFps(rawDt);
   const gdt = playing ? dt : 0;
   const authority = net.mode !== 'client'; // da solo o host: qui si simula tutto
 
@@ -92,10 +96,21 @@ function loop(now) {
   if (playing && net.mode !== 'client') updateCrosshair();
   hud.update(dt);
 
+  renderer.info.reset();
   renderer.clear();
   renderer.render(scene, camera);
   renderer.clearDepth();
   renderer.render(weaponScene, camera); // l'arma sopra a tutto, senza entrare nei muri
+}
+
+/* ---------- Contatore fps (Impostazioni → Mostra gli fps) ---------- */
+const fpsEl = $('fps');
+let fpsT = 0;
+function showFps(rawDt) {
+  fpsT += rawDt;
+  if (fpsT < 0.5 || fpsEl.classList.contains('hidden')) return;
+  fpsT = 0;
+  fpsEl.textContent = `${quality.fps} fps · ${LEVEL_NAMES[quality.level]}${quality.setting === 'auto' ? ' (auto)' : ''}`;
 }
 
 /* ---------- Minimappa ---------- */
@@ -155,7 +170,7 @@ async function start() {
 // Solo in sviluppo (npm run dev): oggetti utili per i test automatici. Non finisce nel sito pubblicato.
 if (import.meta.env.DEV) {
   Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js'), import('./game/game.js'), import('./game/rides.js')]).then(([m, v, g, r]) => {
-    window.__pp = { game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team, map, renderer, nav, rides: r };
+    window.__pp = { game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team, map, renderer, nav, rides: r, quality };
   });
 }
 

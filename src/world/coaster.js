@@ -219,22 +219,27 @@ function part(list, geo, color, x, y, z, rx = 0) {
   list.push(paint(geo, color));
 }
 
-/** Vagone: origine al centro tra le rotaie (in alto), avanti = +z, destra = +x. */
+/**
+ * Vagone: origine al centro tra le rotaie (in alto), avanti = +z, destra = +x.
+ * Nessuna faccia di due pezzi diversi sta nello stesso piano: altrimenti la scheda grafica non sa
+ * quale disegnare davanti e il bordo "sfarfalla" a strisce (era il glitch sul bordo davanti).
+ */
 function carGeometry(color, front) {
   const l = [];
   part(l, new THREE.BoxGeometry(1.3, 0.25, 2.2), DARK, 0, 0.25, 0);                 // telaio
-  part(l, new THREE.BoxGeometry(0.08, 0.55, 2.2), color, 0.65, 0.65, 0);            // fianchi
-  part(l, new THREE.BoxGeometry(0.08, 0.55, 2.2), color, -0.65, 0.65, 0);
-  part(l, new THREE.BoxGeometry(1.38, 0.6, 0.1), color, 0, 0.68, 1.1);              // davanti
-  part(l, new THREE.BoxGeometry(1.38, 0.75, 0.1), color, 0, 0.75, -1.1);            // dietro
-  part(l, new THREE.BoxGeometry(1.4, 0.06, 2.3), 0xfaf7f0, 0, 0.95, 0);             // bordo
+  part(l, new THREE.BoxGeometry(0.08, 0.55, 2.3), color, 0.65, 0.65, 0);            // fianchi
+  part(l, new THREE.BoxGeometry(0.08, 0.55, 2.3), color, -0.65, 0.65, 0);
+  part(l, new THREE.BoxGeometry(1.22, 0.52, 0.1), color, 0, 0.65, 1.1);             // davanti: tra i fianchi, sotto il bordo
+  part(l, new THREE.BoxGeometry(1.22, 0.75, 0.1), color, 0, 0.75, -1.1);            // dietro
+  part(l, new THREE.BoxGeometry(1.42, 0.06, 2.36), 0xfaf7f0, 0, 0.95, 0);           // bordo: sporge un po' tutto intorno
   for (const sx of [-0.32, 0.32]) {
     part(l, new THREE.BoxGeometry(0.5, 0.12, 0.6), 0x2c3e66, sx, 0.44, -0.25);      // sedile
     part(l, new THREE.BoxGeometry(0.5, 0.6, 0.12), 0x2c3e66, sx, 0.75, -0.6);       // schienale
   }
-  part(l, new THREE.BoxGeometry(1.1, 0.06, 0.06), YEL, 0, 0.98, 0.2);               // barra di sicurezza
+  part(l, new THREE.BoxGeometry(1.1, 0.06, 0.06), YEL, 0, 1.0, 0.2);                // barra di sicurezza
   for (const sx of [-0.62, 0.62]) for (const sz of [-0.75, 0.75]) part(l, new THREE.BoxGeometry(0.16, 0.26, 0.36), DARK, sx, 0.0, sz); // ruote
-  if (front) part(l, new THREE.ConeGeometry(0.75, 0.7, 4), color, 0, 0.55, 1.45, Math.PI / 2); // muso
+  // muso a piramide: base quadrata nascosta dentro il pannello davanti, punta in avanti, non sporge sopra il bordo
+  if (front) part(l, new THREE.ConeGeometry(0.6, 0.6, 4, 1, false, Math.PI / 4), color, 0, 0.52, 1.42, Math.PI / 2);
   return mergeGeometries(l);
 }
 

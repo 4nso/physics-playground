@@ -12,7 +12,7 @@
 //   unloading fine corsa: si fa scendere chi è a bordo
 // e un "motore" (DRIVERS) che sa come si muove quel tipo di giostra e dove sono i posti.
 // pos = angolo della ruota (radianti) o metri percorsi dal trenino lungo il binario; vel = sua velocità.
-import { camera, scene, VIEW_DIST, isTouch } from '../core/renderer.js';
+import { setSkyView, isTouch } from '../core/renderer.js';
 import { thud } from '../core/audio.js';
 import { player, sitDown, standUp } from '../player/player.js';
 import { map } from '../world/map.js';
@@ -333,10 +333,7 @@ let viewK = 0;
 function setView(k, force) {
   if (!force && Math.abs(k - viewK) < 0.01) return;
   viewK = k;
-  scene.fog.near = 16 + 30 * k;
-  scene.fog.far = VIEW_DIST - 3 + 55 * k;
-  camera.far = VIEW_DIST + 55 * k;
-  camera.updateProjectionMatrix();
+  setSkyView(k);
 }
 
 /* ---------- Pannello (Sali / Scendi / comandi) ---------- */

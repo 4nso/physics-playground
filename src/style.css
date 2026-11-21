@@ -126,6 +126,14 @@ body.touch #wBar{position:absolute;left:12px;right:12px;bottom:3px;height:3px;ma
 .set span{display:flex;justify-content:space-between;margin-bottom:6px}
 .set input{width:100%;touch-action:pan-x}
 body:not(.touch) .touchOnly{display:none}
+.seg{display:flex;gap:4px;background:#eef1f6;border-radius:12px;padding:4px}
+.seg button{flex:1;border:0;background:none;padding:8px 0;border-radius:9px;font:inherit;font-size:14px;font-weight:700;color:#55607a;cursor:pointer}
+.seg button.on{background:#fff;color:#e8403a;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.set.check{display:flex;align-items:center;gap:10px}
+.set.check input{width:22px;height:22px;flex:none;margin:0}
+.set.check span{margin:0}
+@media (max-height:500px){#settings .set{margin:2px 0 8px;font-size:14px}#settings .seg button{padding:6px 0}#settings h1{margin:0 0 4px}}
+#fps{position:fixed;left:50%;top:calc(6px + env(safe-area-inset-top));transform:translateX(-50%);background:rgba(15,25,40,.6);color:#fff;font:700 12px/1 ui-monospace,Menlo,monospace;padding:4px 8px;border-radius:8px;pointer-events:none;z-index:7;white-space:nowrap}
 
 /* Telefono in verticale: "Ruota il telefono" */
 #rotate{display:none;position:fixed;inset:0;bottom:calc(0px - var(--extra));z-index:40;background:#1b2433;color:#fff;align-items:center;justify-content:center;text-align:center}

@@ -204,14 +204,48 @@ Verificato in headless: da soli (partenza, salita, frenata, arrivo e discesa sul
 host + client (server PeerJS locale).
 
 ## Fase 10 – Grafica
-Dettagli in `docs/DESIGN.md`, sezione "Grafica".
-- [ ] Impostazione qualità Bassa/Media/Alta con scelta automatica e adattamento agli fps
-- [ ] Cielo e luce migliori, ambient occlusion nei vertici, ombre vicine solo in Alta
-- [ ] Bloom, correzione colore, vignettatura, antialiasing
-- [ ] Dal giorno alla notte con l'avanzare dei round
-- [ ] Particelle, acqua animata, fori e bruciature sui muri
-- [ ] Animazioni migliori di nemici e arma
-- [ ] Misurati gli fps prima e dopo su iPhone (headless 844×390) per ogni qualità
+Dettagli in `docs/DESIGN.md`, sezione "Grafica". Si lavora a passi: dopo ogni passo si pubblica e
+ci si ferma per provare. Ogni passo deve restare sopra i 30 fps su iPhone in qualità Media: per ogni
+passo si riportano gli fps prima e dopo (headless 844×390 e, dal passo 1, il contatore nel gioco).
+
+Passo 1 – Misura e qualità:
+- [x] Misurati gli fps attuali (headless 844×390) e contatore fps nel gioco per misurare sul telefono vero
+- [x] Impostazione qualità Bassa/Media/Alta con scelta automatica in base al dispositivo
+- [x] Adattamento agli fps: se il gioco rallenta, la qualità scende da sola
+- [x] Corretto il glitch sul bordo davanti del vagone delle montagne russe
+- [ ] Provato su iPhone/iPad (fps letti dal contatore in qualità Media)
+
+Note: la qualità cambia per ora la risoluzione (Bassa 1×, Media 1,35×, Alta 1,75× sui touch; 1,5× e 2×
+sul computer) e la distanza di vista (46 / 58 / 70 m); i passi 2 e 3 aggiungono qui gli effetti.
+Automatica: Media su telefoni e tablet, Alta sul computer, Bassa sui dispositivi deboli. Se per 4 s
+il gioco sta sotto i 27 fps scende di un livello (e lo ricorda per la volta dopo); se per 12 s sta
+sopra i 55 risale, ma mai oltre la scelta iniziale né a un livello già risultato lento.
+Impostazioni → "Mostra gli fps" mostra in alto fps e qualità in uso.
+Il vagone: il bordo bianco e il pannello davanti avevano la faccia di sopra alla stessa altezza
+(sfarfallio a strisce) e il muso sporgeva sopra il bordo; ora nessuna faccia si sovrappone.
+
+Misure headless (iPhone simulato 844×390, densità 3×, scheda grafica software: valgono i confronti,
+non i numeri assoluti; sul telefono vero sono molto più alti):
+
+| Scena | Prima (1,75×) | Bassa | Media | Alta |
+|---|---|---|---|---|
+| Partenza (luna park) | 28 fps | 57 | 43 | 27 |
+| Piazza del luna park | 38 fps | 60 | 55 | 36 |
+| 20 nemici a schermo | 11 fps | 28 | 16 | 15 |
+
+Con 20 nemici le chiamate di disegno passano da ~70 a ~230 (ogni nemico è fatto di più pezzi):
+è il punto più pesante, da alleggerire nei passi successivi se il telefono vero non regge.
+
+Passo 2 – Luce ed effetti di schermo:
+- [ ] Cielo a gradiente con sole, luce migliore
+- [ ] Ambient occlusion dipinta nei vertici, ombre vicine solo in Alta
+- [ ] Bloom su neon, insegne ed esplosioni; correzione colore, vignettatura, antialiasing
+
+Passo 3 – Atmosfera e dettagli vivi:
+- [ ] Dal giorno alla notte con l'avanzare dei round (luna park illuminato di notte)
+- [ ] Particelle (polvere nelle backrooms, fumo e detriti nelle esplosioni), acqua animata
+- [ ] Fori dei proiettili e bruciature sui muri, che spariscono dopo un po'
+- [ ] Animazioni migliori di nemici e arma, feedback dei colpi più chiaro
 
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano

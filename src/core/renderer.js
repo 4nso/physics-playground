@@ -7,7 +7,10 @@ export const renderer = new THREE.WebGLRenderer({
   antialias: !isTouch || devicePixelRatio < 2,
   powerPreference: 'high-performance',
 });
+// La risoluzione (pixel ratio) la decide la qualità grafica: vedi setRenderQuality() e core/quality.js.
 renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.75 : 2));
+// Le statistiche (chiamate di disegno, triangoli) si azzerano a ogni frame in main.js, non a ogni render.
+renderer.info.autoReset = false;
 renderer.setSize(innerWidth, innerHeight, false);
 // Niente ombre in tempo reale: le stanze hanno la luce "dipinta" nei colori dei vertici
 // (molto più leggero sui telefoni).
@@ -16,13 +19,39 @@ document.body.prepend(renderer.domElement);
 export const canvas = renderer.domElement;
 
 export const scene = new THREE.Scene();
-// Cielo e nebbia dello stesso colore: oltre ~55 m non si disegna niente (la nebbia lo nasconde).
+// Cielo e nebbia dello stesso colore: oltre la distanza di vista non si disegna niente (la nebbia lo nasconde).
+// La distanza dipende dalla qualità grafica (Bassa 46 m, Media 58 m, Alta 70 m).
 const SKY = 0xc4dbe8;
-export const VIEW_DIST = 58;
+let viewDist = 58, fogNear = 16, skyK = 0;
 scene.background = new THREE.Color(SKY);
-scene.fog = new THREE.Fog(SKY, 16, VIEW_DIST - 3);
+scene.fog = new THREE.Fog(SKY, fogNear, viewDist - 3);
 
-export const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, VIEW_DIST);
+export const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, viewDist);
+
+/**
+ * Vista "dall'alto" (k da 0 a 1): seduti in cima alle giostre la nebbia si allontana
+ * e si vede tutta la mappa. La chiamano le giostre (game/rides.js).
+ */
+export function setSkyView(k) {
+  skyK = k;
+  scene.fog.near = fogNear + 30 * k;
+  scene.fog.far = viewDist - 3 + 55 * k;
+  camera.far = viewDist + 55 * k;
+  camera.updateProjectionMatrix();
+}
+
+/** Qualità grafica: pixelRatio = risoluzione, dist = distanza di vista (m). */
+export function setRenderQuality(pixelRatio, dist) {
+  const pr = Math.min(devicePixelRatio || 1, pixelRatio);
+  if (Math.abs(renderer.getPixelRatio() - pr) > 0.01) {
+    renderer.setPixelRatio(pr);
+    lastW = 0; // ridimensiona il canvas alla nuova risoluzione
+    fitCamera();
+  }
+  viewDist = dist;
+  fogNear = Math.round(dist * 0.28);
+  setSkyView(skyK);
+}
 camera.rotation.order = 'YXZ';
 
 // Dalla r155 Three.js usa intensità "fisiche": i valori del prototipo vanno moltiplicati circa per π.
