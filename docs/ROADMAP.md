@@ -116,6 +116,56 @@ Passo 3 – Passaggio segreto e zona sicura:
 - [x] Negozio, passaggio e zona sicura come elementi riutilizzabili in altre mappe
 - [x] Multiplayer: punti e acquisti per giocatore, decisi dall'host
 
+## Fase 8 – Il fattore "amico"
+Dettagli in `docs/DESIGN.md`, sezione "Il fattore amico". Un passo alla volta, poi prova.
+
+Passo 1 – Volti riconoscibili:
+- [ ] Teste giganti (bobblehead) con la faccia su tutto il davanti
+- [ ] Faccia sempre leggibile: 512×512, niente nebbia/ombre, contrasto e luminosità
+- [ ] Faccia che reagisce (colpo, attacco, quasi morto)
+- [ ] Nome per ogni volto nella galleria, sopra la testa da vicino e nei messaggi
+
+Passo 2 – Ritaglio intelligente:
+- [ ] Riconoscimento del viso nel browser, centratura e zoom automatici
+- [ ] Scontorno dello sfondo; ritaglio manuale come riserva
+- [ ] Provato su foto prese dal rullino dell'iPhone (anche verticali e grandi)
+
+Passo 3 – Amici protagonisti:
+- [ ] Statistiche di fine partita con manifesto "RICERCATO"
+- [ ] Boss con testone e nome dell'amico
+- [ ] Manifesti con le facce appesi nella mappa
+- [ ] Multiplayer: selfie o volto dalla galleria per il proprio personaggio
+- [ ] Multiplayer: consenso nella lobby (condividere il volto, usarlo per gli zombi)
+
+## Fase 9 – Luna park centrale
+Dettagli in `docs/DESIGN.md`, sezione "Mondo" → "Luna park centrale".
+
+Passo 1 – La zona:
+- [ ] Zona centrale più grande e strutturata: ingresso, viale, piazza, negozio in un edificio
+- [ ] Elementi giocosi di oggi mantenuti; luci, insegne, lampioni
+- [ ] Navigazione dei nemici, spawn e minimappa aggiornati
+
+Passo 2 – Ruota panoramica:
+- [ ] Ruota con cabine, sali/scendi, si spara da seduti
+- [ ] Cabina di comando (avvia, ferma, velocità), avvio ritardato da soli
+- [ ] Multiplayer: uno aziona, gli altri sono a bordo (stato deciso dall'host)
+
+Passo 3 – Montagne russe:
+- [ ] Percorso a spline dal seed che passa sopra la mappa e torna al luna park
+- [ ] Carrelli con più posti, stessa logica di comando e multiplayer della ruota
+- [ ] Prestazioni: binari e sostegni con instancing, 30+ fps su iPhone
+- [ ] (Facoltativo) terza giostra: catene, autoscontri o tagadà
+
+## Fase 10 – Grafica
+Dettagli in `docs/DESIGN.md`, sezione "Grafica".
+- [ ] Impostazione qualità Bassa/Media/Alta con scelta automatica e adattamento agli fps
+- [ ] Cielo e luce migliori, ambient occlusion nei vertici, ombre vicine solo in Alta
+- [ ] Bloom, correzione colore, vignettatura, antialiasing
+- [ ] Dal giorno alla notte con l'avanzare dei round
+- [ ] Particelle, acqua animata, fori e bruciature sui muri
+- [ ] Animazioni migliori di nemici e arma
+- [ ] Misurati gli fps prima e dopo su iPhone (headless 844×390) per ogni qualità
+
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano
 d'ingresso in salita dalla strada, piano terra a livello strada, poi secondo, terzo e quarto piano.

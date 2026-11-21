@@ -179,6 +179,46 @@ Il repository e il sito sono pubblici, quindi **le foto non stanno mai nel proge
   della stanza, tramite la connessione PeerJS. I client li tengono solo in memoria per
   quella partita, senza salvarli
 
+## Il fattore "amico" (fase 8)
+
+Il gioco si chiama Shoot Your Friends: il volto dell'amico deve essere **riconoscibile al primo
+sguardo**, anche da lontano e su un telefono, e gli amici devono essere protagonisti.
+
+### Volti riconoscibili
+- **Teste giganti** in stile "bobblehead": testa circa il doppio del normale, la faccia occupa
+  tutto il davanti (anche come forma arrotondata, non solo un cubo)
+- **Ritaglio intelligente**: il gioco trova da solo il viso nella foto, lo centra, lo ingrandisce
+  e scontorna lo sfondo (resta solo la faccia). Gira tutto nel browser, sul dispositivo
+  (ad esempio MediaPipe Face Detection / segmentazione); il modello di riconoscimento va
+  incluso nel progetto (è un file del programma, non una foto). Se il riconoscimento non trova
+  il viso, resta il ritaglio manuale di oggi
+- **Faccia sempre leggibile**: risoluzione 512×512, niente nebbia né ombre sul volto,
+  luminosità e contrasto leggermente aumentati, filtro texture nitido
+- **Faccia che reagisce**: si schiaccia quando viene colpita, si allunga quando attacca,
+  diventa rossa quando sta per morire
+
+### Gli amici protagonisti
+- **Nome per ogni volto**: quando si carica una foto si scrive un nome (es. "Marco").
+  Il nome compare sopra la testa (solo da vicino, per non affollare lo schermo) e nei messaggi:
+  "Hai eliminato Marco ×3", "Ti ha ucciso Luca"
+- **Statistiche a fine partita**: l'amico eliminato più volte, quello che ti ha ucciso di più,
+  presentati come un **manifesto "RICERCATO"** con la faccia
+- **Boss con la faccia di un amico**: il boss ogni 5 round ha un testone enorme e il suo nome
+  in grande
+- **Manifesti sui muri**: poster "RICERCATO" con le facce della galleria appesi qua e là
+  (backrooms, parcheggio, luna park), generati dal gioco
+- **In multiplayer ognuno con la propria faccia**: nella lobby ogni giocatore può farsi un selfie
+  (`<input type="file" accept="image/*" capture="user">`) o sceglierne una dalla galleria, e il
+  suo personaggio la mostra. Gli zombi possono usare anche le facce di chi è nella stanza
+
+### Consenso e privacy
+- Valgono tutte le regole di "Volti dei nemici": niente foto nel repository o su server,
+  galleria solo in IndexedDB, in multiplayer le foto viaggiano solo tra i giocatori della stanza
+- Nella lobby ogni giocatore sceglie se **condividere** il proprio volto con la stanza
+  e se permettere che diventi la faccia degli zombi. Senza consenso il suo volto resta
+  solo sul suo dispositivo
+- I nomi viaggiano insieme ai volti e seguono le stesse regole
+
 ## Multiplayer (cooperativo)
 
 - Peer-to-peer con PeerJS: chi crea la stanza fa da **host** ed è lui a decidere
@@ -215,6 +255,47 @@ una accanto all'altra (così ci si orienta): da ovest a est
   vertici, niente ombre in tempo reale, nebbia oltre ~55 m. Obiettivo 30+ fps su iPhone
 - **Niente sfarfallii**: due superfici non stanno mai sullo stesso piano; i muri esterni sono alti
   11 m, così non si sale sui tetti
+
+### Luna park centrale (fase 9)
+La zona centrale (parco giochi, dove ci sono la partenza e il negozio) diventa più grande e
+più strutturata: un **luna park**. Restano gli elementi giocosi di oggi, ma si aggiungono:
+- **Struttura**: un ingresso con arco e insegne, un viale principale, una piazza centrale con
+  il negozio in un vero edificio/chiosco, aree attorno alle giostre, lampioni e luci colorate.
+  La zona si allarga (anche ridisegnando le misure delle altre zone, se serve)
+- **Giostre funzionanti**, su cui si sale davvero:
+  - **Ruota panoramica**: cabine che girano; dall'alto si vede tutta la mappa e si può sparare
+  - **Montagne russe**: un percorso che passa **sopra la mappa** (sopra parcheggio e
+    backrooms, con salite, discese e curve) e torna al luna park
+  - Se c'è spazio, una terza giostra a scelta (giostra a catene, autoscontri o tagadà)
+- **Come funzionano**:
+  - Ogni giostra ha una **cabina di comando** con leva/pulsante: avvia, ferma, velocità
+  - Ci si **siede** avvicinandosi a un posto libero (pulsante "Sali"), e si scende con "Scendi"
+    o quando la corsa finisce; da seduti si guarda in giro e si spara
+  - **In multiplayer** un giocatore aziona la giostra e gli altri ci stanno sopra
+  - **Da soli** la cabina di comando ha un avvio ritardato (pochi secondi per correre a sedersi)
+    oppure la giostra fa giri automatici
+  - I nemici non salgono sulle giostre, ma aspettano all'uscita
+- **Tecnica**: le giostre sono oggetti che si muovono da programma (cinematici); chi è seduto
+  segue il posto. In multiplayer l'host decide lo stato della giostra (posizione, velocità,
+  chi è seduto) e lo invia agli altri. Il percorso delle montagne russe è una curva liscia
+  (spline) generata con il seed; binari e sostegni ripetuti con instancing
+
+## Grafica (fase 10)
+
+Restiamo **low-poly**, ma più curato e d'atmosfera, senza perdere i 30 fps su iPhone.
+- **Qualità grafica** Bassa / Media / Alta nelle impostazioni, con scelta automatica in base
+  al dispositivo e agli fps (se il gioco rallenta, scende da solo)
+- **Luce migliore**: cielo a gradiente con sole, ombreggiature morbide negli angoli (ambient
+  occlusion dipinta nei vertici), ombre in tempo reale solo vicino al giocatore e solo in qualità Alta
+- **Effetti di schermo**: bagliore (bloom) su neon, insegne, esplosioni e luci del luna park;
+  correzione colore e leggera vignettatura; antialiasing
+- **Atmosfera che cambia con i round**: si parte di giorno e si arriva al round 25 di notte,
+  con il luna park tutto illuminato
+- **Dettagli vivi**: acqua animata in piscina, polvere nell'aria delle backrooms, fumo e
+  detriti nelle esplosioni, fori dei proiettili e bruciature sui muri (che spariscono dopo un po')
+- **Animazioni**: camminata dei nemici più naturale, oscillazione dell'arma in mano,
+  feedback dei colpi più chiaro
+- Palette di colori coerente per zona; tutto continua a essere generato via codice
 
 ## Piattaforme
 
