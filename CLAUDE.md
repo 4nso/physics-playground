@@ -36,7 +36,7 @@
   al repository, nemmeno come esempio o per i test (per i test usa immagini generate
   via codice, ad esempio con un canvas).
 - I volti li carica il giocatore dal suo dispositivo (`<input type="file" accept="image/*" multiple>`),
-  vengono ridimensionati a 256×256 in un canvas e salvati solo in IndexedDB.
+  vengono ridimensionati a 512×512 in un canvas e salvati solo in IndexedDB.
 - Nessun upload verso server o servizi esterni. In multiplayer i volti passano solo
   dall'host ai client tramite PeerJS e i client li tengono in memoria.
 - I dettagli sono in `docs/DESIGN.md`, nella sezione "Volti dei nemici".

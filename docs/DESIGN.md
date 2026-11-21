@@ -167,7 +167,7 @@ Il repository e il sito sono pubblici, quindi **le foto non stanno mai nel proge
 
 - Nel menu c'è una **galleria volti**: "Aggiungi volti" apre il selettore di foto del
   dispositivo (rullino dell'iPad/telefono), con selezione multipla
-- Ogni foto viene ridimensionata nel browser a 256×256, con un ritaglio quadrato
+- Ogni foto viene ridimensionata nel browser a 512×512, con un ritaglio quadrato
   centrato e regolabile (trascina e zoom per centrare il viso)
 - Le foto restano **solo nel browser** del giocatore (IndexedDB) e si possono
   eliminare una a una o tutte insieme
@@ -196,6 +196,15 @@ sguardo**, anche da lontano e su un telefono, e gli amici devono essere protagon
   luminosità e contrasto leggermente aumentati, filtro texture nitido
 - **Faccia che reagisce**: si schiaccia quando viene colpita, si allunga quando attacca,
   diventa rossa quando sta per morire
+
+#### Valori attuali (passo 1, in `src/enemies/model.js` e `src/faces/gallery.js`)
+- Testa: ovale 0,88 × 0,96 × 0,80 m (prima 0,46 × 0,50 × 0,44), sul collo a 1,54 m; altezza totale 2,5 m.
+  Nei nemici grossi la testa cresce meno del corpo (scala^0,25): grosso ≈ 3,3 m, boss ≈ 3,6 m
+- Faccia: foto 512×512 in un ovale che copre tutta la metà davanti, bordo sfumato nel colore dei lati;
+  materiale senza luce, nebbia e ombre; luminosità +12 e contrasto ×1,15; filtro anisotropico al massimo
+- Reazioni: colpita si schiaccia (−32% in altezza) con un rimbalzo; attaccando si allunga (+28%);
+  sotto il 30% di vita pulsa di rosso; camminando la testa dondola sul collo
+- Nome: massimo 14 lettere, cartellino giallo sopra la testa visibile entro 11 m
 
 ### Gli amici protagonisti
 - **Nome per ogni volto**: quando si carica una foto si scrive un nome (es. "Marco").

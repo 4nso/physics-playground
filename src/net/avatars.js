@@ -1,7 +1,7 @@
 // Gli altri giocatori, visti in partita: omini a blocchi colorati con casco e nome.
 import * as THREE from 'three';
 import { scene } from '../core/renderer.js';
-import { buildEnemyModel, animateModel } from '../enemies/model.js';
+import { buildEnemyModel, animateModel, disposeModel, topOf } from '../enemies/model.js';
 
 export const SLOT_COLORS = ['#ff7a45', '#2ec4b6', '#a26bff', '#ffd23f'];
 const mat = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.8, flatShading: true });
@@ -55,7 +55,7 @@ export function setAvatar(id, s) {
     const look = looks[s.slot % looks.length];
     const model = buildEnemyModel(look.variant, look.face);
     const tag = nameTag(slotName(s.slot), SLOT_COLORS[s.slot % 4]);
-    tag.sprite.position.y = 2.35;
+    tag.sprite.position.y = topOf(look.variant) + 0.3;
     model.group.add(tag.sprite);
     model.group.position.set(s.x, s.y - 0.8, s.z);
     scene.add(model.group);
@@ -73,6 +73,7 @@ export function removeAvatar(id) {
   const a = avatars.get(id);
   if (!a) return;
   scene.remove(a.model.group);
+  disposeModel(a.model);
   avatars.delete(id);
 }
 export function clearAvatars() { for (const id of [...avatars.keys()]) removeAvatar(id); }
@@ -91,7 +92,7 @@ export function updateAvatars(dt) {
     g.rotation.set(a.down ? -Math.PI / 2 : 0, a.yaw + Math.PI, 0, 'YXZ');
     const walk = Math.min(1, a.speed / 5.5);
     a.phase += dt * (3 + a.speed * 1.4) * walk;
-    animateModel(a.model, a.phase, a.down ? 0 : walk, 0);
+    animateModel(a.model, a.phase, a.down ? 0 : walk, 0, dt);
     // braccia che puntano dove guarda (come se mirasse)
     a.model.pivots.shL.rotation.x = a.model.pivots.shR.rotation.x = -Math.PI / 2 - a.pitch;
   }

@@ -1,7 +1,7 @@
 // Client: copie dei nemici, mosse dalle posizioni che manda l'host (che li simula davvero).
 import { scene, camera } from '../core/renderer.js';
 import { pickables } from '../world/arena.js';
-import { buildEnemyModel, animateModel, flashModel, MODEL_HEIGHT, VARIANTS } from '../enemies/model.js';
+import { buildEnemyModel, animateModel, flashModel, disposeModel, topOf, VARIANTS } from '../enemies/model.js';
 import { crumbleModel, updateDebris, clearDebris } from '../enemies/debris.js';
 import { makeBar } from '../enemies/enemies.js';
 
@@ -28,7 +28,7 @@ function remove(p, keepModel) {
     if (k >= 0) pickables.splice(k, 1);
   }
   scene.remove(p.bar.g);
-  if (!keepModel) scene.remove(p.model.group);
+  if (!keepModel) { scene.remove(p.model.group); disposeModel(p.model); }
 }
 
 /** list = [[id, variante, volto, x, y, z, yaw, vita%, attacco%, camminata%], ...] (posizioni ×100) */
@@ -71,11 +71,11 @@ export function updateProxies(dt) {
     g.position.set(p.x, p.y, p.z);
     g.rotation.y = p.yaw;
     g.scale.setScalar(p.spawnT < 1 ? 0.2 + 0.8 * p.spawnT : 1);
-    animateModel(p.model, p.phase, p.walk, p.attack);
+    animateModel(p.model, p.phase, p.walk, p.attack, dt, p.hp);
     if (p.flash > 0) { p.flash -= dt; if (p.flash <= 0) flashModel(p.model, false); }
     p.bar.g.visible = p.hp < 0.999;
     if (p.bar.g.visible) {
-      p.bar.g.position.set(p.x, p.y + MODEL_HEIGHT * p.v.scale + 0.25, p.z);
+      p.bar.g.position.set(p.x, p.y + topOf(p.v) + 0.2, p.z);
       p.bar.g.quaternion.copy(camera.quaternion);
       p.bar.fg.scale.x = Math.max(0.001, p.hp);
     }

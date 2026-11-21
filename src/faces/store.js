@@ -23,15 +23,21 @@ function run(mode, fn) {
   }));
 }
 
-/** Salva un volto (Blob JPEG 256×256). Restituisce l'id. */
-export const addFace = (blob) => run('readwrite', (s) => s.add({ blob, added: Date.now() }));
-/** Tutti i volti: [{ id, blob, types? }] */
+/** Salva un volto (Blob JPEG 512×512) con il nome dell'amico. Restituisce l'id. */
+export const addFace = (blob, name = '') => run('readwrite', (s) => s.add({ blob, name, added: Date.now() }));
+/** Tutti i volti: [{ id, blob, name?, types? }] */
 export const listFaces = () => run('readonly', (s) => s.getAll()).catch(() => []);
 export const deleteFace = (id) => run('readwrite', (s) => s.delete(id));
 /** Tipi di nemico a cui va questo volto (es. ['boss']). Vuoto = tutti i nemici. */
 export const setFaceTypes = (id, types) => run('readwrite', (s) => {
   const req = s.get(id);
   req.onsuccess = () => { if (req.result) s.put({ ...req.result, types }); };
+  return req;
+});
+/** Nome dell'amico per questo volto (es. "Marco"). */
+export const setFaceName = (id, name) => run('readwrite', (s) => {
+  const req = s.get(id);
+  req.onsuccess = () => { if (req.result) s.put({ ...req.result, name }); };
   return req;
 });
 export const clearFaces = () => run('readwrite', (s) => s.clear());

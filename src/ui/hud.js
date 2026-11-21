@@ -81,6 +81,22 @@ export const hud = {
     m.classList.add('show');
     msgTimer = seconds;
   },
+  /**
+   * Riga piccola in alto, per i messaggi sugli amici (es. "Hai eliminato Marco ×3").
+   * Il nome è scritto dall'utente: va sempre come testo, mai come HTML.
+   */
+  feed(before, name, after = '', seconds = 2.2) {
+    let box = $('feed');
+    if (!box) { box = document.createElement('div'); box.id = 'feed'; document.body.appendChild(box); }
+    const line = document.createElement('div');
+    const b = document.createElement('b');
+    b.textContent = name;
+    line.append(before, b, after);
+    box.prepend(line);
+    while (box.children.length > 3) box.lastChild.remove();
+    setTimeout(() => { line.style.opacity = '0'; }, seconds * 1000);
+    setTimeout(() => line.remove(), seconds * 1000 + 450);
+  },
   setRound(n) { setText('pRound', `Round ${n}/${MAX_ROUNDS}`); },
   setEnemies(n) { setText('pEnemies', `👾 ${n}`); },
   /** Punti da spendere (la moneta del negozio). */

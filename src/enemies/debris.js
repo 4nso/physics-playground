@@ -68,6 +68,7 @@ function removeDebris(d) {
   if (i >= 0) debris.splice(i, 1);
   world.removeRigidBody(d.body);
   scene.remove(d.mesh);
+  if (d.mesh.userData.ownMat) d.mesh.userData.ownMat.dispose(); // faccia del nemico (materiale suo)
 }
 
 export function clearDebris() {

@@ -119,11 +119,19 @@ Passo 3 – Passaggio segreto e zona sicura:
 ## Fase 8 – Il fattore "amico"
 Dettagli in `docs/DESIGN.md`, sezione "Il fattore amico". Un passo alla volta, poi prova.
 
-Passo 1 – Volti riconoscibili:
-- [ ] Teste giganti (bobblehead) con la faccia su tutto il davanti
-- [ ] Faccia sempre leggibile: 512×512, niente nebbia/ombre, contrasto e luminosità
-- [ ] Faccia che reagisce (colpo, attacco, quasi morto)
-- [ ] Nome per ogni volto nella galleria, sopra la testa da vicino e nei messaggi
+Passo 1 – Volti riconoscibili (in prova su iPad):
+- [x] Teste giganti (bobblehead) con la faccia su tutto il davanti
+- [x] Faccia sempre leggibile: 512×512, niente nebbia/ombre, contrasto e luminosità
+- [x] Faccia che reagisce (colpo, attacco, quasi morto)
+- [x] Nome per ogni volto nella galleria, sopra la testa da vicino e nei messaggi
+- [ ] Provato su iPad
+
+Note: la testa è un ovale grande il doppio, che dondola sul collo; nei nemici grossi cresce meno
+del corpo per non sbattere sui soffitti del parcheggio. Il nome si scrive nella schermata di ritaglio
+o sotto la foto in galleria (max 14 lettere) e si vede sopra la testa entro 11 m. I messaggi
+"Hai eliminato Marco ×3" e "Ti ha ucciso Luca" compaiono in alto; il secondo anche nel game over.
+In multiplayer i nomi viaggiano con i volti, dall'host ai client. Verificato in headless
+(1180×820 e 844×390, anche host + client con server PeerJS locale): nessun errore in console.
 
 Passo 2 – Ritaglio intelligente:
 - [ ] Riconoscimento del viso nel browser, centratura e zoom automatici

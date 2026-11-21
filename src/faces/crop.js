@@ -1,10 +1,14 @@
-// Editor di ritaglio: l'utente centra il viso in un quadrato (trascina + zoom), esce un JPEG 256×256.
+// Editor di ritaglio: l'utente centra il viso in un quadrato (trascina + zoom) e scrive il nome;
+// esce un JPEG 512×512.
 const $ = (id) => document.getElementById(id);
-const VIEW = 512, OUT = 256;
+const VIEW = 512, OUT = 512;
+export const NAME_MAX = 14;
+/** Pulisce un nome scritto dall'utente: niente spazi in più, lunghezza massima. */
+export const cleanName = (t) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
 
 /**
  * Mostra l'editor per un file immagine.
- * Restituisce una Promise con il Blob ritagliato, oppure null se l'utente salta la foto.
+ * Restituisce una Promise con { blob, name }, oppure null se l'utente salta la foto.
  */
 export function cropImage(file, label) {
   return new Promise((resolve) => {
@@ -22,6 +26,7 @@ function edit(img, label, done) {
   const base = VIEW / Math.min(w, h); // scala minima: l'immagine copre tutto il quadrato
   let zoom = 1, cx = VIEW / 2, cy = VIEW / 2;
   $('cCount').textContent = label || '';
+  $('cName').value = '';
   zoomEl.value = 1;
   screen.classList.remove('hidden');
 
@@ -90,7 +95,8 @@ function edit(img, label, done) {
     const out = document.createElement('canvas');
     out.width = out.height = OUT;
     draw(out.getContext('2d'), OUT / VIEW);
-    out.toBlob((b) => done(b), 'image/jpeg', 0.88);
+    const name = cleanName($('cName').value);
+    out.toBlob((b) => done(b ? { blob: b, name } : null), 'image/jpeg', 0.9);
   };
   $('cSave').onclick = () => finish(true);
   $('cSkip').onclick = () => finish(false);

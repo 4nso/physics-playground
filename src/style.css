@@ -215,5 +215,10 @@ body:not(.touch) #shop{bottom:calc(52px + env(safe-area-inset-bottom))}
 .fTypes{display:flex;justify-content:space-between;gap:2px}
 .fTypes button{flex:1;min-width:0;height:30px;border:none;border-radius:8px;background:#e8ecf2;font-size:15px;padding:0;cursor:pointer;opacity:.55;touch-action:manipulation}
 .fTypes button.on{background:#ff7a45;opacity:1;box-shadow:0 0 0 2px #ff7a45 inset}
+.nameIn{display:block;width:100%;box-sizing:border-box;margin:0 0 10px;padding:9px 12px;border:2px solid #d5dbe5;border-radius:10px;font:inherit;font-size:16px;text-align:center}
+.faceCard .nameIn{margin:0;padding:5px 6px;font-size:16px;border-width:1px}
+#feed{position:fixed;left:50%;top:calc(48px + env(safe-area-inset-top));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;z-index:6}
+#feed div{background:rgba(15,25,40,.62);color:#fff;font-weight:700;font-size:15px;padding:4px 12px;border-radius:14px;white-space:nowrap;transition:opacity .4s}
+#feed div b{color:#ffd23f}
 .fLabel{font-size:11px;text-align:center;color:#556;line-height:1.2;min-height:14px}
 .typesHelp{font-size:12px}

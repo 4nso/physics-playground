@@ -4,19 +4,21 @@ import { scene, camera } from '../core/renderer.js';
 import { world, RAPIER, GROUPS, onBeforeStep, contactHandlers, prevSpeed } from '../core/physics.js';
 import { pickables } from '../world/arena.js';
 import { updateFields, nodeAt, steer, findSpawn } from '../world/nav.js';
-import { VARIANTS, MODEL_HEIGHT, buildEnemyModel, animateModel, flashModel } from './model.js';
+import { VARIANTS, topOf, buildEnemyModel, animateModel, flashModel, disposeModel } from './model.js';
 import { crumbleModel, updateDebris, clearDebris } from './debris.js';
 import { speedFor } from '../game/difficulty.js';
 import { pickFaceIndex } from '../faces/gallery.js';
 import { WALK_SPEED } from '../player/player.js';
 
 export const enemies = [];
-/** Avvisi verso il gioco: onKill(enemy, headshot, dir, force), onPlayerHit(damage, x, z, targetId) */
+/** Avvisi verso il gioco: onKill(enemy, headshot, dir, force), onPlayerHit(damage, x, z, targetId, enemy) */
 export const enemyHooks = { onKill: null, onPlayerHit: null };
 
 let faceSets = [];
 let nextId = 0;
 export function setFaceSets(sets) { faceSets = sets; }
+/** Nome dell'amico che ha la faccia su questo nemico ('' se è una faccia disegnata dal gioco). */
+export function enemyName(e) { const s = faceSets[e.faceIdx]; return (s && s.name) || ''; }
 
 /* ---------- Barra della vita (in scena, sempre rivolta alla telecamera) ---------- */
 const barBgGeo = new THREE.PlaneGeometry(0.72, 0.09);
@@ -143,7 +145,7 @@ function removeEnemy(e, removeModel = true) {
     p.material = p.userData.baseMat || p.material;
   }
   scene.remove(e.bar.g);
-  if (removeModel) scene.remove(e.model.group);
+  if (removeModel) { scene.remove(e.model.group); disposeModel(e.model); }
 }
 
 export function clearEnemies() {
@@ -244,7 +246,7 @@ export function updateEnemies(dt, alpha, active, targets) {
         if (!e.hitDone && e.attackT > 0.5) {
           e.hitDone = true;
           if (dist < reach + 0.35 && Math.abs(pp.y - t.y) < 1.6 && pp.alive && enemyHooks.onPlayerHit) {
-            enemyHooks.onPlayerHit(e.damage, t.x, t.z, pp.id);
+            enemyHooks.onPlayerHit(e.damage, t.x, t.z, pp.id, e);
           }
         }
         if (e.attackT >= 1) e.attackT = 0;
@@ -274,13 +276,13 @@ export function updateEnemies(dt, alpha, active, targets) {
     g.rotation.y = e.yaw;
     g.scale.setScalar(e.spawnT < 1 ? 0.2 + 0.8 * e.spawnT : 1);
     e.walk = walk;
-    animateModel(e.model, e.phase, walk, e.attackT);
+    animateModel(e.model, e.phase, walk, e.attackT, dt, e.health / e.maxHealth);
 
     // barra della vita (solo se ferito)
     const b = e.bar;
     b.g.visible = e.health < e.maxHealth;
     if (b.g.visible) {
-      b.g.position.set(g.position.x, g.position.y + MODEL_HEIGHT * e.v.scale + 0.25, g.position.z);
+      b.g.position.set(g.position.x, g.position.y + topOf(e.v) + 0.2, g.position.z);
       b.g.quaternion.copy(camera.quaternion);
       b.fg.scale.x = Math.max(0.001, e.health / e.maxHealth);
     }

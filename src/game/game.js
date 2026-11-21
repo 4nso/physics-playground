@@ -5,7 +5,7 @@ import { input, requestLock, exitLock } from '../core/input.js';
 import { thud } from '../core/audio.js';
 import { player, resetPlayer, pushPlayer, MAX_HEALTH } from '../player/player.js';
 import { setTrigger, resetWeapons, addAmmo, weaponHooks, unzoom } from '../weapons/weapons.js';
-import { enemies, spawnEnemy, clearEnemies, enemyHooks, setFaceSets } from '../enemies/enemies.js';
+import { enemies, spawnEnemy, clearEnemies, enemyHooks, setFaceSets, enemyName } from '../enemies/enemies.js';
 import { spawnPickup, clearPickups, pickupHooks } from './pickups.js';
 import { buildLevel } from './level.js';
 import { MAX_ROUNDS, roundConfig, pickVariant } from './difficulty.js';
@@ -36,7 +36,25 @@ export const game = {
   spawned: 0,
   spawnT: 0,
   cfg: null,
+  friendKills: new Map(), // nome dell'amico → quante volte l'ho eliminato (solo questo dispositivo)
+  killedBy: '',           // nome dell'amico che mi ha messo a terra l'ultima volta
 };
+
+/* ---------- Messaggi con i nomi degli amici ---------- */
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+/** Questo giocatore ha eliminato un nemico con la faccia di un amico. */
+export function noteFriendKill(name) {
+  if (!name) return;
+  const n = (game.friendKills.get(name) || 0) + 1;
+  game.friendKills.set(name, n);
+  hud.feed('Hai eliminato ', name, n > 1 ? ` ×${n}` : '');
+}
+/** Questo giocatore è stato messo a terra da un amico. */
+export function noteKilledBy(name) {
+  if (!name) return;
+  game.killedBy = name;
+  hud.feed('Ti ha ucciso ', name, '', 3);
+}
 
 /** Rete (impostato da net/sync.js): send(id, msg) a un giocatore, all(msg) a tutti i client. */
 export const gameNet = { sendTo: null, toAll: null };
@@ -146,8 +164,13 @@ enemyHooks.onKill = (e, head) => {
   const id = !e.lastBy || e.lastBy === 'local' ? net.myId : e.lastBy;
   const m = team.get(id);
   if (m) m.money = (m.money || 0) + pts;
+  const name = enemyName(e);
+  if (name) {
+    if (!m || m.local) noteFriendKill(name);
+    else if (gameNet.sendTo) gameNet.sendTo(m.id, { t: 'fkill', n: name });
+  }
 };
-enemyHooks.onPlayerHit = (damage, ex, ez, targetId) => {
+enemyHooks.onPlayerHit = (damage, ex, ez, targetId, enemy) => {
   const m = team.get(targetId);
   if (!m || m.down || game.phase === 'dead') return;
   m.health -= damage;
@@ -158,9 +181,10 @@ enemyHooks.onPlayerHit = (damage, ex, ez, targetId) => {
     player.shake = Math.max(player.shake, 0.06);
     pushPlayer((dx / d) * 4, 1.5, (dz / d) * 4);
     thud(0.35, 80);
-  } else if (gameNet.sendTo) {
-    gameNet.sendTo(m.id, { t: 'hurt', d: damage, x: (dx / d) * 4, z: (dz / d) * 4 });
   }
+  const name = m.health <= 0 && enemy ? enemyName(enemy) : '';
+  if (m.local) { if (name) noteKilledBy(name); }
+  else if (gameNet.sendTo) gameNet.sendTo(m.id, { t: 'hurt', d: damage, x: (dx / d) * 4, z: (dz / d) * 4, n: name || undefined });
   if (m.health <= 0) downMember(m);
 };
 weaponHooks.onEnemyHit = (killed, head, shooterId) => {
@@ -277,6 +301,7 @@ export function gameOver(info) {
   } else {
     $('overInfo').textContent = `${many ? 'La squadra è arrivata' : 'Sei arrivato'} al round ${r.round} con ${r.score} punti (${r.kills} nemici eliminati).`;
   }
+  if (game.killedBy && !win) $('overInfo').innerHTML = `${esc($('overInfo').textContent)}<br>💀 Ti ha ucciso <b>${esc(game.killedBy)}</b>`;
   $('overRecord').textContent = isRecord ? '🏆 Nuovo record!' : rec.score ? `Record: ${rec.score} punti · round ${rec.round}` : '';
   $('again').style.display = net.mode === 'client' ? 'none' : '';
   $('overWait').style.display = net.mode === 'client' ? '' : 'none';
@@ -303,7 +328,8 @@ export function startGame(faceSets, members, seed) {
   resetWeapons();
   resetShop();
   setupSafeZones();
-  Object.assign(game, { state: 'playing', phase: 'break', overlay: false, round: 0, score: 0, kills: 0, timer: 3 });
+  Object.assign(game, { state: 'playing', phase: 'break', overlay: false, round: 0, score: 0, kills: 0, timer: 3, killedBy: '' });
+  game.friendKills.clear();
   hud.setRound(1);
   hud.setScore(0);
   hud.setEnemies(0);

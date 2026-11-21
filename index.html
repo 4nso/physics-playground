@@ -107,7 +107,7 @@
 <div id="gallery" class="screen hidden"><div class="card wide">
   <h1>Galleria volti</h1>
   <p class="note">🔒 Le foto restano solo su questo dispositivo: non vengono mai caricate su internet.
-    Ogni nemico avrà uno di questi volti.</p>
+    Ogni nemico avrà uno di questi volti. Scrivi il nome sotto la foto: comparirà sopra la testa e nei messaggi.</p>
   <p class="note typesHelp">Tocca i simboli sotto un volto per darlo solo a certi nemici:
     🔵 base · 🔴 veloce · 🟢 grosso · 🛡️ corazzato · 👑 boss. Nessun simbolo acceso = tutti.</p>
   <div id="gGrid"></div>
@@ -124,6 +124,7 @@
   <p class="note">Trascina per spostare, pizzica o usa la barra per lo zoom. <span id="cCount"></span></p>
   <div id="cView"><canvas id="cCanvas" width="512" height="512"></canvas><div id="cGuide"></div></div>
   <input id="cZoom" type="range" min="1" max="4" step="0.01" value="1" aria-label="Zoom">
+  <input id="cName" class="nameIn" maxlength="14" autocomplete="off" spellcheck="false" placeholder="Nome (es. Marco)" aria-label="Nome">
   <div class="row"><button id="cSkip" class="btn">Salta</button><button id="cSave" class="btn primary">Salva</button></div>
 </div></div>
 

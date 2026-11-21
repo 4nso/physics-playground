@@ -12,7 +12,7 @@ import { shopNet, serverBuy, applyBuy, buyFailed } from '../game/shop.js';
 import { startBoxSpin } from '../game/safezone.js';
 import { loadFaceMaterials, faceBuffers, facesFromBuffers } from '../faces/gallery.js';
 import { pickupSnapshot, applyPickupSnapshot } from '../game/pickups.js';
-import { game, team, gameNet, startGame, gameOver, toMenu, applyPick, syncLocalMember, removeMember, announce } from '../game/game.js';
+import { game, team, gameNet, startGame, gameOver, toMenu, applyPick, syncLocalMember, removeMember, announce, noteFriendKill, noteKilledBy } from '../game/game.js';
 import { net, on, createRoom, joinRoom, broadcast, sendTo, sendHost, leaveRoom, setAccepting } from './net.js';
 import { setAvatar, removeAvatar, clearAvatars, updateAvatars, slotName, SLOT_COLORS } from './avatars.js';
 import { VARIANT_KEYS, applyEnemySnapshot, killProxy, updateProxies, clearProxies, setProxyFaces } from './proxies.js';
@@ -196,7 +196,7 @@ export async function startMatch() {
     setAccepting(false);
     const bufs = await faceBuffers();
     // I volti vanno direttamente ai giocatori della stanza; loro li tengono solo in memoria.
-    bufs.forEach((b, i) => broadcast({ t: 'face', i, b }));
+    bufs.forEach((f, i) => broadcast({ t: 'face', i, b: f.b, n: f.n }));
     // la mappa non si manda: basta il seed, ogni client la costruisce uguale
     broadcast({ t: 'start', members: lobby, n: bufs.length, seed });
     cleanupNet();
@@ -206,7 +206,7 @@ export async function startMatch() {
 }
 
 on('lobby', (msg) => { lobby = msg.list; if (game.state === 'menu') renderLobby(); });
-on('face', (msg) => { faceBuf[msg.i] = msg.b; });
+on('face', (msg) => { faceBuf[msg.i] = { b: msg.b, n: typeof msg.n === 'string' ? msg.n : '' }; });
 on('start', async (msg) => {
   const sets = await facesFromBuffers(faceBuf.slice(0, msg.n));
   faceBuf.length = 0;
@@ -307,7 +307,9 @@ on('kill', (msg) => killProxy(msg.id, msg.dx, msg.dz, msg.f));
 on('hit', (msg) => hud.hitMarker(!!msg.k));
 on('pick', (msg) => applyPick(msg.k));
 on('msg', (msg) => hud.flash(msg.text, msg.s));
+on('fkill', (msg) => { if (typeof msg.n === 'string') noteFriendKill(msg.n.slice(0, 14)); });
 on('hurt', (msg) => {
+  if (typeof msg.n === 'string') noteKilledBy(msg.n.slice(0, 14));
   hud.hurt(msg.d / 20);
   player.shake = Math.max(player.shake, 0.06);
   pushPlayer(msg.x, 1.5, msg.z);
