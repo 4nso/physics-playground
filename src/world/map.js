@@ -1,4 +1,4 @@
-// Generatore del mondo: tre zone tematiche (parcheggio multipiano, parco giochi, backrooms)
+// Generatore del mondo: tre zone tematiche (parcheggio multipiano, luna park, backrooms)
 // i cui dettagli dipendono da un seed. Stesso seed = stessa mappa: l'host in multiplayer manda solo il numero.
 import * as THREE from 'three';
 import { scene } from '../core/renderer.js';
@@ -7,6 +7,7 @@ import { makeRng } from './rng.js';
 import { Builder } from './builder.js';
 import { buildZones, ZONES, Z0, Z1 } from './zones.js';
 import { buildNav } from './nav.js';
+import { buildSigns, clearSigns } from './signs.js';
 
 /** Stato della mappa attuale. */
 export const map = {
@@ -40,13 +41,14 @@ function clearWorld() {
   if (wreckAnchor) world.removeRigidBody(wreckAnchor);
   staticBody = wreckAnchor = null;
   staticSurface.clear();
+  clearSigns();
 }
 
 /** Costruisce (o ricostruisce) il mondo per questo seed. */
 export function buildWorld(seed) {
   clearWorld();
   const b = new Builder();
-  const ctx = { props: [], wreck: null, spawn: null, shops: [], safeZones: [], boxes: [], upgraders: [], safeSigns: [] };
+  const ctx = { props: [], wreck: null, spawn: null, shops: [], safeZones: [], boxes: [], upgraders: [], safeSigns: [], signs: [] };
   buildZones(b, makeRng(seed), ctx);
   Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn, shops: ctx.shops, safeZones: ctx.safeZones, boxes: ctx.boxes, upgraders: ctx.upgraders, safeSigns: ctx.safeSigns, secretZ: ctx.secretZ });
 
@@ -62,6 +64,8 @@ export function buildWorld(seed) {
     scene.add(m);
     built.push(m);
   }
+
+  buildSigns(ctx.signs); // scritte delle insegne (luna park)
 
   // fisica: un solo corpo fisso con tutti i collider
   staticBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());

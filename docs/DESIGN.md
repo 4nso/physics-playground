@@ -266,16 +266,17 @@ una accanto all'altra (così ci si orienta): da ovest a est
 1. **Parcheggio multipiano** (30×72 m): 3 livelli (terra, piano 1, tetto) collegati da rampe,
    pilastri con una fascia colorata per piano (giallo, blu, rosso), auto parcheggiate, neon sotto
    le solette. Dal piano 1 e dal tetto si guarda giù sul parco
-2. **Parco giochi** (30×72 m, al centro): prato con vialetti e tante piazzole di giochi: torrette con
-   scivolo, altalene, sabbiera, piscina di palline, fortino di casse, arrampicata, trampolini,
-   giostra e dondolo, palle giganti, piramide di casse, alberi e panchine. La partenza è nella
-   piazza al centro, con la palla demolitrice
-3. **Backrooms** (30×72 m): un unico labirinto di corridoi gialli con moquette e neon (qualcuno spento),
+2. **Luna park** (48×72 m, al centro; dalla fase 9 al posto del parco giochi): arco d'ingresso,
+   viale con bancarelle, piazza rotonda con la partenza, la palla demolitrice e il negozio in un
+   edificio; aree per le giostre; ai lati le piazzole dei giochi di sempre (torrette con scivolo,
+   altalene, sabbiera, piscina di palline, fortino di casse, arrampicata, trampolini, giostra e
+   dondolo, palle giganti, piramide di casse, alberi e panchine). Dettagli più sotto
+3. **Backrooms** (30×72 m, a est del luna park): un unico labirinto di corridoi gialli con moquette e neon (qualcuno spento),
    qualche salone più grande, sedie e casse abbandonate
 
 - **Seed**: un numero decide i dettagli (labirinto, auto, quali giochi e dove, porte).
   Stesso seed = stessa mappa. In multiplayer l'host manda solo il numero
-- **Passaggi**: 3 varchi tra parcheggio e parco, 3 porte tra parco e backrooms
+- **Passaggi**: 3 varchi tra parcheggio e luna park, 3 porte tra luna park e backrooms
 - **Più livelli**: rampe del parcheggio, torrette, arrampicata, trampolini
 - **Nemici che navigano**: griglia di navigazione (celle da 1 m, anche su più piani) calcolata dalla
   geometria; i nemici seguono il percorso più breve (salgono le rampe, attraversano il labirinto)
@@ -310,6 +311,20 @@ più strutturata: un **luna park**. Restano gli elementi giocosi di oggi, ma si 
   segue il posto. In multiplayer l'host decide lo stato della giostra (posizione, velocità,
   chi è seduto) e lo invia agli altri. Il percorso delle montagne russe è una curva liscia
   (spline) generata con il seed; binari e sostegni ripetuti con instancing
+
+#### Valori attuali (passo 1, in `src/world/lunapark.js`)
+- Mappa intera 108×72 m: parcheggio x −45…−15, luna park x −15…33, backrooms x 33…63
+- Pianta del luna park (il nord è −z, come nella minimappa), asse del viale a x = 10:
+  - **Piazza** rotonda (raggio 10 m) al centro, con la palla demolitrice; partenza a sud del portale
+  - **Negozio** sul lato nord della piazza: il chiosco di prima dentro un edificio rosa con
+    torrette, frontone, lampadine e la scritta "ARMI & MUNIZIONI"
+  - **Viale** largo 6 m verso sud, con lampioni e festoni di lampadine; ai lati due zone ristoro
+    con 4 bancarelle (popcorn, zucchero filato, bibite, gelati), tavolini e alberi
+  - **Arco d'ingresso** in fondo al viale: due torrette-biglietteria, insegna "LUNA PARK" luminosa
+  - **Aree delle giostre** a nord (oltre il vialetto): ruota panoramica a ovest, montagne russe
+    a est; per ora cantieri con basamento, transenne e cartellone "Prossimamente!"
+  - **Giochi** in 10 piazzole: 4 per lato più 2 vicino all'ingresso (scelti e mescolati dal seed)
+- Le scritte delle insegne sono texture disegnate in un canvas (`src/world/signs.js`)
 
 ## Grafica (fase 10)
 

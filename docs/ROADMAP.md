@@ -166,10 +166,15 @@ Corretto anche il deploy su GitHub Pages: build e pubblicazione in due job separ
 ## Fase 9 – Luna park centrale
 Dettagli in `docs/DESIGN.md`, sezione "Mondo" → "Luna park centrale".
 
-Passo 1 – La zona:
-- [ ] Zona centrale più grande e strutturata: ingresso, viale, piazza, negozio in un edificio
-- [ ] Elementi giocosi di oggi mantenuti; luci, insegne, lampioni
-- [ ] Navigazione dei nemici, spawn e minimappa aggiornati
+Passo 1 – La zona (in prova su iPad):
+- [x] Zona centrale più grande e strutturata: ingresso, viale, piazza, negozio in un edificio
+- [x] Elementi giocosi di oggi mantenuti; luci, insegne, lampioni
+- [x] Navigazione dei nemici, spawn e minimappa aggiornati
+- [ ] Provato su iPad
+
+Note: la zona centrale passa da 30 a 48 m di larghezza (la mappa intera è 108×72 m) e si chiama
+"Luna park" nella minimappa. Le aree della ruota e delle montagne russe sono per ora cantieri
+con il cartellone "Prossimamente!". I giochi di prima stanno in 10 piazzole ai lati.
 
 Passo 2 – Ruota panoramica:
 - [ ] Ruota con cabine, sali/scendi, si spara da seduti
