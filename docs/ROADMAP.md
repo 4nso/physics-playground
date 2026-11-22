@@ -286,6 +286,18 @@ Passo 3 – Atmosfera e dettagli vivi:
 - [ ] Fori dei proiettili e bruciature sui muri, che spariscono dopo un po'
 - [ ] Animazioni migliori di nemici e arma, feedback dei colpi più chiaro
 
+## Fase 11 – Controller
+Dettagli in `docs/DESIGN.md`, sezione "Piattaforme" → "Controller".
+- [ ] Gamepad API: controller Xbox/PlayStation riconosciuto su iPad, telefono e computer
+- [ ] Mappatura dei tasti come nella tabella del design
+- [ ] Levetta destra con zona morta, curva di risposta, sensibilità nelle impostazioni,
+      leggero aiuto alla mira
+- [ ] Tutti i menu navigabili col controller (A conferma, B indietro)
+- [ ] HUD che passa da touch a controller e viceversa, suggerimenti con i tasti del controller
+- [ ] Vibrazione se supportata
+- [ ] Mouse su iPad: prova il pointer lock anche lì, altrimenti resta il trascinamento
+- [ ] Provato su iPad con controller Xbox (dal proprietario)
+
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano
 d'ingresso in salita dalla strada, piano terra a livello strada, poi secondo, terzo e quarto piano.
