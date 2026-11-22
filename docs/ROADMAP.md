@@ -265,6 +265,21 @@ gli effetti nuovi (immagine HDR a 16 bit, passaggi a tutto schermo) lì costano 
 sui chip di iPhone e iPad sono quasi gratis. Il numero che conta è quello del contatore sul telefono.
 Se in Media il telefono scende sotto i 27 fps, in automatico la qualità passa da sola a Bassa.
 
+Alleggerimento dopo la prova su iPhone 14 Pro Max ("in Alta gira un po' male"):
+- [x] Risoluzione dinamica a ogni livello (anche scelto a mano): sotto i 52 fps scende del 10% alla
+      volta fino al 70%, sopra i 58 risale; se abbassarla non serve (es. risparmio energetico) torna com'era.
+      Il contatore mostra "ris. 80%" quando è abbassata.
+- [x] Nemici, compagni, casse, palloni e oggetti raccolti con un materiale più semplice (Lambert invece di
+      PBR): stesso aspetto low-poly, molto meno lavoro per pixel
+- [x] Alta sui telefoni: risoluzione massima 1,5× (era 1,75×); ombre aggiornate a 30 fps
+- [ ] Riprovato su iPhone in Alta e in Media
+
+| Scena (headless) | Media prima | Media dopo | Alta prima | Alta dopo | Bassa dopo |
+|---|---|---|---|---|---|
+| Partenza | 14–16 fps | 25 | 4 | 7 | 54 |
+| Piazza del luna park | 17–18 fps | 25 | 4 | 10 | 60 |
+| 20 nemici a schermo | 11 fps | 16 | 4 | 8 | 29 |
+
 Passo 3 – Atmosfera e dettagli vivi:
 - [ ] Dal giorno alla notte con l'avanzare dei round (luna park illuminato di notte)
 - [ ] Particelle (polvere nelle backrooms, fumo e detriti nelle esplosioni), acqua animata

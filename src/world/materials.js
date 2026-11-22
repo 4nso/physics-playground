@@ -25,15 +25,15 @@ const crateTex = canvasTex(128, 128, (g, w, h) => {
 });
 
 export const M = {
-  crate: new THREE.MeshStandardMaterial({ map: crateTex, roughness: 0.85 }),
+  crate: new THREE.MeshLambertMaterial({ map: crateTex }),
   metal: new THREE.MeshStandardMaterial({ color: 0x3b4250, roughness: 0.4, metalness: 0.6 }),
   wreck: new THREE.MeshStandardMaterial({ color: 0x2a2d33, roughness: 0.25, metalness: 0.85 }),
-  rope: new THREE.MeshStandardMaterial({ color: 0x8a6b45, roughness: 1 }),
+  rope: new THREE.MeshLambertMaterial({ color: 0x8a6b45 }),
 };
 
 export const ballMats = ['#ff5a4e', '#ffb627', '#2fbf71', '#3d8bff', '#b45cff', '#ff6fb5'].map(
-  (col) => new THREE.MeshStandardMaterial({
-    roughness: 0.35,
+  (col) => new THREE.MeshLambertMaterial({
+
     map: canvasTex(64, 32, (g, w, h) => {
       g.fillStyle = col; g.fillRect(0, 0, w, h);
       g.fillStyle = '#fff'; g.fillRect(0, h * 0.42, w, h * 0.16);

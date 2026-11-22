@@ -15,8 +15,8 @@ const healthTex = canvasTex(64, 64, (g, w, h) => {
   g.fillStyle = '#e8403a'; g.fillRect(w * 0.4, 10, w * 0.2, h - 20); g.fillRect(10, h * 0.4, w - 20, h * 0.2);
 });
 const MATS = {
-  ammo: new THREE.MeshStandardMaterial({ map: ammoTex, roughness: 0.7, emissive: 0x223311, flatShading: true }),
-  health: new THREE.MeshStandardMaterial({ map: healthTex, roughness: 0.7, emissive: 0x331111, flatShading: true }),
+  ammo: new THREE.MeshLambertMaterial({ map: ammoTex, emissive: 0x223311, flatShading: true }),
+  health: new THREE.MeshLambertMaterial({ map: healthTex, emissive: 0x331111, flatShading: true }),
 };
 
 export const KINDS = ['ammo', 'health'];

@@ -1,6 +1,8 @@
 // Qualità grafica: Bassa / Media / Alta, oppure Automatica.
 // In automatico si parte da una scelta in base al dispositivo e poi si guarda quanti fps fa davvero
 // il gioco: se rallenta si scende di un livello, se va molto liscio si risale (mai oltre la scelta iniziale).
+// In più, a qualsiasi livello (anche scelto a mano), la risoluzione è dinamica: se il gioco non tiene
+// i 60 fps la risoluzione scende un po' alla volta (fino al 70%), poi risale quando torna fluido.
 import { isTouch, setRenderQuality, setShadows } from './renderer.js';
 import { setPost } from './post.js';
 import { setGlow } from './glow.js';
@@ -18,7 +20,7 @@ export const LEVEL_NAMES = { low: 'Bassa', medium: 'Media', high: 'Alta' };
 const PRESETS = {
   low: { pr: 1, dist: 46, post: 'off', ao: false, shadows: false },
   medium: { pr: isTouch ? 1.25 : 1.5, dist: 58, post: 'medium', ao: true, shadows: false },
-  high: { pr: isTouch ? 1.75 : 2, dist: 70, post: 'high', ao: true, shadows: true },
+  high: { pr: isTouch ? 1.5 : 2, dist: 70, post: 'high', ao: true, shadows: true },
 };
 
 const AUTO_KEY = 'syf-autoq'; // ultimo livello scelto in automatico (si riparte da lì)
@@ -37,6 +39,7 @@ export const quality = {
   level: 'medium',     // livello in uso
   max: devicePick(),   // in automatico non si sale oltre questo
   fps: 0,              // fps medi dell'ultimo secondo (per il contatore)
+  res: 1,              // risoluzione dinamica: 1 = piena, fino a 0.7
 };
 
 let autoLevel = quality.max;
@@ -52,10 +55,17 @@ export function onQuality(fn) {
   fn(quality.level);
 }
 
+function applyRes() {
+  const p = PRESETS[quality.level];
+  setRenderQuality(Math.max(MIN_PR, p.pr * quality.res), p.dist);
+}
+
 function apply(level) {
   quality.level = level;
+  quality.res = 1;
+  resetRes();
   const p = PRESETS[level];
-  setRenderQuality(p.pr, p.dist);
+  applyRes();
   setGlow(setPost(p.post));
   setWorldAO(p.ao);
   setSkyDome(p.post !== 'off');
@@ -68,6 +78,46 @@ export function setQualitySetting(s) {
   quality.setting = LEVELS.includes(s) ? s : 'auto';
   resetMeter();
   apply(quality.setting === 'auto' ? autoLevel : quality.setting);
+}
+
+/* ---------- Risoluzione dinamica ---------- */
+const MIN_RES = 0.7, MIN_PR = 0.85;
+let rFrames = 0, rTime = 0, rGood = 0, rCool = 0, rPrevFps = 0, rLowered = false, rPause = 0;
+function resetRes() { rFrames = 0; rTime = 0; rGood = 0; rCool = 2; rLowered = false; }
+
+/**
+ * Ogni secondo: sotto i 52 fps la risoluzione scende del 10%; sopra i 58 per 4 secondi risale del 5%.
+ * Se abbassarla non ha fatto salire gli fps (telefono in risparmio energetico, fermo a 30 fps)
+ * torna com'era e per 30 secondi non ci riprova: perdere nitidezza non servirebbe a niente.
+ */
+function updateRes(rawDt) {
+  if (rPause > 0) rPause -= rawDt;
+  if (rCool > 0) { rCool -= rawDt; return; }
+  rFrames++; rTime += rawDt;
+  if (rTime < 1) return;
+  const fps = rFrames / rTime;
+  rFrames = 0; rTime = 0;
+  if (rLowered) {
+    rLowered = false;
+    if (fps < rPrevFps * 1.05) { // nessun miglioramento: non è la risoluzione il problema
+      quality.res = Math.min(1, quality.res / 0.9);
+      applyRes();
+      rPause = 30; rCool = 1;
+      return;
+    }
+  }
+  if (fps < 52 && quality.res > MIN_RES && rPause <= 0) {
+    rPrevFps = fps;
+    quality.res = Math.max(MIN_RES, quality.res * 0.9);
+    rLowered = true; rGood = 0; rCool = 0.5;
+    applyRes();
+  } else if (fps >= 58) {
+    if (++rGood >= 4 && quality.res < 1) {
+      quality.res = Math.min(1, quality.res + 0.05);
+      rGood = 0; rCool = 0.5;
+      applyRes();
+    }
+  } else rGood = 0;
 }
 
 /* ---------- Misura degli fps e adattamento ---------- */
@@ -93,8 +143,9 @@ export function updateQuality(rawDt, active) {
   secFrames++; secTime += rawDt;
   if (secTime >= 1) { quality.fps = Math.round(secFrames / secTime); secFrames = 0; secTime = 0; }
 
-  if (quality.setting !== 'auto' || !active) { frames = 0; time = 0; return; }
-  if (rawDt > 0.5) return; // la pagina era in secondo piano: non conta
+  if (!active || rawDt > 0.5) { frames = 0; time = 0; return; } // menu o pagina in secondo piano: non conta
+  updateRes(rawDt);
+  if (quality.setting !== 'auto') return;
   if (cooldown > 0) { cooldown -= rawDt; return; } // appena cambiato: lasciamo assestare
   frames++; time += rawDt;
   if (time < WINDOW) return;

@@ -39,8 +39,8 @@ function textTex(text, w, h, bg, fg, font) {
 const safeSignMat = new THREE.MeshBasicMaterial({ map: textTex('🛡️ ZONA SICURA', 512, 96, '#2f6f5c', '#eafff6', 'bold 56px system-ui, sans-serif') });
 const papSignMat = new THREE.MeshBasicMaterial({ map: textTex('POTENZIATORE', 512, 96, '#ff8a1f', '#3a0f5c', 'bold 62px system-ui, sans-serif') });
 const qTex = textTex('?', 128, 128, '#6b3d1e', '#ffcf3a', 'bold 104px system-ui, sans-serif');
-const boxMat = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.8, flatShading: true });
-const boxQMat = new THREE.MeshStandardMaterial({ map: qTex, roughness: 0.7, emissive: 0x3a2a00, emissiveMap: qTex });
+const boxMat = new THREE.MeshLambertMaterial({ color: 0x8a5a2b, flatShading: true });
+const boxQMat = new THREE.MeshLambertMaterial({ map: qTex, emissive: 0x3a2a00, emissiveMap: qTex });
 const trimMat = new THREE.MeshStandardMaterial({ color: 0xffcf3a, roughness: 0.4, metalness: 0.3, emissive: 0x332200 });
 const glowMat = new THREE.MeshBasicMaterial({ color: 0xfff2a8, transparent: true, opacity: 0.0, depthWrite: false });
 

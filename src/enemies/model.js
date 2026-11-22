@@ -63,7 +63,7 @@ const GEO = {
   horn: box(0.09, 0.26, 0.09),
 };
 
-const mat = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true });
+const mat = (color) => new THREE.MeshLambertMaterial({ color, flatShading: true });
 export const VARIANTS = {
   base: { shirt: mat(0x4f7cc9), pants: mat(0x3b3b4a), scale: 1, speed: 1, health: 1, damage: 10, points: 100, mass: 4 },
   fast: { shirt: mat(0xd8452f), pants: mat(0x2b2b2b), scale: 0.86, speed: 1.6, health: 0.6, damage: 7, points: 150, mass: 3 },
@@ -74,7 +74,7 @@ export const VARIANTS = {
   boss: { shirt: mat(0x4a1f5c), pants: mat(0x1d1424), armor: mat(0xd4a017), scale: 1.65, speed: 0.8, health: 14, damage: 25, points: 2500, mass: 40, bigHead: 1.35 },
 };
 /** Materiale bianco usato per un attimo quando il nemico viene colpito. */
-export const HIT_MAT = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.6 });
+export const HIT_MAT = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.6 });
 
 /** Altezza del modello (scala 1), per posizionare la barra della vita. */
 export const MODEL_HEIGHT = NECK_Y + HEAD_R[1] * 2;

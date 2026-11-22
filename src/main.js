@@ -35,6 +35,7 @@ import { initMobile } from './ui/mobile.js';
 
 const $ = (id) => document.getElementById(id);
 let last = performance.now();
+let shadowFrame = false;
 renderer.autoClear = false;
 
 // Il grilletto lancia l'oggetto in mano, se ce n'è uno; altrimenti spara.
@@ -100,7 +101,12 @@ function loop(now) {
   hud.update(dt);
 
   updateSky();
-  if (renderer.shadowMap.enabled) updateWorldMat(player.pos.x, player.pos.z);
+  if (renderer.shadowMap.enabled) {
+    // ombre aggiornate a 30 fps (un frame sì e uno no): metà del lavoro, a occhio non si nota
+    shadowFrame = !shadowFrame;
+    renderer.shadowMap.needsUpdate = shadowFrame;
+    if (shadowFrame) updateWorldMat(player.pos.x, player.pos.z);
+  }
   renderer.info.reset();
   renderFrame(scene, weaponScene, camera); // l'arma sopra a tutto, senza entrare nei muri
 }
@@ -112,7 +118,7 @@ function showFps(rawDt) {
   fpsT += rawDt;
   if (fpsT < 0.5 || fpsEl.classList.contains('hidden')) return;
   fpsT = 0;
-  fpsEl.textContent = `${quality.fps} fps · ${LEVEL_NAMES[quality.level]}${quality.setting === 'auto' ? ' (auto)' : ''}`;
+  fpsEl.textContent = `${quality.fps} fps · ${LEVEL_NAMES[quality.level]}${quality.setting === 'auto' ? ' (auto)' : ''}${quality.res < 1 ? ` · ris. ${Math.round(quality.res * 100)}%` : ''}`;
 }
 
 /* ---------- Minimappa ---------- */

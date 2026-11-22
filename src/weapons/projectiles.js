@@ -22,9 +22,9 @@ export const projHooks = { onHit: null, onBoom: null };
 
 /* ---------- Modelli dei proiettili (riusati) ---------- */
 const grenadeGeo = new THREE.IcosahedronGeometry(0.09, 0);
-const grenadeMat = new THREE.MeshStandardMaterial({ color: 0x3f5a2a, roughness: 0.6, flatShading: true });
+const grenadeMat = new THREE.MeshLambertMaterial({ color: 0x3f5a2a, flatShading: true });
 const rocketGeo = new THREE.CylinderGeometry(0.06, 0.07, 0.5, 6).rotateX(Math.PI / 2);
-const rocketMat = new THREE.MeshStandardMaterial({ color: 0x5d6b4a, roughness: 0.6, flatShading: true });
+const rocketMat = new THREE.MeshLambertMaterial({ color: 0x5d6b4a, flatShading: true });
 const flameGeo = new THREE.ConeGeometry(0.07, 0.3, 6).rotateX(-Math.PI / 2).translate(0, 0, 0.38);
 const flameMat = glowMat(new THREE.MeshBasicMaterial({ color: 0xffb040 }), 3);
 

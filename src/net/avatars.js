@@ -5,7 +5,7 @@ import { buildEnemyModel, animateModel, disposeModel, topOf } from '../enemies/m
 import { disposeSet } from '../faces/gallery.js';
 
 export const SLOT_COLORS = ['#ff7a45', '#2ec4b6', '#a26bff', '#ffd23f'];
-const mat = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.8, flatShading: true });
+const mat = (color) => new THREE.MeshLambertMaterial({ color, flatShading: true });
 
 /** Materiali per colore (creati una volta sola). */
 const looks = SLOT_COLORS.map((col) => {
@@ -20,7 +20,7 @@ const looks = SLOT_COLORS.map((col) => {
   const helmet = mat(col);
   return {
     variant: { shirt: mat(col), pants: mat(0x2b3240), scale: 0.92 },
-    face: { front: new THREE.MeshStandardMaterial({ map, roughness: 0.6 }), side: helmet, top: helmet },
+    face: { front: new THREE.MeshLambertMaterial({ map }), side: helmet, top: helmet },
   };
 });
 

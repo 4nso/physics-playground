@@ -68,6 +68,7 @@ sun.shadow.camera.updateProjectionMatrix();
 sun.shadow.bias = -0.0006;
 sun.shadow.normalBias = 0.02;
 renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.shadowMap.autoUpdate = false; // la mappa delle ombre si ridisegna un frame sì e uno no (main.js)
 scene.add(sun, sun.target);
 
 /** Ombre in tempo reale (solo qualità Alta). Cambiarle fa ricompilare i materiali. */

@@ -163,14 +163,14 @@ function makeSet(src, side, top, name = '') {
   photo.width = photo.height = FACE;
   photo.getContext('2d').drawImage(src, 0, 0, FACE, FACE);
   boost(photo);
-  const sideMat = new THREE.MeshStandardMaterial({ color: side, roughness: 0.9, flatShading: true });
+  const sideMat = new THREE.MeshLambertMaterial({ color: side, flatShading: true });
   return {
     canvas: src,
     name,
     tagMat: name ? nameTagMaterial(name) : null,
     front: new THREE.MeshBasicMaterial({ map: faceTexture(photo, side), fog: false }),
     side: sideMat,
-    top: top ? new THREE.MeshStandardMaterial({ color: top, roughness: 0.9, flatShading: true }) : sideMat,
+    top: top ? new THREE.MeshLambertMaterial({ color: top, flatShading: true }) : sideMat,
   };
 }
 
