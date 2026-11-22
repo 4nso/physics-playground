@@ -13,6 +13,9 @@ export const input = {
   lookY: 0,
   touchX: 0, // rotazione dal dito, applicata in modo morbido (vedi takeLook)
   touchY: 0,
+  padX: 0,  // levetta sinistra del controller (vedi core/gamepad.js)
+  padY: 0,
+  padRun: false,
   enabled: false,
   /**
    * Restituisce e azzera la rotazione accumulata dallo sguardo.
@@ -31,7 +34,8 @@ export const input = {
   reset() {
     this.lookX = this.lookY = this.touchX = this.touchY = 0;
     this.joy.x = this.joy.y = 0;
-    this.run = false;
+    this.padX = this.padY = 0;
+    this.run = this.padRun = false;
   },
 };
 
@@ -50,8 +54,12 @@ const locked = () => document.pointerLockElement === canvas;
 export function exitLock() {
   if (document.pointerLockElement) document.exitPointerLock();
 }
+// Su iPad con un mouse collegato si prova lo stesso il pointer lock: Safari per ora non lo supporta
+// (resta il trascinamento), ma se un giorno lo aggiunge funzionerà da solo.
+let mouseUsed = false;
 export function requestLock() {
-  if (isTouch) return;
+  if (isTouch && !mouseUsed) return;
+  if (!canvas.requestPointerLock) return;
   try {
     const p = canvas.requestPointerLock();
     if (p && p.catch) p.catch(() => {});
@@ -132,6 +140,7 @@ export function setupInput(actions) {
         else if (e.button === 2) actions.alt();
         return;
       }
+      mouseUsed = true;
       requestLock();
       mouseDrag = { x: e.clientX, y: e.clientY, moved: 0, button: e.button };
       return;

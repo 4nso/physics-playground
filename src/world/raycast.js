@@ -45,3 +45,10 @@ export function castWorld(origin, dir, far, ignore = null) {
   out.hidden = hiddenColliders.has(sh.collider.handle);
   return out;
 }
+
+/** C'è un muro (mondo statico) tra origin e la distanza far lungo dir (unitaria)? Per l'aiuto alla mira. */
+export function staticBlocked(origin, dir, far) {
+  ray.origin.x = origin.x; ray.origin.y = origin.y; ray.origin.z = origin.z;
+  ray.dir.x = dir.x; ray.dir.y = dir.y; ray.dir.z = dir.z;
+  return !!world.castRay(ray, far, true, ONLY_STATIC);
+}

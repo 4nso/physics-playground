@@ -301,3 +301,13 @@ body:not(.touch) #shop{bottom:calc(52px + env(safe-area-inset-bottom))}
 body.touch #ride{left:auto;transform:none;right:calc(var(--arc,200px) + 8px + env(safe-area-inset-right))}
 body:not(.touch) #ride{bottom:calc(52px + env(safe-area-inset-bottom))}
 @media (max-height:440px){#ride{padding:6px 8px 8px}#rideHead{font-size:12px;margin-bottom:4px}#rideBtns button{font-size:13px;padding:8px 10px}}
+
+/* Controller: niente pulsanti touch, suggerimenti con i tasti del controller, selezione evidenziata nei menu */
+body.pad #btns,body.pad #joy{display:none!important}
+body.pad #keys{display:block;white-space:normal;max-width:calc(100vw - 32px);text-align:center}
+body.pad .padFocus{outline:3px solid #ffd23a;outline-offset:3px;box-shadow:0 0 0 6px rgba(255,210,58,.35)}
+body.pad input[type=range].padFocus{outline-offset:6px}
+body.pad #shop,body.pad #ride{left:50%;right:auto;transform:translateX(-50%);max-width:calc(100vw - 24px);bottom:calc(52px + env(safe-area-inset-bottom))}
+#shopItems button.padSel{outline:3px solid #ffd23a;outline-offset:-1px;background:rgba(255,210,58,.28)}
+.setHead{font-weight:800;margin:14px 0 2px;font-size:15px}
+#padNote:empty{display:none}

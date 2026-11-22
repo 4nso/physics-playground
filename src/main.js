@@ -3,6 +3,7 @@ import './style.css';
 import { renderer, scene, camera, followSun } from './core/renderer.js';
 import { initPhysics, stepPhysics, alpha } from './core/physics.js';
 import { setupInput, requestLock } from './core/input.js';
+import { setupGamepad, updateGamepad, onPadMode } from './core/gamepad.js';
 import { initAudio } from './core/audio.js';
 import { buildWorld, map } from './world/map.js';
 import { nav } from './world/nav.js';
@@ -14,10 +15,10 @@ import { syncObjects, updateRope } from './world/objects.js';
 import { player, createPlayer, resetPlayer, updatePlayer, updateCamera, jump } from './player/player.js';
 import { throwHeld, toggleGrab, updateHeld, updateCrosshair } from './player/interact.js';
 import { weaponScene } from './weapons/viewmodel.js';
-import { initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, nextWeapon, toggleZoom, hasZoom } from './weapons/weapons.js';
-import { updateShop, toggleShopping, closeShopping, isShopping } from './game/shop.js';
+import { initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, nextWeapon, toggleZoom, hasZoom, isZoomed } from './weapons/weapons.js';
+import { updateShop, toggleShopping, closeShopping, isShopping, padShopInteract, padShopping, padShopMove, padShopBuy } from './game/shop.js';
 import { updateSafeZones } from './game/safezone.js';
-import { updateRides, rideAction } from './game/rides.js';
+import { updateRides, rideAction, rideNearKind } from './game/rides.js';
 import { updateEnemies } from './enemies/enemies.js';
 import { initGallery, openGallery } from './faces/gallery.js';
 import { updatePickups } from './game/pickups.js';
@@ -65,6 +66,30 @@ const actions = {
   lockLost() { if (game.state === 'playing' && game.phase !== 'dead' && !isShopping()) pauseGame(); },
 };
 
+/* ---------- Controller: azioni in più rispetto a tastiera e touch ---------- */
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+const padHooks = {
+  // B: giostra (sali/scendi, avvia/ferma), altrimenti negozio, altrimenti afferra/lascia
+  interact() {
+    const k = rideNearKind();
+    if (k) { actions.ride(k === 'ctrl' ? 'toggle' : 'seat'); return; }
+    if (padShopInteract()) return;
+    actions.grab();
+  },
+  shopActive: padShopping,
+  shopMove: padShopMove,
+  shopBuy: padShopBuy,
+  rideSpeed() { if (rideNearKind() === 'ctrl') actions.ride('speed'); },
+  zoomed: isZoomed,
+  eachEnemy: (fn) => eachEnemy(fn),
+  // ⧉: statistiche della partita
+  stats() {
+    let top = null;
+    for (const [n, k] of game.friendKills) if (!top || k > top[1]) top = [n, k];
+    hud.flash(`Round ${Math.max(1, game.round)} · ★ ${myMoney()} punti<br><small>${game.kills} nemici eliminati${top ? ` · il più eliminato: <b>${esc(top[0])}</b> ×${top[1]}` : ''} · mappa n. ${map.seed}</small>`, 3);
+  },
+};
+
 function loop(now) {
   requestAnimationFrame(loop);
   const rawDt = Math.max(0, (now - last) / 1000);
@@ -77,6 +102,7 @@ function loop(now) {
   const authority = net.mode !== 'client'; // da solo o host: qui si simula tutto
 
   updateRides(gdt, authority, playing && !game.overlay); // prima del giocatore: chi è seduto segue il posto
+  updateGamepad(dt);
   if (playing) {
     updatePlayer(dt);
     updateHeld();
@@ -132,7 +158,7 @@ function showFps(rawDt) {
 const mates = [];
 const eachEnemy = (fn) => {
   if (net.mode === 'client') forEachProxy(fn);
-  else for (const e of enemies) fn(e.model.group.position.x, e.model.group.position.z);
+  else for (const e of enemies) if (!e.dead) fn(e.model.group.position.x, e.model.group.position.z, e.model);
 };
 function updateMinimap(dt) {
   mates.length = 0;
@@ -159,6 +185,8 @@ async function start() {
   buildLevel();
   initWeapons();
   setupInput(actions);
+  setupGamepad(actions, padHooks);
+  onPadMode((on) => hud.setPadMode(on));
   requestAnimationFrame(loop);
 
   const play = () => { initAudio(); requestLock(); last = performance.now(); startMatch(); };

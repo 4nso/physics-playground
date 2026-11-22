@@ -4,6 +4,7 @@ import { camera, setZoom } from '../core/renderer.js';
 import { castWorld } from '../world/raycast.js';
 import { addDecal } from '../world/decals.js';
 import { player, addRecoil } from '../player/player.js';
+import { rumble } from '../core/rumble.js';
 import { WEAPONS, START_WEAPONS, MAX_SLOTS, weaponIndex, weaponStats } from './defs.js';
 import { models, showModel, hideModel, kickModel, setReloadProgress, muzzleWorld, updateViewModel, setSkin } from './viewmodel.js';
 import { spawnProjectile, updateProjectiles, clearProjectiles, projHooks, newPid } from './projectiles.js';
@@ -192,6 +193,7 @@ export function toggleZoom() {
   setZoomed(!state.zoomed);
 }
 export const hasZoom = () => !!currentWeapon().zoom;
+export const isZoomed = () => state.zoomed;
 /** Toglie il mirino (ad esempio quando si va in pausa o si muore). */
 export function unzoom() { if (state.zoomed) setZoomed(false); }
 
@@ -280,6 +282,7 @@ function shoot() {
   kickModel(w.kick);
   muzzleFlash(muzzle);
   shotSound(w);
+  rumble(Math.min(1, 0.15 + w.recoil * 6), 0.35, w.projectile ? 140 : 60);
   refreshHud();
   if (a.mag === 0 && a.reserve > 0) reload(); // ricarica automatica a caricatore vuoto
 }

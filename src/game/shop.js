@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { glowMat } from '../core/glow.js';
 import { scene, isTouch } from '../core/renderer.js';
+import { pad } from '../core/gamepad.js';
 import { exitLock, requestLock } from '../core/input.js';
 import { thud } from '../core/audio.js';
 import { player, MAX_HEALTH } from '../player/player.js';
@@ -207,9 +208,12 @@ function buildPanel(kind) {
 
 function refreshPanel() {
   $('shopMoney').textContent = `★ ${money}`;
-  $('shopHint').textContent = isTouch ? 'Tocca per comprare'
+  $('shopHint').textContent = pad.active
+    ? (items.length === 1 ? 'B Compra' : padSel >= 0 ? '◀ ▶ Scegli · A Compra · B Chiudi' : 'B Scegli cosa comprare')
+    : isTouch ? 'Tocca per comprare'
     : items.length === 1 ? 'Premi B per comprare'
     : shopping ? 'Clicca su un oggetto per comprarlo · B per tornare a giocare' : 'Premi B per scegliere col mouse';
+  markPadSel();
   for (const b of $('shopItems').children) {
     const it = items.find((x) => x.id === b.dataset.i);
     const o = offer(it);
@@ -218,6 +222,31 @@ function refreshPanel() {
     b.classList.toggle('done', !!o.done);
     b.classList.toggle('cant', !o.done && o.price > money);
   }
+}
+
+/* ---------- Controller: B apre la scelta, croce sceglie, A compra, B chiude ---------- */
+let padSel = -1; // oggetto selezionato col controller (-1 = scelta chiusa)
+function markPadSel() {
+  [...$('shopItems').children].forEach((b, i) => b.classList.toggle('padSel', i === padSel));
+}
+/** Tasto B vicino a un banco. Restituisce false se non c'è nessun negozio qui. */
+export function padShopInteract() {
+  if (!near || !player.alive) return false;
+  if (items.length === 1) { buy(items[0]); dirty = true; return true; }
+  padSel = padSel >= 0 ? -1 : 0;
+  if (padSel >= 0) setTrigger(false);
+  dirty = true;
+  refreshPanel();
+  return true;
+}
+export const padShopping = () => padSel >= 0 && !!near;
+export function padShopMove(d) {
+  padSel = (padSel + d + items.length) % items.length;
+  markPadSel();
+  thud(0.06, 900);
+}
+export function padShopBuy() {
+  if (padSel >= 0 && items[padSel] && player.alive) { buy(items[padSel]); dirty = true; }
 }
 
 /** Mouse: B apre/chiude gli acquisti (libera il mouse per cliccare). */
@@ -253,6 +282,7 @@ export function updateShop(dt, playing, myMoney) {
   const key = s ? s.kind + s.idx : '';
   if (key !== (near ? near.kind + near.idx : '')) {
     near = s;
+    padSel = -1;
     if (near && near.kind !== panelKind) buildPanel(near.kind);
     $('shop').classList.toggle('hidden', !near);
     if (!near && shopping) { closeShopping(); }

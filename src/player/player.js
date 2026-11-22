@@ -139,14 +139,14 @@ export function updatePlayer(dt) {
   }
 
   const k = input.keys;
-  let f = input.joy.y, r = input.joy.x;
+  let f = input.joy.y + input.padY, r = input.joy.x + input.padX;
   if (k.KeyW || k.ArrowUp) f += 1;
   if (k.KeyS || k.ArrowDown) f -= 1;
   if (k.KeyD || k.ArrowRight) r += 1;
   if (k.KeyA || k.ArrowLeft) r -= 1;
   const mag = Math.hypot(f, r);
   if (mag > 1) { f /= mag; r /= mag; }
-  const speed = k.ShiftLeft || k.ShiftRight || input.run ? RUN_SPEED : WALK_SPEED;
+  const speed = k.ShiftLeft || k.ShiftRight || input.run || input.padRun ? RUN_SPEED : WALK_SPEED;
   const s = Math.sin(player.yaw), c = Math.cos(player.yaw);
   const vx = (-s * f + c * r) * speed, vz = (-c * f - s * r) * speed;
 

@@ -58,6 +58,7 @@
   <p class="sub">Sopravvivi alle ondate di nemici. Le loro facce le scegli tu.</p>
   <ul id="howto"></ul>
   <p id="record" class="note"></p>
+  <p id="padNote" class="note"></p>
   <p id="netNote" class="note err"></p>
   <button id="play" class="btn primary big" disabled>Caricamento…</button>
   <div class="row"><button id="create" class="btn">👥 Crea stanza</button><button id="joinBtn" class="btn">🔑 Entra con codice</button></div>
@@ -167,6 +168,11 @@
   <div class="set"><span>Qualità grafica <b id="sQualityV">Automatica</b></span>
     <div id="sQuality" class="seg"><button data-q="auto">Auto</button><button data-q="low">Bassa</button><button data-q="medium">Media</button><button data-q="high">Alta</button></div></div>
   <label class="set check"><input id="sFps" type="checkbox"> <span>Mostra gli fps durante il gioco</span></label>
+  <p class="setHead">🎮 Controller</p>
+  <label class="set"><span>Sensibilità della levetta destra <b id="sPadV">100%</b></span>
+    <input id="sPad" type="range" min="0.4" max="2.2" step="0.05" value="1"></label>
+  <label class="set check"><input id="sAssist" type="checkbox"> <span>Aiuto alla mira</span></label>
+  <label class="set check"><input id="sVib" type="checkbox"> <span>Vibrazione (se il controller e il browser la supportano)</span></label>
   <button id="sReset" class="btn">Valori predefiniti</button>
   <button id="sClose" class="btn primary">Fatto</button>
 </div></div>

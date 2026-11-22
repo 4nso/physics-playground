@@ -88,7 +88,7 @@ export function clearProxies() {
   clearDebris();
 }
 
-/** Per la minimappa: chiama fn(x, z) per ogni nemico copiato. */
+/** Per la minimappa e l'aiuto alla mira: chiama fn(x, z, model) per ogni nemico copiato. */
 export function forEachProxy(fn) {
-  for (const p of proxies.values()) fn(p.model.group.position.x, p.model.group.position.z);
+  for (const p of proxies.values()) fn(p.model.group.position.x, p.model.group.position.z, p.model);
 }

@@ -13,6 +13,7 @@
 // e un "motore" (DRIVERS) che sa come si muove quel tipo di giostra e dove sono i posti.
 // pos = angolo della ruota (radianti) o metri percorsi dal trenino lungo il binario; vel = sua velocità.
 import { setSkyView, isTouch } from '../core/renderer.js';
+import { pad } from '../core/gamepad.js';
 import { thud } from '../core/audio.js';
 import { player, sitDown, standUp } from '../player/player.js';
 import { map } from '../world/map.js';
@@ -349,11 +350,12 @@ function hideBox() {
 
 function buttons() {
   if (!near) return [];
-  const k = (key) => (isTouch ? '' : ` <kbd>${key}</kbd>`);
-  if (near.kind === 'seat') return [['seat', `⬇️ Scendi${k('F')}`]];
-  if (near.kind === 'board') return [['seat', `🪑 Sali${k('F')}`]];
+  // tasto da premere: col controller B (sali/scendi, avvia/ferma) e croce giù (velocità)
+  const k = (key, padKey) => (pad.active ? ` <kbd>${padKey}</kbd>` : isTouch ? '' : ` <kbd>${key}</kbd>`);
+  if (near.kind === 'seat') return [['seat', `⬇️ Scendi${k('F', 'B')}`]];
+  if (near.kind === 'board') return [['seat', `🪑 Sali${k('F', 'B')}`]];
   const r = near.r, on = r.state === 'running' || r.state === 'countdown';
-  return [['toggle', on ? `⏹️ Ferma${k('G')}` : `▶️ Avvia${k('G')}`], ['speed', `⚡ Velocità ${r.level}${k('V')}`]];
+  return [['toggle', on ? `⏹️ Ferma${k('G', 'B')}` : `▶️ Avvia${k('G', 'B')}`], ['speed', `⚡ Velocità ${r.level}${k('V', '▼')}`]];
 }
 
 function info(r) {
@@ -393,6 +395,9 @@ function findNear() {
   }
   return best;
 }
+
+/** Cosa si può fare qui con la giostra: 'seat' (scendi), 'board' (sali), 'ctrl' (comandi) o null. */
+export const rideNearKind = () => (near ? near.kind : null);
 
 /** Azione del giocatore locale: 'seat' (sali/scendi), 'toggle' (avvia/ferma), 'speed'. */
 export function rideAction(what) {

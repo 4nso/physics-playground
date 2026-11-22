@@ -1,9 +1,9 @@
 // Impostazioni del giocatore (sensibilità della visuale, dimensione dei pulsanti, qualità grafica,
-// contatore fps), salvate in localStorage.
+// contatore fps, controller), salvate in localStorage.
 import { quality, setQualitySetting, onQuality, LEVEL_NAMES } from '../core/quality.js';
 
 const KEY = 'syf-settings';
-const DEFAULTS = { look: 1, buttons: 1, quality: 'auto', fps: false };
+const DEFAULTS = { look: 1, buttons: 1, quality: 'auto', fps: false, padLook: 1, aimAssist: true, vibration: true };
 const $ = (id) => document.getElementById(id);
 
 export const settings = { ...DEFAULTS };
@@ -39,6 +39,10 @@ function refresh() {
   for (const b of document.querySelectorAll('#sQuality [data-q]')) b.classList.toggle('on', b.dataset.q === settings.quality);
   $('sQualityV').textContent = settings.quality === 'auto' ? `Automatica (${LEVEL_NAMES[quality.level]})` : LEVEL_NAMES[quality.level];
   $('sFps').checked = settings.fps;
+  $('sPad').value = settings.padLook;
+  $('sPadV').textContent = pct(settings.padLook);
+  $('sAssist').checked = settings.aimAssist;
+  $('sVib').checked = settings.vibration;
   $('fps').classList.toggle('hidden', !settings.fps);
 }
 
@@ -55,6 +59,9 @@ export function initSettings() {
     changed();
   });
   $('sFps').addEventListener('change', (e) => { settings.fps = e.target.checked; changed(); });
+  $('sPad').addEventListener('input', (e) => { settings.padLook = +e.target.value; changed(); });
+  $('sAssist').addEventListener('change', (e) => { settings.aimAssist = e.target.checked; changed(); });
+  $('sVib').addEventListener('change', (e) => { settings.vibration = e.target.checked; changed(); });
   $('sReset').onclick = () => { Object.assign(settings, DEFAULTS); setQualitySetting(settings.quality); changed(); };
   $('sClose').onclick = () => $('settings').classList.add('hidden');
   for (const id of ['openSettings', 'pauseSettings']) {

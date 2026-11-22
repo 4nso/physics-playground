@@ -309,17 +309,39 @@ Misure headless (iPhone simulato, stesse scene; Media e Alta con la risoluzione 
 
 Rispetto al passo precedente gli fps non cambiano (le differenze sono nel margine di errore della misura).
 
-## Fase 11 – Controller
+## Fase 11 – Controller (in prova su iPad)
 Dettagli in `docs/DESIGN.md`, sezione "Piattaforme" → "Controller".
-- [ ] Gamepad API: controller Xbox/PlayStation riconosciuto su iPad, telefono e computer
-- [ ] Mappatura dei tasti come nella tabella del design
-- [ ] Levetta destra con zona morta, curva di risposta, sensibilità nelle impostazioni,
+- [x] Gamepad API: controller Xbox/PlayStation riconosciuto su iPad, telefono e computer
+- [x] Mappatura dei tasti come nella tabella del design
+- [x] Levetta destra con zona morta, curva di risposta, sensibilità nelle impostazioni,
       leggero aiuto alla mira
-- [ ] Tutti i menu navigabili col controller (A conferma, B indietro)
-- [ ] HUD che passa da touch a controller e viceversa, suggerimenti con i tasti del controller
-- [ ] Vibrazione se supportata
-- [ ] Mouse su iPad: prova il pointer lock anche lì, altrimenti resta il trascinamento
+- [x] Tutti i menu navigabili col controller (A conferma, B indietro)
+- [x] HUD che passa da touch a controller e viceversa, suggerimenti con i tasti del controller
+- [x] Vibrazione se supportata
+- [x] Mouse su iPad: prova il pointer lock anche lì, altrimenti resta il trascinamento
 - [ ] Provato su iPad con controller Xbox (dal proprietario)
+
+Note: il codice è in `src/core/gamepad.js` (più `src/core/rumble.js` per la vibrazione). Safari mostra il
+controller solo dopo la prima pressione di un tasto: nei menu quella pressione serve solo ad attivarlo
+(compare il riquadro giallo sulla selezione). Toccando lo schermo, usando mouse o tastiera tornano i
+controlli di prima; premendo un tasto del controller spariscono di nuovo i pulsanti touch.
+In partita: levetta sinistra muove (premuta = corsa finché la si tiene spinta), RT spara, LT tenuto
+premuto = mirino (solo armi con zoom), A salta, X ricarica, Y/RB arma successiva, LB precedente,
+croce ◀ ▲ ▶ armi 1-2-3, croce ▼ velocità della giostra, B interagisce (giostra, poi negozio, altrimenti
+afferra/lascia una cassa), ≡ pausa, ⧉ statistiche. Al negozio: B apre la scelta, croce ◀ ▶ sceglie,
+A compra, B chiude; cassa misteriosa e potenziatore si comprano subito con B.
+Levetta destra: zona morta 13%, curva (lenta a metà corsa, veloce a fondo), a fondo per più di ¼ s gira
+fino al 50% più svelta. Aiuto alla mira (Impostazioni → Controller, acceso di base): vicino a un nemico
+visibile entro 45 m la visuale rallenta e viene tirata piano verso il petto; mai attraverso i muri.
+Nei menu: croce o levetta sinistra spostano la selezione, ◀ ▶ regolano le barre, A conferma, B indietro,
+≡ preme il pulsante principale (Gioca, Riprendi, Rigioca). Nelle caselle di testo A apre la tastiera.
+Vibrazione: quando si spara e quando si viene colpiti (Chrome sì; Safari forse no: se non è supportata
+non succede nulla). Il suono parte solo dopo un primo tocco dello schermo se il browser non accetta
+il controller come "gesto" (succede su iPhone/iPad).
+Mouse su iPad: al clic il gioco chiede il pointer lock; oggi Safari su iPad lo rifiuta e resta il
+trascinamento, ma se Apple lo aggiunge funzionerà da solo.
+Verificato in headless con un controller simulato (iPad 1180×820, telefono 844×390, computer 1280×800):
+menu, partita, negozio, giostra, mirino del cecchino, pausa e impostazioni; nessun errore in console.
 
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano
