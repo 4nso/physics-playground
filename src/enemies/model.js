@@ -186,14 +186,22 @@ export function fitHead(m, x, feetY, z, dt) {
  * (vedi flashModel), si allunga quando attacca, diventa rossa quando sta per morire.
  */
 export function animateModel(m, phase, walk, attack, dt = 0, hp = 1) {
-  const s = Math.sin(phase) * 0.7 * walk;
+  // camminata da zombi: passo un po' strascicato (la gamba va avanti in fretta e torna indietro piano),
+  // busto inclinato in avanti che ruota e ondeggia a ogni passo, braccia tese che ciondolano
+  const sp = Math.sin(phase), cp = Math.cos(phase);
+  const s = (sp + 0.25 * Math.sin(phase * 2)) * 0.65 * walk;
   m.pivots.hipL.rotation.x = s;
   m.pivots.hipR.rotation.x = -s;
-  // braccia tese in avanti, che oscillano; durante l'attacco calano di colpo
-  const swing = attack > 0 ? Math.sin(attack * Math.PI) * 1.4 : 0;
-  m.pivots.shL.rotation.x = -1.35 + Math.sin(phase) * 0.18 * walk + swing;
-  m.pivots.shR.rotation.x = -1.35 - Math.sin(phase) * 0.18 * walk + swing;
-  m.inner.position.y = Math.abs(Math.cos(phase)) * 0.05 * walk;
+  const swing = attack > 0 ? Math.sin(attack * Math.PI) * 1.4 : 0; // l'attacco: le braccia calano di colpo
+  m.pivots.shL.rotation.x = -1.35 - sp * 0.3 * walk + swing;
+  m.pivots.shR.rotation.x = -1.35 + sp * 0.3 * walk + swing;
+  m.pivots.shL.rotation.z = -0.08 - Math.sin(phase * 2 + 1) * 0.05 * walk;
+  m.pivots.shR.rotation.z = 0.08 + Math.sin(phase * 2 + 1) * 0.05 * walk;
+  const lunge = attack > 0 ? Math.sin(attack * Math.PI) : 0;
+  m.inner.rotation.x = 0.1 * walk + lunge * 0.22;      // in avanti (e di più quando colpisce)
+  m.inner.rotation.y = sp * 0.12 * walk;               // il busto gira con il passo
+  m.inner.rotation.z = cp * 0.06 * walk;               // e ondeggia da un piede all'altro
+  m.inner.position.y = Math.abs(cp) * 0.06 * walk;
 
   // testa che dondola come un pupazzo a molla
   m.t += dt;

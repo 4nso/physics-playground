@@ -180,6 +180,10 @@ const anim = {
   lookVY: 0,
   swayX: 0,
   swayY: 0,
+  t: 0,         // tempo (respiro quando si sta fermi)
+  land: 0,      // abbassamento quando si atterra da un salto
+  air: false,
+  run: 0,       // 0..1 quanto si sta correndo (arma più bassa e inclinata)
 };
 
 let hidden = false;
@@ -235,16 +239,30 @@ export function updateViewModel(dt, speed, grounded, lookDX, lookDY) {
     const ty = Math.max(-0.025, Math.min(0.025, anim.lookVY * 0.006));
     anim.swayX += (tx - anim.swayX) * f(10);
     anim.swayY += (ty - anim.swayY) * f(10);
+    anim.t += dt;
+    if (!grounded) anim.air = true;
+    else if (anim.air) { anim.air = false; anim.land = 1; }
+    anim.land = Math.max(0, anim.land - dt * 4);
+    anim.run += ((anim.speed > 7 ? 1 : 0) - anim.run) * f(6);
   }
 
   const r = anim.reload > 0 ? Math.sin(anim.reload * Math.PI) : 0;
   const d = anim.draw * anim.draw;
+  // respiro da fermi (sparisce camminando), atterraggio che spinge giù, corsa: arma bassa e inclinata
+  const still = 1 - anim.bobAmt;
+  const breath = Math.sin(anim.t * 1.7) * 0.0022 * still;
+  const land = Math.sin(anim.land * Math.PI) * 0.03;
+  const run = anim.run * (1 - r);
   m.position.set(
-    u.base.x + Math.sin(anim.bobT) * 0.008 * anim.bobAmt + anim.swayX * 0.5,
-    u.base.y - (1 - Math.cos(anim.bobT * 2)) * 0.004 * anim.bobAmt - d * 0.3 - r * 0.07 + anim.swayY * 0.5,
-    u.base.z + anim.kick * 0.4,
+    u.base.x + Math.sin(anim.bobT) * 0.009 * anim.bobAmt + anim.swayX * 0.5 + run * 0.025,
+    u.base.y - (1 - Math.cos(anim.bobT * 2)) * 0.005 * anim.bobAmt - d * 0.3 - r * 0.07 + anim.swayY * 0.5 + breath - land - run * 0.03,
+    u.base.z + anim.kick * 0.4 + run * 0.02,
   );
-  m.rotation.set(anim.kick * 0.9 - r * 0.5 - d * 0.6, anim.swayX * 1.5, r * 0.6);
+  m.rotation.set(
+    anim.kick * 0.9 - r * 0.5 - d * 0.6 - land * 1.2 + breath * 2 - run * 0.15,
+    anim.swayX * 1.5 + run * 0.35,
+    r * 0.6 + Math.sin(anim.bobT) * 0.02 * anim.bobAmt + run * 0.25,
+  );
 
   u.flash.visible = anim.flash > 0;
   flashLight.intensity = anim.flash > 0 ? 3 : 0;

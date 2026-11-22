@@ -8,6 +8,7 @@ import { setPost } from './post.js';
 import { setGlow } from './glow.js';
 import { setWorldAO } from '../world/map.js';
 import { setSkyDome } from './sky.js';
+import { setDust } from '../world/dust.js';
 
 export const LEVELS = ['low', 'medium', 'high'];
 export const LEVEL_NAMES = { low: 'Bassa', medium: 'Media', high: 'Alta' };
@@ -69,6 +70,7 @@ function apply(level) {
   setGlow(setPost(p.post));
   setWorldAO(p.ao);
   setSkyDome(p.post !== 'off');
+  setDust(p.post !== 'off');
   setShadows(p.shadows);
   for (const fn of listeners) fn(level);
 }

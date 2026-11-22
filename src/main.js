@@ -30,7 +30,10 @@ import { initSettings } from './ui/settings.js';
 import { quality, updateQuality, LEVEL_NAMES } from './core/quality.js';
 import { renderFrame } from './core/post.js';
 import { updateSky } from './core/sky.js';
-import { updateWorldMat } from './world/worldMaterial.js';
+import { updateDayNight } from './game/daynight.js';
+import { updateWorldMat, tickWater } from './world/worldMaterial.js';
+import { updateDecals } from './world/decals.js';
+import { updateDust } from './world/dust.js';
 import { initMobile } from './ui/mobile.js';
 
 const $ = (id) => document.getElementById(id);
@@ -100,7 +103,11 @@ function loop(now) {
   if (playing && net.mode !== 'client') updateCrosshair();
   hud.update(dt);
 
+  updateDayNight(dt, game.state === 'menu' ? 0 : game.round);
   updateSky();
+  tickWater(now / 1000);
+  updateDecals(dt);
+  updateDust(dt);
   if (renderer.shadowMap.enabled) {
     // ombre aggiornate a 30 fps (un frame sì e uno no): metà del lavoro, a occhio non si nota
     shadowFrame = !shadowFrame;

@@ -1,4 +1,5 @@
 // HUD: round, nemici, punteggio, vita, mirino, arma, messaggi e schermate.
+import { hitTick } from '../core/audio.js';
 import { MAX_ROUNDS } from '../game/difficulty.js';
 import { isTouch } from '../core/renderer.js';
 import { onSettings } from './settings.js';
@@ -116,12 +117,20 @@ export const hud = {
   },
   /** Bordo rosso quando il giocatore viene colpito. */
   hurt(strength = 1) { hurtT = Math.min(1, 0.5 + strength * 0.5); },
-  /** Segno sul mirino quando si colpisce un nemico (rosso se muore). */
-  hitMarker(kill) {
+  /**
+   * Segno sul mirino quando si colpisce un nemico: una X che scatta fuori dal centro,
+   * bianca per un colpo, gialla e più grande alla testa, rossa e lunga quando muore. Più un "tic".
+   */
+  hitMarker(kill, head = false) {
     const c = $('cross');
     c.classList.toggle('kill', kill);
     c.classList.add('hit');
     markT = kill ? 0.25 : 0.12;
+    const x = $('hitX');
+    x.className = '';
+    void x.offsetWidth; // riparte l'animazione
+    x.className = kill ? 'kill' : head ? 'head' : 'hit';
+    hitTick(kill ? 'kill' : head ? 'head' : 'hit');
   },
 
   /** Armi in mano (al massimo 3): un pulsante per ognuna. current = posizione dell'arma attuale. */

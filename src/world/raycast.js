@@ -3,14 +3,14 @@
 import * as THREE from 'three';
 import { world, RAPIER } from '../core/physics.js';
 import { pickables } from './arena.js';
-import { staticSurface } from './map.js';
+import { staticSurface, hiddenColliders } from './map.js';
 
 const raycaster = new THREE.Raycaster();
 const ray = new RAPIER.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 });
 const ONLY_STATIC = RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC | RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC;
 
 /** Risultato riusato: { point, normal, distance, object (mesh o null), surface } */
-const out = { point: new THREE.Vector3(), normal: new THREE.Vector3(), distance: 0, object: null, surface: 'stone', face: true };
+const out = { point: new THREE.Vector3(), normal: new THREE.Vector3(), distance: 0, object: null, surface: 'stone', face: true, hidden: false };
 
 /**
  * Lancia un raggio da `origin` lungo `dir` (unitaria) fino a `far`.
@@ -42,5 +42,6 @@ export function castWorld(origin, dir, far, ignore = null) {
   out.distance = sDist;
   out.object = null;
   out.surface = staticSurface.get(sh.collider.handle) || 'stone';
+  out.hidden = hiddenColliders.has(sh.collider.handle);
   return out;
 }

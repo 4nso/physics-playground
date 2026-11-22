@@ -241,7 +241,8 @@ export function lunaPark(b, rng, ctx, x0, x1) {
   const slots = [];
   for (const cz of [-6, 6, 18, 30]) slots.push([WEST, cz], [EAST, cz]);
   slots.push([XC - 10, 30], [XC + 10, 30]);
-  const list = rng.shuffle(Object.keys(TOYS));
+  // la fontana (con l'acqua animata) c'è sempre, gli altri giochi a caso
+  const list = rng.shuffle(['fontana', ...rng.shuffle(Object.keys(TOYS).filter((k) => k !== 'fontana')).slice(0, slots.length - 1)]);
   while (list.length < slots.length) list.push(rng.pick(['torre', 'piscinaPalline', 'fortino', 'trampolini', 'pallone', 'boschetto']));
   slots.forEach(([cx, cz], i) => TOYS[list[i]](b, rng, ctx, cx, cz));
 

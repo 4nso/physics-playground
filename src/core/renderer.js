@@ -63,7 +63,7 @@ export const sun = new THREE.DirectionalLight(0xffe9c8, 3.2);
 sun.castShadow = false;
 const SM = isTouch ? 1024 : 2048;
 sun.shadow.mapSize.set(SM, SM);
-Object.assign(sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 90 });
+Object.assign(sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 110 });
 sun.shadow.camera.updateProjectionMatrix();
 sun.shadow.bias = -0.0006;
 sun.shadow.normalBias = 0.02;
@@ -85,9 +85,15 @@ export function setShadows(on) {
  * così i bordi delle ombre non sfarfallano mentre ci si muove.
  */
 const SUN_OFFSET = new THREE.Vector3(15, 30, 12);
-const sunFwd = SUN_OFFSET.clone().normalize().negate();
-const sunRight = new THREE.Vector3().crossVectors(sunFwd, new THREE.Vector3(0, 1, 0)).normalize();
-const sunUp = new THREE.Vector3().crossVectors(sunRight, sunFwd);
+const sunFwd = new THREE.Vector3(), sunRight = new THREE.Vector3(), sunUp = new THREE.Vector3();
+/** Direzione da cui arriva la luce (sole o luna), come spostamento dal giocatore. Cambia con l'ora del giorno. */
+export function setSunOffset(x, y, z) {
+  SUN_OFFSET.set(x, y, z).setLength(40);
+  sunFwd.copy(SUN_OFFSET).normalize().negate();
+  sunRight.crossVectors(sunFwd, new THREE.Vector3(0, 1, 0)).normalize();
+  sunUp.crossVectors(sunRight, sunFwd);
+}
+setSunOffset(15, 30, 12);
 const TEXEL = 44 / SM;
 const snapped = new THREE.Vector3();
 export function followSun(x, z) {

@@ -82,6 +82,59 @@ export function impact(point, normal, surface = 'stone', count = 8) {
   pGeo.attributes.color.needsUpdate = true;
 }
 
+/* ---------- Fumo: sbuffi morbidi che salgono, si allargano e svaniscono (esplosioni) ---------- */
+const smokeTex = (() => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(32, 32, 2, 32, 32, 31);
+  gr.addColorStop(0, 'rgba(255,255,255,0.9)');
+  gr.addColorStop(0.5, 'rgba(255,255,255,0.45)');
+  gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr;
+  g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+})();
+const PUFFS = 28;
+const puffs = [];
+for (let i = 0; i < PUFFS; i++) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: smokeTex, color: 0x6e6a66, transparent: true, depthWrite: false, opacity: 0 }));
+  s.visible = false;
+  scene.add(s);
+  puffs.push({ s, t: 0, life: 1, vx: 0, vy: 0, vz: 0, r0: 1, r1: 2 });
+}
+let nextPuff = 0;
+/** n sbuffi di fumo attorno al punto, grandi circa `radius`. */
+export function smoke(point, n, radius) {
+  for (let k = 0; k < n; k++) {
+    const p = puffs[nextPuff];
+    nextPuff = (nextPuff + 1) % PUFFS;
+    const a = Math.random() * Math.PI * 2, d = Math.random() * radius * 0.4;
+    p.s.position.set(point.x + Math.cos(a) * d, point.y + 0.3 + Math.random() * 0.5, point.z + Math.sin(a) * d);
+    p.vx = Math.cos(a) * 0.6; p.vz = Math.sin(a) * 0.6; p.vy = 0.8 + Math.random() * 0.9;
+    p.t = 0; p.life = 2 + Math.random() * 1.5;
+    p.r0 = radius * (0.35 + Math.random() * 0.25); p.r1 = radius * (0.9 + Math.random() * 0.5);
+    const g = 0.32 + Math.random() * 0.18;
+    p.s.material.color.setRGB(g, g * 0.97, g * 0.94);
+    p.s.material.rotation = Math.random() * 6.28;
+    p.s.visible = true;
+  }
+}
+function updateSmoke(dt) {
+  for (const p of puffs) {
+    if (!p.s.visible) continue;
+    p.t += dt;
+    const k = p.t / p.life;
+    if (k >= 1) { p.s.visible = false; continue; }
+    p.s.position.x += p.vx * dt; p.s.position.y += p.vy * dt; p.s.position.z += p.vz * dt;
+    p.vx *= 1 - dt; p.vz *= 1 - dt;
+    p.s.scale.setScalar(p.r0 + (p.r1 - p.r0) * Math.sqrt(k));
+    p.s.material.opacity = Math.min(1, p.t * 6) * (1 - k) * 0.75;
+  }
+}
+
 /* ---------- Lampo della canna sulla scena ---------- */
 const muzzleLight = new THREE.PointLight(0xffc070, 0, 10, 2);
 scene.add(muzzleLight);
@@ -119,5 +172,6 @@ export function updateEffects(dt) {
     alive = any;
   }
 
+  updateSmoke(dt);
   muzzleLight.intensity = Math.max(0, muzzleLight.intensity - dt * 200);
 }

@@ -33,6 +33,28 @@ export function thud(vol, freq) {
   } catch (e) { /* audio non disponibile */ }
 }
 
+/** "Tic" quando un colpo va a segno: kind = 'hit' | 'head' | 'kill'. */
+let lastTick = 0;
+export function hitTick(kind) {
+  if (!actx) return;
+  const t = actx.currentTime;
+  if (kind === 'hit' && t - lastTick < 0.06) return; // mitra e pompa: non troppi tic
+  lastTick = t;
+  try {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine';
+    const f = kind === 'kill' ? 700 : kind === 'head' ? 2300 : 1700;
+    o.frequency.setValueAtTime(f, t);
+    if (kind === 'kill') o.frequency.exponentialRampToValueAtTime(1500, t + 0.09);
+    const len = kind === 'kill' ? 0.14 : 0.05;
+    g.gain.setValueAtTime(kind === 'hit' ? 0.07 : 0.11, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + len);
+    o.connect(g).connect(actx.destination);
+    o.start(t);
+    o.stop(t + len + 0.01);
+  } catch (e) { /* audio non disponibile */ }
+}
+
 let noiseBuf = null;
 export function boomSound() {
   if (!actx) return;

@@ -9,7 +9,8 @@ import { buildZones, ZONES, Z0, Z1 } from './zones.js';
 import { buildNav } from './nav.js';
 import { buildSigns, clearSigns } from './signs.js';
 import { buildRideVisuals, clearRideVisuals } from './rideVisuals.js';
-import { worldMat, aoMat } from './worldMaterial.js';
+import { worldMat, aoMat, waterMat } from './worldMaterial.js';
+import { clearDecals } from './decals.js';
 
 /** Stato della mappa attuale. */
 export const map = {
@@ -32,6 +33,8 @@ export const map = {
 export let wreckAnchor = null;
 /** Collider statico (handle) → superficie, per gli effetti dei colpi. */
 export const staticSurface = new Map();
+/** Collider statici invisibili (barriere, piattaforme nascoste): niente fori dei proiettili sopra. */
+export const hiddenColliders = new Set();
 
 /** Strisce d'ombra morbida (si vedono solo in qualità Media e Alta, vedi setWorldAO). */
 let aoMesh = null, aoOn = true;
@@ -47,7 +50,9 @@ function clearWorld() {
   if (wreckAnchor) world.removeRigidBody(wreckAnchor);
   staticBody = wreckAnchor = null;
   staticSurface.clear();
+  hiddenColliders.clear();
   clearSigns();
+  clearDecals();
   clearRideVisuals();
 }
 
@@ -57,7 +62,7 @@ export function buildWorld(seed) {
   const b = new Builder();
   const ctx = { props: [], wreck: null, spawn: null, shops: [], safeZones: [], boxes: [], upgraders: [], safeSigns: [], signs: [], rides: [] };
   buildZones(b, makeRng(seed), ctx);
-  Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn, shops: ctx.shops, safeZones: ctx.safeZones, boxes: ctx.boxes, upgraders: ctx.upgraders, safeSigns: ctx.safeSigns, secretZ: ctx.secretZ, rides: ctx.rides });
+  Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn, shops: ctx.shops, safeZones: ctx.safeZones, boxes: ctx.boxes, upgraders: ctx.upgraders, safeSigns: ctx.safeSigns, secretZ: ctx.secretZ, rides: ctx.rides, fountain: ctx.fountain || null });
 
   // mesh unite: una per blocco da 12×12 m (quelle fuori dalla visuale non si disegnano)
   for (const ch of b.chunks.values()) {
@@ -70,6 +75,17 @@ export function buildWorld(seed) {
     const m = new THREE.Mesh(g, worldMat);
     m.matrixAutoUpdate = false;
     m.receiveShadow = true; // ombre degli oggetti che si muovono (solo in qualità Alta)
+    scene.add(m);
+    built.push(m);
+  }
+
+  if (b.water.length) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(b.water, 3));
+    g.computeBoundingSphere();
+    const m = new THREE.Mesh(g, waterMat);
+    m.matrixAutoUpdate = false;
+    m.renderOrder = 2;
     scene.add(m);
     built.push(m);
   }
@@ -101,6 +117,7 @@ export function buildWorld(seed) {
     if (c.groups) d.setCollisionGroups(c.groups);
     const col = world.createCollider(d, staticBody);
     staticSurface.set(col.handle, c.surface);
+    if (c.hidden) hiddenColliders.add(col.handle);
   }
   const w = map.wreck;
   if (w) wreckAnchor = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(w.ax, w.ay, w.az));

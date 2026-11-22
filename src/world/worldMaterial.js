@@ -17,7 +17,7 @@ export const worldMat = new THREE.ShaderMaterial({
   uniforms: THREE.UniformsUtils.merge([
     THREE.UniformsLib.lights,
     THREE.UniformsLib.fog,
-    { sunDir: { value: new THREE.Vector3(0, 1, 0) }, shadowCenter: { value: new THREE.Vector3() }, shadowDark: { value: 0.55 } },
+    { dayTint: { value: new THREE.Color(1, 1, 1) }, sunDir: { value: new THREE.Vector3(0, 1, 0) }, shadowCenter: { value: new THREE.Vector3() }, shadowDark: { value: 0.55 } },
   ]),
   vertexShader: /* glsl */`
     #include <common>
@@ -25,13 +25,18 @@ export const worldMat = new THREE.ShaderMaterial({
     #include <shadowmap_pars_vertex>
     attribute float glow;
     uniform float glowBoost;
+    uniform vec3 dayTint;
     varying vec3 vCol;
     varying vec3 vWorld;
     void main() {
-      vCol = color * (1.0 + glow * glowBoost);
       vec3 transformed = position;
       #include <project_vertex>
       vec4 worldPosition = modelMatrix * vec4(transformed, 1.0);
+      // luce del giorno (più scura e blu di notte); le cose luminose restano accese.
+      // Parcheggio (x < -15) e backrooms (x > 33) sono al chiuso con le loro lampade: la notte pesa meno.
+      float indoor = step(worldPosition.x, -15.0) + step(33.0, worldPosition.x);
+      vec3 tint = mix(dayTint, vec3(0.78, 0.8, 0.88), 0.6 * indoor);
+      vCol = color * mix(tint, vec3(1.0 + glow * glowBoost), min(1.0, glow * 4.0));
       vWorld = worldPosition.xyz;
       #include <shadowmap_vertex>
       #include <fog_vertex>
@@ -71,6 +76,43 @@ export function updateWorldMat(x, z) {
   worldMat.uniforms.sunDir.value.copy(sunDir);
   worldMat.uniforms.shadowCenter.value.set(x, 0, z);
 }
+
+/** Acqua: onde che si muovono, riflessi chiari che brillano, un po' trasparente. */
+export const waterMat = new THREE.ShaderMaterial({
+  fog: true,
+  transparent: true,
+  depthWrite: false,
+  uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { time: { value: 0 } }]),
+  vertexShader: /* glsl */`
+    #include <fog_pars_vertex>
+    varying vec2 vXZ;
+    void main() {
+      vXZ = position.xz;
+      vec3 transformed = position;
+      #include <project_vertex>
+      #include <fog_vertex>
+    }`,
+  fragmentShader: /* glsl */`
+    #include <fog_pars_fragment>
+    uniform float time, glowBoost;
+    uniform vec3 dayTint;
+    varying vec2 vXZ;
+    void main() {
+      vec2 p = vXZ;
+      float w = sin(p.x * 3.1 + time * 1.7) + sin(p.y * 2.7 - time * 1.3) + sin((p.x + p.y) * 4.3 + time * 2.4) * 0.6;
+      vec3 c = mix(vec3(0.03, 0.22, 0.42), vec3(0.18, 0.62, 0.8), 0.5 + w * 0.18) * dayTint;
+      float hi = smoothstep(1.55, 2.3, w);
+      c += vec3(0.9, 0.97, 1.0) * hi * (0.55 + glowBoost * 0.5);
+      gl_FragColor = vec4(c, 0.8 + hi * 0.2);
+      #include <colorspace_fragment>
+      #include <fog_fragment>
+    }`,
+});
+waterMat.uniforms.glowBoost = worldGlow;
+waterMat.uniforms.dayTint = worldMat.uniforms.dayTint;
+
+/** A ogni frame: l'acqua si muove. */
+export function tickWater(t) { waterMat.uniforms.time.value = t; }
 
 export const aoMat = new THREE.ShaderMaterial({
   vertexColors: true,

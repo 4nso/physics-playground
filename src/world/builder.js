@@ -80,7 +80,7 @@ export class Builder {
       }
     }
     if (o.collide !== false) {
-      this.colliders.push({ hx, hy, hz, x: cx, y: cy, z: cz, q: null, surface: o.surface || 'stone', groups: o.groups });
+      this.colliders.push({ hx, hy, hz, x: cx, y: cy, z: cz, q: null, surface: o.surface || 'stone', groups: o.groups, hidden: o.visible === false });
       if (o.nav !== false) this.shapes.push({ k: 0, x0, y0, z0, x1, y1, z1 });
     }
   }

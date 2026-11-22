@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { camera, setZoom } from '../core/renderer.js';
 import { castWorld } from '../world/raycast.js';
+import { addDecal } from '../world/decals.js';
 import { player, addRecoil } from '../player/player.js';
 import { WEAPONS, START_WEAPONS, MAX_SLOTS, weaponIndex, weaponStats } from './defs.js';
 import { models, showModel, hideModel, kickModel, setReloadProgress, muzzleWorld, updateViewModel, setSkin } from './viewmodel.js';
@@ -216,7 +217,11 @@ function castPellet(o, d, w, authority, shooterId) {
   end.copy(hit.point);
   normal.copy(hit.normal);
   const n = w.pellets > 1 ? 3 : 7;
-  if (!hit.object) { impact(hit.point, normal, hit.surface, n + 1); return true; }
+  if (!hit.object) {
+    impact(hit.point, normal, hit.surface, n + 1);
+    if (!hit.hidden) addDecal(hit.point, normal, 'hole');
+    return true;
+  }
   const ud = hit.object.userData, obj = ud.obj, enemy = ud.enemy;
   if (enemy || ud.enemyProxy) {
     impact(hit.point, normal, 'enemy', n);
@@ -322,7 +327,17 @@ export function showRemoteShot(o, ends, wi) {
   for (const e of ends) {
     end.set(e[0], e[1], e[2]);
     addTracer(remoteFrom, end);
-    if (e[3]) impact(end, UP, 'stone', 4);
+    if (e[3]) {
+      // il foro sul muro: un raggio corto verso il punto colpito per sapere com'è girata la superficie
+      remoteD.copy(end).sub(remoteFrom);
+      const len = remoteD.length();
+      remoteD.divideScalar(len || 1);
+      const h = castWorld(remoteFrom, remoteD, len + 0.3);
+      if (h && !h.object && !h.hidden && h.point.distanceToSquared(end) < 0.09) {
+        impact(end, h.normal, h.surface, 4);
+        addDecal(h.point, h.normal, 'hole');
+      } else impact(end, UP, 'stone', 4);
+    }
   }
   shotSound(WEAPONS[wi] || WEAPONS[0], 0.45);
 }

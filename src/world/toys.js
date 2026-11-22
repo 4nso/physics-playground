@@ -116,6 +116,19 @@ export const TOYS = {
     // palle giganti da spingere e lanciare addosso ai nemici
     ball(ctx, x - 2, 0, z - 2, 1.1); ball(ctx, x + 2, 0, z + 1, 0.9); ball(ctx, x, 0, z + 3.5, 0.75);
   },
+  fontana(b, rng, ctx, x, z) {
+    // vasca quadrata con l'acqua animata (world/worldMaterial.js, waterMat) e colonna con la coppa al centro
+    const r = 2.8, h = 0.45, t = 0.3, STONE = 0xd9d2c2;
+    b.box(x - r, 0, z - r, x + r, h, z - r + t, STONE, { skip: SKIP.BOTTOM }); b.box(x - r, 0, z + r - t, x + r, h, z + r, STONE, { skip: SKIP.BOTTOM });
+    b.box(x - r, 0, z - r + t, x - r + t, h, z + r - t, STONE, { skip: SKIP.BOTTOM }); b.box(x + r - t, 0, z - r + t, x + r, h, z + r - t, STONE, { skip: SKIP.BOTTOM });
+    b.box(x - r + t, 0, z - r + t, x + r - t, 0.04, z + r - t, 0x2f7fb8, { collide: false, skip: SKIP.BOTTOM, ao: false }); // fondo
+    b.box(x - 0.25, 0, z - 0.25, x + 0.25, 1.3, z + 0.25, STONE, { skip: SKIP.BOTTOM });
+    b.geo(cyl, x, 1.38, z, STONE, { scale: sc.set(0.9, 0.16, 0.9) });
+    b.waterQuad(x - r + t, z - r + t, x + r - t, z + r - t, 0.34);
+    b.waterQuad(x - 0.78, z - 0.78, x + 0.78, z + 0.78, 1.47); // acqua nella coppa
+    bench(b, x, z + r + 1.2); bench(b, x, z - r - 1.2);
+    ctx.fountain = { x, z };
+  },
   piramide(b, rng, ctx, x, z) {
     b.box(x - 2, 0, z - 2, x + 2, 1, z + 2, 0xcfc5b4, { skip: SKIP.BOTTOM });
     for (let i = 0; i < 3; i++) crate(ctx, x - 1.02 + i * 1.02, 1, z);

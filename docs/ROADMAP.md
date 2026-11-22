@@ -280,11 +280,34 @@ Alleggerimento dopo la prova su iPhone 14 Pro Max ("in Alta gira un po' male"):
 | Piazza del luna park | 17–18 fps | 25 | 4 | 10 | 60 |
 | 20 nemici a schermo | 11 fps | 16 | 4 | 8 | 29 |
 
-Passo 3 – Atmosfera e dettagli vivi:
-- [ ] Dal giorno alla notte con l'avanzare dei round (luna park illuminato di notte)
-- [ ] Particelle (polvere nelle backrooms, fumo e detriti nelle esplosioni), acqua animata
-- [ ] Fori dei proiettili e bruciature sui muri, che spariscono dopo un po'
-- [ ] Animazioni migliori di nemici e arma, feedback dei colpi più chiaro
+Passo 3 – Atmosfera e dettagli vivi (in prova su iPhone):
+- [x] Dal giorno alla notte con l'avanzare dei round (luna park illuminato di notte)
+- [x] Particelle (polvere nelle backrooms, fumo e detriti nelle esplosioni), acqua animata
+- [x] Fori dei proiettili e bruciature sui muri, che spariscono dopo un po'
+- [x] Animazioni migliori di nemici e arma, feedback dei colpi più chiaro
+- [ ] Provato su iPhone
+
+Note: round 1 mattina, verso il round 11 pomeriggio dorato, verso il 18 tramonto, al 25 notte con
+stelle e luna; il passaggio avviene piano tra un round e l'altro. Di notte le luci del luna park restano
+accese (e con il bloom brillano di più); parcheggio e backrooms, al chiuso, si scuriscono meno.
+Per vedere subito un'ora: aggiungere `?ora=0.75` (tramonto) o `?ora=1` (notte) all'indirizzo.
+Acqua: nuova fontana nel luna park (sempre presente, in una delle piazzole dei giochi).
+Fori e bruciature: una sola mesh "a istanze" (120 al massimo, una chiamata di disegno), spariscono
+dopo 14 s (fori) e 25 s (bruciature); anche i colpi degli altri giocatori lasciano il foro.
+Polvere delle backrooms: solo in Media e Alta. Mirino: X bianca per un colpo, gialla alla testa,
+rossa quando il nemico muore, con un "tic" diverso per ognuno. Nemici: passo strascicato, busto
+inclinato che gira e ondeggia, slancio in avanti quando colpiscono. Arma: respiro da fermi,
+abbassamento quando si atterra, inclinata e bassa quando si corre.
+
+Misure headless (iPhone simulato, stesse scene; Media e Alta con la risoluzione dinamica attiva):
+
+| Scena | Bassa | Media | Alta |
+|---|---|---|---|
+| Partenza | 58 fps | 18 | 7 |
+| Piazza del luna park | 60 fps | 21 | 10 |
+| 20 nemici a schermo | 29 fps | 13 | 8 |
+
+Rispetto al passo precedente gli fps non cambiano (le differenze sono nel margine di errore della misura).
 
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { scene, camera, sun } from './renderer.js';
 import { worldGlow } from './glow.js';
 
+export const skyState = { stars: 0 };
 export const skyColors = {
   top: new THREE.Color(0x4f8fd6),
   horizon: new THREE.Color(0xc4dbe8),
@@ -18,6 +19,7 @@ const uniforms = {
   bottom: { value: skyColors.bottom },
   sunCol: { value: skyColors.sun },
   sunDir: { value: new THREE.Vector3(0, 1, 0) },
+  stars: { value: 0 },  // 0 di giorno, 1 di notte
   glowBoost: worldGlow,
 };
 
@@ -37,8 +39,9 @@ const sky = new THREE.Mesh(
       }`,
     fragmentShader: /* glsl */`
       uniform vec3 top, horizon, bottom, sunCol, sunDir;
-      uniform float glowBoost;
+      uniform float glowBoost, stars;
       varying vec3 vDir;
+      float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
       void main() {
         vec3 d = normalize(vDir);
         float h = d.y;
@@ -46,6 +49,10 @@ const sky = new THREE.Mesh(
         float s = max(dot(d, sunDir), 0.0);
         c += sunCol * (pow(s, 10.0) * 0.18 + pow(s, 90.0) * 0.35);          // alone
         c = mix(c, sunCol * (1.0 + glowBoost * 1.6), smoothstep(0.9988, 0.9993, s)); // disco
+        if (stars > 0.0 && h > 0.05) {
+          float st = step(0.997, hash(floor(d * 400.0)));                      // stelle
+          c += vec3(0.85, 0.9, 1.0) * st * stars * smoothstep(0.05, 0.3, h);
+        }
         gl_FragColor = vec4(c, 1.0);
         #include <colorspace_fragment>
       }`,
@@ -62,6 +69,7 @@ export function setSkyDome(on) { sky.visible = on; }
 /** A ogni frame: il sole del cielo nella direzione della luce. */
 export function updateSky() {
   uniforms.sunDir.value.copy(sun.position).sub(sun.target.position).normalize();
+  uniforms.stars.value = skyState.stars;
 }
 
 /** Dopo aver cambiato skyColors: anche la nebbia e lo sfondo prendono il colore dell'orizzonte. */

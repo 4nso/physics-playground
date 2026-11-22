@@ -379,7 +379,7 @@ enemyHooks.onKill = (e, head, dir, force) => {
 /* ---------- Client: messaggi dall'host ---------- */
 on('fx', (msg) => showRemoteShot(msg.o, msg.e.map((e) => [e[0] / 100, e[1] / 100, e[2] / 100, e[3]]), msg.w));
 on('kill', (msg) => killProxy(msg.id, msg.dx, msg.dz, msg.f));
-on('hit', (msg) => hud.hitMarker(!!msg.k));
+on('hit', (msg) => hud.hitMarker(!!msg.k, !!msg.h));
 on('pick', (msg) => applyPick(msg.k));
 on('msg', (msg) => hud.flash(msg.text, msg.s));
 on('fkill', (msg) => { if (typeof msg.n === 'string') noteFriendKill(msg.n.slice(0, 14)); });

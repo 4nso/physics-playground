@@ -6,11 +6,12 @@ import * as THREE from 'three';
 import { glowMat } from '../core/glow.js';
 import { scene } from '../core/renderer.js';
 import { castWorld } from '../world/raycast.js';
+import { addDecal } from '../world/decals.js';
 import { enemies, damageEnemy } from '../enemies/enemies.js';
 import { objects } from '../world/objects.js';
 import { player, pushPlayer } from '../player/player.js';
 import { WEAPONS, weaponStats } from './defs.js';
-import { impact } from './effects.js';
+import { impact, smoke } from './effects.js';
 import { boomSound, bounceSound } from './sounds.js';
 
 /**
@@ -75,6 +76,9 @@ function boomFx(x, y, z, radius) {
   tmp.set(x, y, z);
   impact(tmp, UP, 'metal', 26);
   impact(tmp, UP, 'stone', 14);
+  impact(tmp, UP, 'dirt', 16);   // detriti
+  smoke(tmp, 7, radius);
+  scorch(x, y, z, radius);
   const d = Math.hypot(player.pos.x - x, player.pos.y - y, player.pos.z - z);
   boomSound(1.2 / (1 + d * 0.08));
   player.shake = Math.max(player.shake, Math.min(0.25, (radius * 0.6) / (1 + d * 0.5)));
@@ -84,6 +88,21 @@ function boomFx(x, y, z, radius) {
     const dx = player.pos.x - x, dz = player.pos.z - z, l = Math.hypot(dx, dz) || 1;
     pushPlayer((dx / l) * k, 2 + k * 0.4, (dz / l) * k);
   }
+}
+
+/** Bruciatura dove è scoppiato: sul pavimento sotto, oppure sul muro più vicino se è più vicino. */
+const DIRS = [[0, -1, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]].map((d) => new THREE.Vector3(...d));
+const sOrig = new THREE.Vector3(), sBest = new THREE.Vector3(), sNorm = new THREE.Vector3();
+function scorch(x, y, z, radius) {
+  sOrig.set(x, y + 0.2, z);
+  let best = Infinity;
+  for (const d of DIRS) {
+    const h = castWorld(sOrig, d, d.y < 0 ? radius + 0.8 : 1.2);
+    if (!h || h.object || h.hidden || h.distance >= best) continue;
+    best = h.distance;
+    sBest.copy(h.point); sNorm.copy(h.normal);
+  }
+  if (best < Infinity) addDecal(sBest, sNorm, 'burn', radius * (sNorm.y > 0.5 ? 1.2 : 0.8));
 }
 
 /* ---------- Danni ad area (solo da solo / host) ---------- */

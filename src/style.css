@@ -65,6 +65,16 @@ body.touch #joy{display:block}
 #hurt{position:fixed;inset:0;bottom:calc(0px - var(--extra));pointer-events:none;z-index:4;opacity:0;background:radial-gradient(ellipse at center,rgba(255,0,0,0) 45%,rgba(220,20,20,.65) 100%)}
 #cross.hit i{background:#fff;box-shadow:0 0 4px #fff}
 #cross.kill i{background:#ff5a4e}
+#hitX{position:fixed;left:50%;top:calc(50% + var(--extra) / 2);width:0;height:0;pointer-events:none;z-index:5;opacity:0;--c:#fff;--s:1}
+#hitX i{position:absolute;left:-1.5px;top:-5px;width:3px;height:10px;background:var(--c);box-shadow:0 0 3px rgba(0,0,0,.6);border-radius:2px}
+#hitX i:nth-child(1){transform:rotate(45deg) translateY(calc(-12px * var(--s)))}
+#hitX i:nth-child(2){transform:rotate(135deg) translateY(calc(-12px * var(--s)))}
+#hitX i:nth-child(3){transform:rotate(225deg) translateY(calc(-12px * var(--s)))}
+#hitX i:nth-child(4){transform:rotate(315deg) translateY(calc(-12px * var(--s)))}
+#hitX.hit,#hitX.head,#hitX.kill{animation:hitx .22s ease-out}
+#hitX.head{--c:#ffd23f;--s:1.25}
+#hitX.kill{--c:#ff4a3d;--s:1.45;animation-duration:.4s}
+@keyframes hitx{0%{opacity:1;scale:.6}25%{opacity:1;scale:1.15}100%{opacity:0;scale:1}}
 #err{display:none;position:fixed;inset:0;bottom:calc(0px - var(--extra));background:#1b2433;color:#fff;align-items:center;justify-content:center;text-align:center;padding:30px;font-size:16px;z-index:30}
 #play:disabled{opacity:.6;cursor:default}
 #record{text-align:center;margin:0 0 4px;font-weight:600}

@@ -193,8 +193,8 @@ enemyHooks.onPlayerHit = (damage, ex, ez, targetId, enemy) => {
   if (m.health <= 0) downMember(m);
 };
 weaponHooks.onEnemyHit = (killed, head, shooterId) => {
-  if (shooterId === 'local') hud.hitMarker(killed);
-  else if (gameNet.sendTo) gameNet.sendTo(shooterId, { t: 'hit', k: killed ? 1 : 0 });
+  if (shooterId === 'local') hud.hitMarker(killed, head);
+  else if (gameNet.sendTo) gameNet.sendTo(shooterId, { t: 'hit', k: killed ? 1 : 0, h: head ? 1 : 0 });
 };
 weaponHooks.isAuthority = () => net.mode !== 'client';
 // host: livello del potenziatore dell'arma di un altro giocatore (per i danni dei suoi colpi)
