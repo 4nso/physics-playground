@@ -386,3 +386,41 @@ Restiamo **low-poly**, ma più curato e d'atmosfera, senza perdere i 30 fps su i
 
 - iPad e telefono: controlli touch (joystick e pulsanti), 30 fps stabili come minimo
 - Desktop: tastiera e mouse con pointer lock
+- **Controller** (Xbox, PlayStation e simili, collegati via Bluetooth): su iPad, telefono e computer
+
+### Controller (fase 11)
+Usa la Gamepad API del browser. Il controller si attiva da solo appena si preme un tasto
+(Safari mostra il controller solo dopo la prima pressione: il menu lo dice con "Premi un tasto
+del controller").
+
+| Comando | Azione |
+|---|---|
+| Levetta sinistra | Muoversi (premuta = corsa) |
+| Levetta destra | Guardare |
+| RT (grilletto destro) | Sparare |
+| LT (grilletto sinistro) | Mirino / zoom del cecchino |
+| A | Salto |
+| X | Ricarica |
+| Y | Cambia arma (successiva) |
+| B | Interagisci: negozio, cassa, potenziatore, afferra, sali/scendi dalle giostre |
+| LB / RB | Arma precedente / successiva |
+| Croce direzionale | Armi 1-2-3 e navigazione nei menu |
+| Menu (≡) | Pausa |
+| Visualizza (⧉) | Statistiche della partita |
+
+- **Levetta destra comoda**: zona morta, curva di risposta (piano per mirare, veloce a fondo corsa),
+  sensibilità regolabile nelle impostazioni; leggero aiuto alla mira solo con il controller
+- **Menu usabili col controller**: selezione evidenziata, A conferma, B indietro (menu iniziale,
+  lobby, galleria volti, negozio, pausa, impostazioni, fine partita)
+- **HUD**: quando si usa il controller spariscono i pulsanti touch e i suggerimenti mostrano i
+  tasti del controller ("B Compra", "A Salta"); se si tocca lo schermo tornano i controlli touch
+- Vibrazione quando si spara o si viene colpiti, se il browser la supporta
+- In multiplayer ogni giocatore usa il controller del proprio dispositivo
+
+### Mouse su iPad
+Safari su iPad **non supporta il "pointer lock"** (il mouse catturato dal gioco), quindi con il
+mouse la visuale si muove solo trascinando. Finché Apple non lo aggiunge, su iPad il modo
+consigliato è il controller. Il gioco deve provare a usare il pointer lock anche su iPad quando
+si usa un mouse (se un giorno Safari lo supporta, funzionerà da solo) e altrimenti tenere il
+trascinamento.
+
