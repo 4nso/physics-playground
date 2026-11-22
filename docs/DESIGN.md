@@ -159,7 +159,8 @@ Punti: ogni nemico dà i suoi punti a chi l'ha colpito per ultimo; il bonus di f
 - Negozio, passaggio segreto e zona sicura sono **elementi riutilizzabili**, da posizionare
   in qualsiasi mappa (serviranno anche per la futura mappa dell'università)
 - Multiplayer: punti, acquisti, cassa e potenziamenti sono di ogni singolo giocatore, ma li decide l'host
-- Su telefono i pulsanti per comprare e interagire stanno comodi sotto il pollice
+- Su telefono e iPad si compra e si interagisce col **pulsante d'azione** contestuale, sotto il
+  pollice destro (vedi "Piattaforme" → "Controlli touch")
 
 ## Volti dei nemici (privacy prima di tutto)
 
@@ -387,6 +388,38 @@ Restiamo **low-poly**, ma più curato e d'atmosfera, senza perdere i 30 fps su i
 - iPad e telefono: controlli touch (joystick e pulsanti), 30 fps stabili come minimo
 - Desktop: tastiera e mouse con pointer lock
 - **Controller** (Xbox, PlayStation e simili, collegati via Bluetooth): su iPad, telefono e computer
+
+### Controlli touch: pulsanti e pulsante d'azione
+Pulsanti ad arco nell'angolo in basso a destra, tutti alla stessa distanza da "Spara", così il
+pollice li raggiunge ruotando:
+
+| Posizione | Pulsante | Quando c'è |
+|---|---|---|
+| Angolo | **Spara** (il più grande) | Sempre |
+| A sinistra di Spara | **Salta** | Sempre |
+| In diagonale, tra Salta e l'azione | **Ricarica** | Sempre |
+| Sopra Spara | **Pulsante d'azione** | Solo se c'è qualcosa vicino |
+| Secondo giro, sopra Ricarica | **Mirino** | Solo col cecchino |
+
+**Regola del pulsante d'azione** (come B sul controller): non c'è un pulsante fisso "Afferra".
+Il pulsante d'azione compare **solo quando c'è qualcosa con cui interagire** e cambia icona e nome;
+se non c'è niente vicino resta nascosto. Quando compare (o cambia azione) fa una piccola
+animazione (si gonfia e lancia un anello) per farsi notare.
+
+| Dove sei | Pulsante | Cosa fa |
+|---|---|---|
+| Al banco del negozio | 🛒 **Compra** / ✕ **Chiudi** | Apre il pannello del negozio (poi si tocca l'oggetto); premuto di nuovo lo chiude |
+| Alla cassa misteriosa (zona sicura) | 🎁 **Cassa** | Compra subito un giro della cassa |
+| Al potenziatore (zona sicura) | 🔮 **Potenzia** | Potenzia subito l'arma in mano |
+| Vicino a un posto libero di una giostra | 🪑 **Sali** | Ti siedi |
+| Seduto su una giostra | ⬇️ **Scendi** | Ti alzi |
+| Alla cabina di comando | ▶️ **Avvia** / ⏹️ **Ferma** | Accende o spegne la giostra (la velocità resta nel pannello) |
+| Mirando una cassa o una palla vicina | ✋ **Afferra** | La prende |
+| Con un oggetto in mano | 🤾 **Lancia** | La lancia dove guardi (anche "Spara" la lancia) |
+
+Se valgono più cose insieme vince, nell'ordine: Scendi, Lancia, giostra (cabina o posto),
+negozio/cassa/potenziatore, Afferra. In multiplayer i client non afferrano (gli oggetti li muove
+l'host), quindi per loro Afferra/Lancia non compare.
 
 ### Controller (fase 11)
 Usa la Gamepad API del browser. Il controller si attiva da solo appena si preme un tasto

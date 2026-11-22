@@ -68,9 +68,13 @@ export function updateHeld() {
   b.setAngvel({ x: av.x * 0.85, y: av.y * 0.85, z: av.z * 0.85 }, true);
 }
 
-/** Aggiorna il mirino: giallo se c'è qualcosa da afferrare. */
+export const isHolding = () => !!held;
+
+/** Aggiorna il mirino: giallo se c'è qualcosa da afferrare. Restituisce true in quel caso. */
 export function updateCrosshair() {
-  if (held) return;
+  if (held) return false;
   const h = aim(7);
-  hud.setCanGrab(!!(h && h.object.userData.obj));
+  const can = !!(h && h.object.userData.obj);
+  hud.setCanGrab(can);
+  return can;
 }

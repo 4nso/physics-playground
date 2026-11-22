@@ -235,7 +235,6 @@ function cleanupNet() {
   clearAvatars();
   clearProxies();
   faceBuf.length = 0;
-  hud.setGrabVisible(true);
 }
 
 /* ---------- Avvio della partita ---------- */
@@ -282,7 +281,6 @@ on('start', async (msg) => {
   setProxyFaces(sets);
   lobby = msg.members;
   startGame(sets, msg.members, msg.seed);
-  hud.setGrabVisible(false); // sui client gli oggetti li muove l'host
 });
 
 /* ---------- Host: corpi dei giocatori remoti (i nemici li vedono e li inseguono) ---------- */

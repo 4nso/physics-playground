@@ -1,5 +1,7 @@
 // Negozio: quando sei davanti al banco compare il pannello con armi, munizioni e potenziamenti.
-// Su touch si compra con un tocco; con mouse e tastiera si preme B per liberare il mouse e cliccare.
+// Su touch il pannello del negozio si apre col pulsante d'azione "Compra" e si compra con un tocco
+// (cassa e potenziatore: il pulsante d'azione compra subito); con mouse e tastiera si preme B per
+// liberare il mouse e cliccare.
 // I punti (la moneta) li decide chi comanda la partita: da solo questo dispositivo, in multiplayer l'host.
 // Il negozio è una zona tranquilla ma NON sicura: i nemici possono arrivare anche qui.
 // Lo stesso pannello serve anche per la cassa misteriosa e il potenziatore della zona sicura
@@ -52,6 +54,7 @@ export function resetShop() {
   setReloadMul(1);
   closeShopping();
   near = null;
+  touchOpen = false;
   $('shop').classList.add('hidden');
   buildSigns();
 }
@@ -181,6 +184,7 @@ function buy(it) {
 /* ---------- Pannello ---------- */
 let near = null, shopping = false, dirty = true, refreshT = 0, built = false, panelKind = '';
 let money = 0;
+let padWas = false;
 let items = ITEMS;
 
 const ITEM_LOOK = { box: ['🎁', 'Cassa misteriosa'], pap: ['🔮', "Potenzia l'arma in mano"] };
@@ -249,6 +253,30 @@ export function padShopBuy() {
   if (padSel >= 0 && items[padSel] && player.alive) { buy(items[padSel]); dirty = true; }
 }
 
+/* ---------- Touch: pulsante d'azione (Compra / Chiudi, Cassa, Potenzia) ---------- */
+let touchOpen = false; // pannello del negozio aperto dal pulsante d'azione
+const touchUI = () => isTouch && !pad.active;
+/** Cosa mostra il pulsante d'azione qui (o null se non c'è nessuna postazione). */
+export function shopAction() {
+  if (!near || !player.alive) return null;
+  if (near.kind === 'box') return { id: 'box', icon: '🎁', label: 'Cassa', kind: 'shop' };
+  if (near.kind === 'pap') return { id: 'pap', icon: '🔮', label: 'Potenzia', kind: 'shop' };
+  return touchOpen ? { id: 'shopx', icon: '✕', label: 'Chiudi', kind: 'shop' } : { id: 'shop', icon: '🛒', label: 'Compra', kind: 'shop' };
+}
+/** Premuto il pulsante d'azione vicino a una postazione. */
+export function touchShopAction() {
+  if (!near || !player.alive) return;
+  if (items.length === 1) { buy(items[0]); dirty = true; return; }
+  touchOpen = !touchOpen;
+  if (touchOpen) setTrigger(false);
+  thud(0.06, touchOpen ? 900 : 600);
+  showPanel();
+}
+function showPanel() {
+  $('shop').classList.toggle('hidden', !near || (touchUI() && items.length > 1 && !touchOpen));
+  dirty = true;
+}
+
 /** Mouse: B apre/chiude gli acquisti (libera il mouse per cliccare). */
 export function toggleShopping() {
   if (isTouch) return;
@@ -283,11 +311,13 @@ export function updateShop(dt, playing, myMoney) {
   if (key !== (near ? near.kind + near.idx : '')) {
     near = s;
     padSel = -1;
+    touchOpen = false;
     if (near && near.kind !== panelKind) buildPanel(near.kind);
-    $('shop').classList.toggle('hidden', !near);
+    showPanel();
     if (!near && shopping) { closeShopping(); }
-    dirty = true;
   }
+  if (near && padWas !== pad.active) showPanel(); // passando da touch a controller e viceversa
+  padWas = pad.active;
   if (myMoney !== money) { money = myMoney; dirty = true; }
   refreshT -= dt;
   if (near && (dirty || refreshT <= 0)) { refreshPanel(); dirty = false; refreshT = 0.3; }

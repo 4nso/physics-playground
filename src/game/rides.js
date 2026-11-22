@@ -292,7 +292,6 @@ function takeSeat(r, k) {
   mySeat = { r, k };
   drv(r).seat(r, k, tmp);
   sitDown(tmp.x, tmp.y, tmp.z);
-  hud.setGrabVisible(false);
   thud(0.2, 420);
 }
 
@@ -308,7 +307,6 @@ function leaveSeat(r) {
     const p = player.seatPos;
     standUp(p.x, p.y, p.z + 1.9);
   }
-  hud.setGrabVisible(net.mode !== 'client');
   thud(0.15, 260);
 }
 
@@ -344,7 +342,7 @@ let built = '', boxShown = false;
 function hideBox() {
   if (!boxShown) return;
   boxShown = false;
-  built = '';
+  built = null; // alla prossima apertura il pannello si ricostruisce sempre
   $('ride').classList.add('hidden');
 }
 
@@ -352,6 +350,8 @@ function buttons() {
   if (!near) return [];
   // tasto da premere: col controller B (sali/scendi, avvia/ferma) e croce giù (velocità)
   const k = (key, padKey) => (pad.active ? ` <kbd>${padKey}</kbd>` : isTouch ? '' : ` <kbd>${key}</kbd>`);
+  // su touch Sali/Scendi e Avvia/Ferma stanno nel pulsante d'azione: qui restano info e velocità
+  if (isTouch && !pad.active) return near.kind === 'ctrl' ? [['speed', `⚡ Velocità ${near.r.level}`]] : [];
   if (near.kind === 'seat') return [['seat', `⬇️ Scendi${k('F', 'B')}`]];
   if (near.kind === 'board') return [['seat', `🪑 Sali${k('F', 'B')}`]];
   const r = near.r, on = r.state === 'running' || r.state === 'countdown';
@@ -398,6 +398,15 @@ function findNear() {
 
 /** Cosa si può fare qui con la giostra: 'seat' (scendi), 'board' (sali), 'ctrl' (comandi) o null. */
 export const rideNearKind = () => (near ? near.kind : null);
+
+/** Pulsante d'azione touch per la giostra qui vicino (o null). */
+export function rideActionButton() {
+  if (!near) return null;
+  if (near.kind === 'seat') return { id: 'leave', icon: '⬇️', label: 'Scendi', kind: 'ride' };
+  if (near.kind === 'board') return { id: 'board', icon: '🪑', label: 'Sali', kind: 'ride' };
+  const on = near.r.state === 'running' || near.r.state === 'countdown';
+  return on ? { id: 'stop', icon: '⏹️', label: 'Ferma', kind: 'ride' } : { id: 'start', icon: '▶️', label: 'Avvia', kind: 'ride' };
+}
 
 /** Azione del giocatore locale: 'seat' (sali/scendi), 'toggle' (avvia/ferma), 'speed'. */
 export function rideAction(what) {

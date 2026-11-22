@@ -9,6 +9,7 @@ const $ = (id) => document.getElementById(id);
 let msgTimer = 0, hurtT = 0, markT = 0;
 let lastGap = -1;
 let slotsKey = '';
+let actId = '';
 const last = {};
 const setText = (id, text) => { if (last[id] !== text) { $(id).textContent = text; last[id] = text; } };
 
@@ -17,7 +18,8 @@ const slotLabel = (i, icon) => (isTouch ? icon : `${i + 1} ${icon}`);
 
 /**
  * Pulsanti touch ad arco nell'angolo in basso a destra: "Spara" nell'angolo (il più grande),
- * gli altri intorno a lui alla stessa distanza, così il pollice li raggiunge ruotando.
+ * gli altri intorno a lui alla stessa distanza, così il pollice li raggiunge ruotando:
+ * Salta a sinistra, Ricarica in diagonale, il pulsante d'azione sopra Spara, Mirino al secondo giro.
  * La dimensione dipende dallo schermo e dall'impostazione "Dimensione dei pulsanti".
  */
 let btnScale = 1;
@@ -37,15 +39,15 @@ function layoutButtons(scale = btnScale) {
   };
   Object.assign($('bFire').style, { width: F + 'px', height: F + 'px', right: '0px', bottom: '0px' });
   place('bJump', Math.round(F * 0.7), 180);
-  place('bReload', Math.round(F * 0.6), 133);
-  place('bGrab', Math.round(F * 0.6), 87);
+  place('bReload', Math.round(F * 0.6), 138);
+  place('bAct', Math.round(F * 0.7), 84); // pulsante d'azione: sopra "Spara", compare solo se serve
   place('bZoom', Math.round(F * 0.6), 128, Math.round(F * 0.6) + gap); // secondo giro, sopra "Ricarica"
   // il pannello del negozio sta subito a sinistra dei pulsanti, sotto il pollice destro
   document.documentElement.style.setProperty('--arc', Math.round(F * 1.75 + gap * 2 + 6) + 'px');
   document.documentElement.style.setProperty('--bs', scale);
 }
 
-const HOWTO_TOUCH = "<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Spara</b>: tienilo premuto e trascina il dito per mirare</li><li>Tocca le <b>icone delle armi</b> in alto a destra per cambiarla · <b>⟳</b> ricarica</li><li>Spingi il joystick <b>oltre il bordo</b> per correre</li><li>Mira alla <b>testa</b>: danno doppio!</li><li>Con i punti compra armi e potenziamenti al <b>🛒 negozio</b> davanti alla partenza: avvicinati al banco e tocca</li><li>Cecchino: <b>🔭 Mirino</b> per lo zoom</li>";
+const HOWTO_TOUCH = "<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Spara</b>: tienilo premuto e trascina il dito per mirare</li><li>Tocca le <b>icone delle armi</b> in alto a destra per cambiarla · <b>⟳</b> ricarica</li><li>Spingi il joystick <b>oltre il bordo</b> per correre</li><li>Mira alla <b>testa</b>: danno doppio!</li><li>Il <b>pulsante d'azione</b> sopra Spara compare solo quando serve: <b>🛒 Compra</b> al negozio, <b>Sali/Scendi</b> sulle giostre, <b>✋ Afferra</b> e <b>Lancia</b> le casse</li><li>Cecchino: <b>🔭 Mirino</b> per lo zoom</li>";
 const HOWTO_DESK = "<li><b>WASD</b> muovi · <b>Mouse</b> mira · <b>Shift</b> corri · <b>Spazio</b> salta</li><li><b>Clic</b> spara · <b>1/2/3</b> o <b>rotella</b> cambia arma · <b>R</b> ricarica</li><li><b>E</b>: afferra una cassa, poi <b>clic</b> per lanciarla sui nemici</li><li>Mira alla <b>testa</b>: danno doppio! · <b>Esc</b> pausa</li><li>Con i punti compra armi e potenziamenti al <b>🛒 negozio</b> davanti alla partenza: avvicinati al banco e premi <b>B</b></li><li>Cecchino: <b>tasto destro</b> o <b>Q</b> per il mirino</li>";
 const HOWTO_PAD = "<li><b>Levetta sinistra</b> muovi (premila per correre) · <b>levetta destra</b> guarda</li><li><b>RT</b> spara · <b>LT</b> mirino · <b>A</b> salta · <b>X</b> ricarica</li><li><b>Y</b>, <b>LB</b>/<b>RB</b> o la <b>croce</b> cambiano arma</li><li><b>B</b>: compra al 🛒 negozio, afferra una cassa (poi <b>RT</b> per lanciarla), sali sulle giostre</li><li>Mira alla <b>testa</b>: danno doppio! · <b>≡</b> pausa · <b>⧉</b> statistiche</li>";
 const KEYS_DESK = 'WASD muovi · Mouse mira · Clic spara · 1/2/3 o rotella arma · R ricarica · E afferra · Q mirino · B negozio · F sali/scendi · Spazio salta · Esc pausa';
@@ -187,9 +189,24 @@ export const hud = {
     setText('rText', text);
     $('rBar').firstChild.style.width = `${Math.round(Math.min(1, progress) * 100)}%`;
   },
-  setGrabVisible(on) { $('bGrab').style.display = on ? '' : 'none'; },
+  /**
+   * Pulsante d'azione touch (docs/DESIGN.md → "Controlli touch"): a = { id, icon, label, kind } o null.
+   * Compare con un'animazione quando appare o cambia azione; senza niente vicino resta nascosto.
+   */
+  setAction(a) {
+    const id = a ? a.id : '';
+    if (id === actId) return;
+    const el = $('bAct');
+    actId = id;
+    if (!a) { el.style.display = 'none'; el.classList.remove('pop'); return; }
+    $('bActI').textContent = a.icon;
+    $('bActL').textContent = a.label;
+    el.className = a.kind ? 'k-' + a.kind : '';
+    el.style.display = '';
+    void el.offsetWidth; // riparte l'animazione
+    el.classList.add('pop');
+  },
   setHolding(on) {
-    $('bGrab').classList.toggle('on', on);
     $('cross').classList.toggle('hold', on);
     if (on) $('cross').classList.remove('can');
   },

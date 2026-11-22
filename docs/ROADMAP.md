@@ -59,10 +59,19 @@ In multiplayer solo l'host può afferrare gli oggetti; la pausa non ferma la par
 - [x] HUD in alto a sinistra più piccolo sugli schermi piccoli
 - [x] Verificato con screenshot headless: iPhone 844×390 e 932×430, Android 915×412, iPad 1180×820
 - [ ] Provato su un telefono vero
+- [x] Pulsante d'azione contestuale al posto di "Afferra" (come B sul controller): compare solo vicino
+      a qualcosa con un'animazione e diventa Compra/Chiudi, Cassa, Potenzia, Sali/Scendi, Avvia/Ferma,
+      Afferra/Lancia; arco ridisposto (Salta a sinistra, Ricarica in diagonale, azione sopra Spara)
+- [x] Verificato con screenshot headless a 844×390 e 932×430: negozio, cabina e posto della giostra,
+      cassa misteriosa, cassa da afferrare/lanciare, cecchino, lontano da tutto; nessun errore in console
+- [ ] Pulsante d'azione provato su iPad/telefono (dal proprietario)
 
 Note: la corsa su touch si attiva spingendo il joystick oltre il bordo. Su schermi molto larghi
 il campo visivo orizzontale è limitato a circa 100° per non deformare l'immagine.
 Impostazioni salvate in localStorage (menu principale e pausa → ⚙️ Impostazioni).
+Pulsante d'azione: regola in `docs/DESIGN.md` → "Controlli touch". Al negozio il pannello resta chiuso
+finché non si tocca "Compra"; nel pannello delle giostre su touch restano solo le informazioni e il
+pulsante della velocità.
 
 ## Fase 5 – Mondo grande (in prova su iPad/iPhone)
 Passo 1 (generatore e pathfinding):

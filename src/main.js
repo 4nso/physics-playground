@@ -1,6 +1,6 @@
 // Avvio del gioco e ciclo principale.
 import './style.css';
-import { renderer, scene, camera, followSun } from './core/renderer.js';
+import { renderer, scene, camera, followSun, isTouch } from './core/renderer.js';
 import { initPhysics, stepPhysics, alpha } from './core/physics.js';
 import { setupInput, requestLock } from './core/input.js';
 import { setupGamepad, updateGamepad, onPadMode } from './core/gamepad.js';
@@ -13,12 +13,12 @@ import { enemies } from './enemies/enemies.js';
 import { forEachProxy } from './net/proxies.js';
 import { syncObjects, updateRope } from './world/objects.js';
 import { player, createPlayer, resetPlayer, updatePlayer, updateCamera, jump } from './player/player.js';
-import { throwHeld, toggleGrab, updateHeld, updateCrosshair } from './player/interact.js';
+import { throwHeld, toggleGrab, updateHeld, updateCrosshair, isHolding } from './player/interact.js';
 import { weaponScene } from './weapons/viewmodel.js';
 import { initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, nextWeapon, toggleZoom, hasZoom, isZoomed } from './weapons/weapons.js';
-import { updateShop, toggleShopping, closeShopping, isShopping, padShopInteract, padShopping, padShopMove, padShopBuy } from './game/shop.js';
+import { updateShop, toggleShopping, closeShopping, isShopping, padShopInteract, padShopping, padShopMove, padShopBuy, shopAction, touchShopAction } from './game/shop.js';
 import { updateSafeZones } from './game/safezone.js';
-import { updateRides, rideAction, rideNearKind } from './game/rides.js';
+import { updateRides, rideAction, rideNearKind, rideActionButton } from './game/rides.js';
 import { updateEnemies } from './enemies/enemies.js';
 import { initGallery, openGallery } from './faces/gallery.js';
 import { updatePickups } from './game/pickups.js';
@@ -55,6 +55,15 @@ const actions = {
   weapon: selectWeapon,
   nextWeapon,
   grab() { if (net.mode !== 'client' && player.alive && !player.seated) { setTrigger(false); toggleGrab(); } },
+  // pulsante d'azione touch: fa quello che mostra (vedi touchAction più sotto)
+  act() {
+    const a = curAction;
+    if (!a || game.state !== 'playing' || !player.alive) return;
+    if (a.kind === 'ride') actions.ride(a.id === 'start' || a.id === 'stop' ? 'toggle' : 'seat');
+    else if (a.kind === 'shop') touchShopAction();
+    else if (a.id === 'throw') throwHeld();
+    else actions.grab();
+  },
   // tasto destro: mirino se l'arma ce l'ha, altrimenti afferra
   alt() { if (hasZoom()) toggleZoom(); else actions.grab(); },
   zoom() { if (player.alive) toggleZoom(); },
@@ -65,6 +74,22 @@ const actions = {
   // il mouse liberato per comprare non mette in pausa
   lockLost() { if (game.state === 'playing' && game.phase !== 'dead' && !isShopping()) pauseGame(); },
 };
+
+/* ---------- Touch: pulsante d'azione contestuale (docs/DESIGN.md → "Controlli touch") ---------- */
+// Ordine: Scendi, Lancia, giostra (cabina o posto), negozio/cassa/potenziatore, Afferra.
+const ACT_THROW = { id: 'throw', icon: '🤾', label: 'Lancia', kind: 'throw' };
+const ACT_GRAB = { id: 'grab', icon: '✋', label: 'Afferra', kind: '' };
+let curAction = null;
+function touchAction(canGrab) {
+  if (game.state !== 'playing' || game.overlay || !player.alive) return null;
+  const k = rideNearKind();
+  if (k === 'seat') return rideActionButton();
+  if (isHolding()) return ACT_THROW;
+  if (k) return rideActionButton();
+  const s = shopAction();
+  if (s) return s;
+  return canGrab && net.mode !== 'client' ? ACT_GRAB : null;
+}
 
 /* ---------- Controller: azioni in più rispetto a tastiera e touch ---------- */
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -126,7 +151,8 @@ function loop(now) {
   updateSafeZones(gdt, playing);
   netUpdate(dt);
   if (game.state !== 'menu') updateMinimap(dt);
-  if (playing && net.mode !== 'client') updateCrosshair();
+  const canGrab = playing && net.mode !== 'client' && updateCrosshair();
+  if (isTouch) { curAction = touchAction(canGrab); hud.setAction(curAction); }
   hud.update(dt);
 
   updateDayNight(dt, game.state === 'menu' ? 0 : game.round);

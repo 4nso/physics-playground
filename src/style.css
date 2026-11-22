@@ -25,9 +25,16 @@ body.touch #joy{display:block}
 #btns button span{font-size:1.9em;line-height:1}
 #bFire{right:0;bottom:0;width:86px;height:86px;background:rgba(230,70,70,.85);font-size:calc(13px * var(--bs,1))!important}
 #bJump{background:rgba(60,140,240,.82)}
-#bGrab{background:rgba(240,170,40,.88)}
 #btns button:active,#top button:active{filter:brightness(1.25);transform:scale(.94)}
-#bGrab.on{background:rgba(60,190,90,.92)}
+#bAct{background:rgba(240,170,40,.92);overflow:visible}
+#bAct b{font-weight:700}
+#bAct.k-ride{background:rgba(60,140,240,.9)}
+#bAct.k-shop{background:rgba(235,175,30,.95);color:#2a1a00}
+#bAct.k-throw{background:rgba(60,190,90,.92)}
+#bAct.pop{animation:actPop .42s cubic-bezier(.3,1.6,.5,1)}
+#bAct.pop::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:3px solid #fff;animation:actRing .7s ease-out forwards;pointer-events:none}
+@keyframes actPop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}
+@keyframes actRing{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.7);opacity:0}}
 #top{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));width:44px;height:44px;z-index:6;pointer-events:none}
 #top button{position:absolute;top:0;width:44px;height:44px;font-size:20px;background:rgba(15,25,40,.6)}
 #bPause{right:0}

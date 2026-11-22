@@ -68,7 +68,7 @@ export function requestLock() {
 
 /**
  * Collega l'input alle azioni di gioco.
- * actions: { trigger(on), tap, reload, weapon(i), nextWeapon(dir), grab, alt, zoom, shop, ride(what), jump, pause, lockLost }
+ * actions: { trigger(on), tap, reload, weapon(i), nextWeapon(dir), grab, act, alt, zoom, shop, ride(what), jump, pause, lockLost }
  *  - alt: tasto destro del mouse (mirino col cecchino, altrimenti afferra)
  *  - trigger(true/false): grilletto premuto/rilasciato (fuoco continuo)
  *  - tap: un colpo singolo (clic del mouse quando il puntatore non è catturato)
@@ -240,7 +240,7 @@ export function setupInput(actions) {
     actions.trigger(true);
   });
   press($('bJump'), actions.jump);
-  press($('bGrab'), actions.grab);
+  press($('bAct'), actions.act);
   press($('bReload'), actions.reload);
   press($('bZoom'), actions.zoom);
   press($('bPause'), actions.pause);
