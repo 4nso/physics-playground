@@ -62,7 +62,7 @@ export function buildShop(b, ctx, x, z, facing = '+z') {
     box(u0, H - 0.25, -0.05, u0 + 7.4 / 8, H + 0.12, 1.1, i % 2 ? WHITE : RED, { collide: false });
   }
   // insegna luminosa sopra il tetto (la scritta "NEGOZIO" la aggiunge game/shop.js)
-  box(-2.4, H + 0.2, -0.45, 2.4, H + 1.25, -0.2, SIGN, { collide: false, glow: true, skip: SKIP.BOTTOM });
+  box(-2.4, H + 0.2, -0.45, 2.4, H + 1.25, -0.2, SIGN, { collide: false, glow: 0.2, skip: SKIP.BOTTOM });
   box(-2.55, H + 0.2, -0.5, -2.4, H + 1.35, -0.15, TRIM, { collide: false, skip: SKIP.BOTTOM });
   box(2.4, H + 0.2, -0.5, 2.55, H + 1.35, -0.15, TRIM, { collide: false, skip: SKIP.BOTTOM });
   // due luci sotto la tenda

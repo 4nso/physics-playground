@@ -90,12 +90,12 @@ export function buildSafeRoom(b, ctx, x, z, dir, o = {}) {
   const yaw = Math.atan2(-f[0], -f[1]); // le macchine guardano verso il passaggio
   // piedistallo della cassa
   box(-W / 2 - 1.0, 0, D - 1.5, -W / 2 + 1.0, 0.5, D - 0.6, 0x3b4250, { ...nn, skip: SKIP.BOTTOM, surface: 'metal' });
-  box(-W / 2 - 1.05, 0.5, D - 1.55, -W / 2 + 1.05, 0.55, D - 0.55, 0xffcf3a, { collide: false, glow: true });
+  box(-W / 2 - 1.05, 0.5, D - 1.55, -W / 2 + 1.05, 0.55, D - 0.55, 0xffcf3a, { collide: false, glow: 0.4 });
   // potenziatore: macchina viola con bordi arancioni e schermo luminoso
   box(W / 2 - 0.9, 0, D - 1.4, W / 2 + 0.9, 2.3, D - 0.3, 0x5b2a86, { ...nn, skip: SKIP.BOTTOM, surface: 'metal' });
   box(W / 2 - 0.95, 2.3, D - 1.45, W / 2 + 0.95, 2.45, D - 0.25, 0xff8a1f, { collide: false, glow: true });
-  box(W / 2 - 0.95, 0, D - 1.45, W / 2 + 0.95, 0.15, D - 0.25, 0xff8a1f, { collide: false, glow: true, skip: SKIP.BOTTOM });
-  box(W / 2 - 0.6, 1.2, D - 1.45, W / 2 + 0.6, 2.0, D - 1.4, 0xd59cff, { collide: false, glow: true });
+  box(W / 2 - 0.95, 0, D - 1.45, W / 2 + 0.95, 0.15, D - 0.25, 0xff8a1f, { collide: false, glow: 0.4, skip: SKIP.BOTTOM });
+  box(W / 2 - 0.6, 1.2, D - 1.45, W / 2 + 0.6, 2.0, D - 1.4, 0xd59cff, { collide: false, glow: 0.5 });
   box(W / 2 - 0.7, 0.9, D - 1.75, W / 2 + 0.7, 1.0, D - 1.4, 0x2b2e35, { ...nn, surface: 'metal' }); // ripiano per l'arma
 
   if (!ctx.safeZones) ctx.safeZones = [];

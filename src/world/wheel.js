@@ -6,6 +6,7 @@
 // aggiornate a ogni frame da game/rides.js con l'angolo della ruota (vedi world/rideVisuals.js).
 // Le cabine non hanno collider: chi è seduto segue il posto da programma (vedi player.js).
 import * as THREE from 'three';
+import { glowMat } from '../core/glow.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { SKIP } from './builder.js';
 
@@ -126,7 +127,7 @@ function put(list, geo, color, x, y, z, rz = 0, rx = 0) {
 }
 
 const solidMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-const glowMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+const lampMat = glowMat(new THREE.MeshBasicMaterial({ vertexColors: true }), 2.6);
 
 /** Ruota (anelli, raggi, mozzo, lampadine): gira attorno all'asse z del gruppo. */
 function rotorGeometry(def) {
@@ -186,7 +187,7 @@ export function makeWheelVisual(def) {
   const rotor = new THREE.Group();
   rotor.position.set(def.x, def.y, def.z);
   const { solid, glow } = rotorGeometry(def);
-  rotor.add(new THREE.Mesh(solid, solidMat), new THREE.Mesh(glow, glowMat));
+  rotor.add(new THREE.Mesh(solid, solidMat), new THREE.Mesh(glow, lampMat));
   group.add(rotor);
   const geos = [solid, glow], cabins = [];
   for (let k = 0; k < def.n; k++) {

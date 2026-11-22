@@ -2,6 +2,7 @@
 // Le zone le elencano in ctx.signs mentre si costruisce la mappa; qui diventano pannelli con una
 // texture disegnata in un canvas (una per insegna, sono poche). Si ricreano a ogni nuova mappa.
 import * as THREE from 'three';
+import { glowMat, unglow } from '../core/glow.js';
 import { scene } from '../core/renderer.js';
 
 let meshes = [];
@@ -12,6 +13,7 @@ export function clearSigns() {
     m.geometry.dispose();
     m.material.map.dispose();
     m.material.dispose();
+    unglow(m.material);
   }
   meshes = [];
 }
@@ -56,7 +58,7 @@ function drawSign(s) {
 export function buildSigns(list) {
   clearSigns();
   for (const s of list || []) {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(s.w, s.h), new THREE.MeshBasicMaterial({ map: drawSign(s) }));
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(s.w, s.h), glowMat(new THREE.MeshBasicMaterial({ map: drawSign(s) }), 1.15));
     m.position.set(s.x, s.y, s.z);
     m.rotation.y = s.rotY || 0;
     m.updateMatrix();

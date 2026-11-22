@@ -2,6 +2,7 @@
 // Vengono disegnati in una scena a parte, dopo il mondo e con la profondità azzerata,
 // così l'arma non entra mai dentro i muri.
 import * as THREE from 'three';
+import { glowMat } from '../core/glow.js';
 import { camera } from '../core/renderer.js';
 
 export const weaponScene = new THREE.Scene();
@@ -42,7 +43,7 @@ const boxGeo = new THREE.BoxGeometry(1, 1, 1);
 const cylGeo = new THREE.CylinderGeometry(1, 1, 1, 6);
 cylGeo.rotateX(Math.PI / 2); // asse lungo z, come le canne
 const flashGeo = new THREE.OctahedronGeometry(1, 0);
-const flashMat = new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.95, depthWrite: false });
+const flashMat = glowMat(new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.95, depthWrite: false }), 2.6);
 
 function part(g, geo, m, size, pos, rotX = 0) {
   const mesh = new THREE.Mesh(geo, m);

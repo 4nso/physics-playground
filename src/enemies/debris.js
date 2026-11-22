@@ -26,6 +26,7 @@ export function crumbleModel(model, dir, force) {
     part.quaternion.copy(wq);
     part.scale.copy(ws);
     part.userData.offset = new THREE.Vector3(0, -oy, 0);
+    part.castShadow = true;
     scene.add(part);
     const body = world.createRigidBody(
       RAPIER.RigidBodyDesc.dynamic()

@@ -5,6 +5,7 @@
 // Lo stesso pannello serve anche per la cassa misteriosa e il potenziatore della zona sicura
 // (le "postazioni": shop, box, pap).
 import * as THREE from 'three';
+import { glowMat } from '../core/glow.js';
 import { scene, isTouch } from '../core/renderer.js';
 import { exitLock, requestLock } from '../core/input.js';
 import { thud } from '../core/audio.js';
@@ -276,7 +277,7 @@ const signTex = (() => {
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 })();
-const signMat = new THREE.MeshBasicMaterial({ map: signTex, color: 0xffffff });
+const signMat = glowMat(new THREE.MeshBasicMaterial({ map: signTex, color: 0xffffff }), 1.15);
 const signGeo = new THREE.PlaneGeometry(4.6, 1.0);
 let signs = [], signT = 0;
 function buildSigns() {

@@ -1,11 +1,12 @@
 // Effetti dei colpi: scie dei proiettili, scintille/schegge, lampo di luce sulla scena.
 import * as THREE from 'three';
 import { scene } from '../core/renderer.js';
+import { glowMat } from '../core/glow.js';
 
 /* ---------- Scie: brevi strisce che viaggiano veloci dalla canna al bersaglio ---------- */
 const TRACERS = 40, TRACER_SPEED = 260, TRACER_LEN = 2.5;
 const tracerGeo = new THREE.BoxGeometry(1, 1, 1);
-const tracerMat = new THREE.MeshBasicMaterial({ color: 0xfff1a8, transparent: true, opacity: 0.85, depthWrite: false });
+const tracerMat = glowMat(new THREE.MeshBasicMaterial({ color: 0xfff1a8, transparent: true, opacity: 0.85, depthWrite: false }), 2.2);
 const tracers = [];
 for (let i = 0; i < TRACERS; i++) {
   const m = new THREE.Mesh(tracerGeo, tracerMat);
@@ -44,7 +45,7 @@ for (let i = 0; i < N; i++) pos[i * 3 + 1] = -9999;
 const pGeo = new THREE.BufferGeometry();
 pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage));
 pGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-const points = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.07, vertexColors: true }));
+const points = new THREE.Points(pGeo, glowMat(new THREE.PointsMaterial({ size: 0.07, vertexColors: true }), 1.8));
 points.frustumCulled = false;
 scene.add(points);
 let nextP = 0, alive = 0;

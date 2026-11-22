@@ -21,6 +21,7 @@ export function buildRideVisuals(defs) {
     const make = MAKERS[def.kind];
     if (!make) continue;
     const v = make(def);
+    v.group.traverse((o) => { o.castShadow = true; });
     scene.add(v.group);
     visuals.push(v);
     def.visual = v;

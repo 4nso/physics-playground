@@ -29,6 +29,7 @@ function addObj(bodyDesc, colliderDesc, mesh, kind, freq) {
   if (remote) body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
   else addSound(collider, body, freq);
   mesh.castShadow = mesh.receiveShadow = true;
+  mesh.castShadow = true;
   scene.add(mesh);
   const o = { id: ++nextId, body, collider, mesh, kind, surface: SURFACE[kind] || 'stone' };
   objById.set(o.id, o);

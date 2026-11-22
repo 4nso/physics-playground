@@ -28,6 +28,9 @@ import { startMatch, openCreateRoom, openJoin, joinWithCode, leaveToMenu, netBef
 import { hud } from './ui/hud.js';
 import { initSettings } from './ui/settings.js';
 import { quality, updateQuality, LEVEL_NAMES } from './core/quality.js';
+import { renderFrame } from './core/post.js';
+import { updateSky } from './core/sky.js';
+import { updateWorldMat } from './world/worldMaterial.js';
 import { initMobile } from './ui/mobile.js';
 
 const $ = (id) => document.getElementById(id);
@@ -96,11 +99,10 @@ function loop(now) {
   if (playing && net.mode !== 'client') updateCrosshair();
   hud.update(dt);
 
+  updateSky();
+  if (renderer.shadowMap.enabled) updateWorldMat(player.pos.x, player.pos.z);
   renderer.info.reset();
-  renderer.clear();
-  renderer.render(scene, camera);
-  renderer.clearDepth();
-  renderer.render(weaponScene, camera); // l'arma sopra a tutto, senza entrare nei muri
+  renderFrame(scene, weaponScene, camera); // l'arma sopra a tutto, senza entrare nei muri
 }
 
 /* ---------- Contatore fps (Impostazioni → Mostra gli fps) ---------- */

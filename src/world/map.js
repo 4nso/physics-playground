@@ -9,6 +9,7 @@ import { buildZones, ZONES, Z0, Z1 } from './zones.js';
 import { buildNav } from './nav.js';
 import { buildSigns, clearSigns } from './signs.js';
 import { buildRideVisuals, clearRideVisuals } from './rideVisuals.js';
+import { worldMat, aoMat } from './worldMaterial.js';
 
 /** Stato della mappa attuale. */
 export const map = {
@@ -32,13 +33,16 @@ export let wreckAnchor = null;
 /** Collider statico (handle) → superficie, per gli effetti dei colpi. */
 export const staticSurface = new Map();
 
-const worldMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+/** Strisce d'ombra morbida (si vedono solo in qualità Media e Alta, vedi setWorldAO). */
+let aoMesh = null, aoOn = true;
+export function setWorldAO(on) { aoOn = on; if (aoMesh) aoMesh.visible = on; }
 let built = [];        // mesh in scena
 let staticBody = null;
 
 function clearWorld() {
   for (const m of built) { scene.remove(m); m.geometry.dispose(); }
   built = [];
+  aoMesh = null;
   if (staticBody) world.removeRigidBody(staticBody);
   if (wreckAnchor) world.removeRigidBody(wreckAnchor);
   staticBody = wreckAnchor = null;
@@ -61,12 +65,30 @@ export function buildWorld(seed) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(ch.pos, 3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(ch.col, 3));
+    g.setAttribute('glow', new THREE.Float32BufferAttribute(ch.glow, 1));
     g.computeBoundingSphere();
     const m = new THREE.Mesh(g, worldMat);
     m.matrixAutoUpdate = false;
+    m.receiveShadow = true; // ombre degli oggetti che si muovono (solo in qualità Alta)
     scene.add(m);
     built.push(m);
   }
+
+  const ao = b.aoStrips();
+  if (ao.pos.length) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(ao.pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(ao.col, 3));
+    g.computeBoundingSphere();
+    aoMesh = new THREE.Mesh(g, aoMat);
+    aoMesh.matrixAutoUpdate = false;
+    aoMesh.frustumCulled = false;
+    aoMesh.renderOrder = 1; // dopo il pavimento
+    aoMesh.visible = aoOn;
+    scene.add(aoMesh);
+    built.push(aoMesh);
+  }
+  map.aoTriangles = ao.pos.length / 9;
 
   buildSigns(ctx.signs); // scritte delle insegne (luna park)
   buildRideVisuals(ctx.rides); // parti mobili delle giostre (la logica è in game/rides.js)
@@ -91,7 +113,7 @@ export function buildWorld(seed) {
   const t0 = performance.now();
   buildNav(b.shapes, map.bounds, { x: map.spawn.x, y: map.spawn.y + 0.05, z: map.spawn.z });
   map.navMs = Math.round(performance.now() - t0);
-  map.triangles = built.reduce((s, m) => s + m.geometry.attributes.position.count / 3, 0);
+  map.triangles = built.filter((m) => m !== aoMesh).reduce((s, m) => s + m.geometry.attributes.position.count / 3, 0);
   map.chunks = built.length;
   return map;
 }

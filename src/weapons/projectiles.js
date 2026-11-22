@@ -3,6 +3,7 @@
 // Da solo e sull'host i proiettili sono "veri" (auth): esplodono e fanno danni.
 // Sui client sono solo da vedere: si fermano dove colpiscono e aspettano l'esplosione decisa dall'host.
 import * as THREE from 'three';
+import { glowMat } from '../core/glow.js';
 import { scene } from '../core/renderer.js';
 import { castWorld } from '../world/raycast.js';
 import { enemies, damageEnemy } from '../enemies/enemies.js';
@@ -25,7 +26,7 @@ const grenadeMat = new THREE.MeshStandardMaterial({ color: 0x3f5a2a, roughness: 
 const rocketGeo = new THREE.CylinderGeometry(0.06, 0.07, 0.5, 6).rotateX(Math.PI / 2);
 const rocketMat = new THREE.MeshStandardMaterial({ color: 0x5d6b4a, roughness: 0.6, flatShading: true });
 const flameGeo = new THREE.ConeGeometry(0.07, 0.3, 6).rotateX(-Math.PI / 2).translate(0, 0, 0.38);
-const flameMat = new THREE.MeshBasicMaterial({ color: 0xffb040 });
+const flameMat = glowMat(new THREE.MeshBasicMaterial({ color: 0xffb040 }), 3);
 
 function makeMesh(kind) {
   if (kind === 'rocket') {
@@ -49,7 +50,7 @@ function giveMesh(kind, m) { scene.remove(m); pool[kind].push(m); }
 const fireGeo = new THREE.IcosahedronGeometry(1, 1);
 const FIRE = [];
 for (let i = 0; i < 6; i++) {
-  const fire = new THREE.Mesh(fireGeo, new THREE.MeshBasicMaterial({ color: 0xffa13a, transparent: true, depthWrite: false }));
+  const fire = new THREE.Mesh(fireGeo, glowMat(new THREE.MeshBasicMaterial({ color: 0xffa13a, transparent: true, depthWrite: false }), 2.4));
   const smoke = new THREE.Mesh(fireGeo, new THREE.MeshBasicMaterial({ color: 0x4a4a4a, transparent: true, depthWrite: false }));
   fire.visible = smoke.visible = false;
   fire.frustumCulled = smoke.frustumCulled = false;

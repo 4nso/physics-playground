@@ -1,19 +1,24 @@
 // Qualità grafica: Bassa / Media / Alta, oppure Automatica.
 // In automatico si parte da una scelta in base al dispositivo e poi si guarda quanti fps fa davvero
 // il gioco: se rallenta si scende di un livello, se va molto liscio si risale (mai oltre la scelta iniziale).
-import { isTouch, setRenderQuality } from './renderer.js';
+import { isTouch, setRenderQuality, setShadows } from './renderer.js';
+import { setPost } from './post.js';
+import { setGlow } from './glow.js';
+import { setWorldAO } from '../world/map.js';
+import { setSkyDome } from './sky.js';
 
 export const LEVELS = ['low', 'medium', 'high'];
 export const LEVEL_NAMES = { low: 'Bassa', medium: 'Media', high: 'Alta' };
 
 /**
- * Cosa cambia ogni livello. pr = pixel ratio massimo (risoluzione), dist = distanza di vista (m).
- * I passi successivi della fase 10 aggiungono qui ombre, bloom e gli altri effetti.
+ * Cosa cambia ogni livello. pr = pixel ratio massimo (risoluzione), dist = distanza di vista (m),
+ * post = effetti di schermo (bloom, colori, vignettatura, antialiasing: core/post.js),
+ * ao = ombre morbide alla base dei muri, shadows = ombre in tempo reale degli oggetti che si muovono.
  */
 const PRESETS = {
-  low: { pr: 1, dist: 46 },
-  medium: { pr: isTouch ? 1.35 : 1.5, dist: 58 },
-  high: { pr: isTouch ? 1.75 : 2, dist: 70 },
+  low: { pr: 1, dist: 46, post: 'off', ao: false, shadows: false },
+  medium: { pr: isTouch ? 1.25 : 1.5, dist: 58, post: 'medium', ao: true, shadows: false },
+  high: { pr: isTouch ? 1.75 : 2, dist: 70, post: 'high', ao: true, shadows: true },
 };
 
 const AUTO_KEY = 'syf-autoq'; // ultimo livello scelto in automatico (si riparte da lì)
@@ -51,6 +56,10 @@ function apply(level) {
   quality.level = level;
   const p = PRESETS[level];
   setRenderQuality(p.pr, p.dist);
+  setGlow(setPost(p.post));
+  setWorldAO(p.ao);
+  setSkyDome(p.post !== 'off');
+  setShadows(p.shadows);
   for (const fn of listeners) fn(level);
 }
 

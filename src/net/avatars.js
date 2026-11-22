@@ -73,6 +73,7 @@ export function setAvatar(id, s) {
     tag.sprite.position.y = topOf(look.variant) + 0.3;
     model.group.add(tag.sprite);
     model.group.position.set(s.x, s.y - 0.8, s.z);
+    model.group.traverse((o) => { o.castShadow = true; });
     scene.add(model.group);
     a = { model, tag, x: s.x, y: s.y, z: s.z, yaw: s.yaw, phase: 0, down: false, label: '' };
     avatars.set(id, a);

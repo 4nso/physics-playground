@@ -236,10 +236,34 @@ non i numeri assoluti; sul telefono vero sono molto più alti):
 Con 20 nemici le chiamate di disegno passano da ~70 a ~230 (ogni nemico è fatto di più pezzi):
 è il punto più pesante, da alleggerire nei passi successivi se il telefono vero non regge.
 
-Passo 2 – Luce ed effetti di schermo:
-- [ ] Cielo a gradiente con sole, luce migliore
-- [ ] Ambient occlusion dipinta nei vertici, ombre vicine solo in Alta
-- [ ] Bloom su neon, insegne ed esplosioni; correzione colore, vignettatura, antialiasing
+Passo 2 – Luce ed effetti di schermo (in prova su iPhone/iPad):
+- [x] Cielo a gradiente con sole, luce migliore
+- [x] Ambient occlusion dipinta nei vertici, ombre vicine solo in Alta
+- [x] Bloom su neon, insegne ed esplosioni; correzione colore, vignettatura, antialiasing
+- [ ] Misurati gli fps sul telefono vero in qualità Media (30+)
+
+Note: cosa c'è in ogni qualità.
+- Bassa: come prima (cielo a tinta unita, niente effetti), risoluzione 1×.
+- Media: cielo a gradiente con il sole, ombre morbide sul pavimento alla base di muri e oggetti,
+  bloom (le luci "brillano": lampadine, neon, insegne, fuoco, scie, lampo dello sparo, sole),
+  colori un po' più vivi e caldi, angoli appena più scuri, antialiasing FXAA. Risoluzione 1,25× sui touch.
+- Alta: come Media, più ombre in tempo reale degli oggetti che si muovono (nemici, casse, palloni,
+  giostre) entro ~20 m dal giocatore, bloom più largo, antialiasing MSAA 4×. Risoluzione 1,75×.
+La mappa continua ad avere la luce dipinta nei vertici: le ombre in tempo reale si aggiungono solo
+sulle facce al sole e solo per le cose che si muovono (i tetti non scuriscono le stanze).
+
+Misure headless (iPhone simulato 844×390, densità 3×):
+
+| Scena | Bassa | Media passo 1 | Media passo 2 |
+|---|---|---|---|
+| Partenza (luna park) | 47 fps | 43 | 14–16 |
+| Piazza del luna park | 60 fps | 55 | 17–18 |
+| 20 nemici a schermo | 18–22 fps | 16 | 11 |
+
+Attenzione: nel browser headless non c'è una scheda grafica, è tutto calcolato dal processore, e proprio
+gli effetti nuovi (immagine HDR a 16 bit, passaggi a tutto schermo) lì costano moltissimo, mentre
+sui chip di iPhone e iPad sono quasi gratis. Il numero che conta è quello del contatore sul telefono.
+Se in Media il telefono scende sotto i 27 fps, in automatico la qualità passa da sola a Bassa.
 
 Passo 3 – Atmosfera e dettagli vivi:
 - [ ] Dal giorno alla notte con l'avanzare dei round (luna park illuminato di notte)

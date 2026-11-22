@@ -94,7 +94,7 @@ function stall(b, ctx, x, z, facing, color, text) {
     const u0 = -1.4 + i * (2.8 / 6);
     box(u0, 2.35, 0.0, u0 + 2.8 / 6, 2.5, 0.75, i % 2 ? WHITE : color, { collide: false }); // tenda
   }
-  box(-1.2, 2.75, -0.32, 1.2, 3.45, -0.2, 0xfff1c2, { collide: false, glow: true, skip: SKIP.BOTTOM }); // insegna
+  box(-1.2, 2.75, -0.32, 1.2, 3.45, -0.2, 0xfff1c2, { collide: false, glow: 0.2, skip: SKIP.BOTTOM }); // insegna
   for (let k = 0; k < 4; k++) box(-1.0 + k * 0.55, 1.08, -0.45, -0.7 + k * 0.55, 1.35, -0.2, BRIGHT[(k * 2 + text.length) % BRIGHT.length], { collide: false });
   sign(ctx, {
     text, x: x - f[0] * 0.185, y: 3.1, z: z - f[1] * 0.185, w: 2.3, h: 0.62, rotY: ROT[facing],
@@ -127,7 +127,7 @@ function entranceArch(b, ctx, xc, z) {
     b.box(xa, 0, z - 0.8, xb, H, z + 0.8, RED, { skip: SKIP.BOTTOM, surface: 'wood' });
     for (const y of [2.6, 5.2]) b.box(xa - 0.05 * s, y, z - 0.85, xb + 0.05 * s, y + 0.35, z + 0.85, YEL, { collide: false });
     // finestrelle della biglietteria (davanti e dietro)
-    for (const d of [-1, 1]) b.box(Math.min(xa, xb) + 0.3, 1.1, z + d * 0.8, Math.max(xa, xb) - 0.3, 2.0, z + d * 0.83, LAMP, { collide: false, glow: true });
+    for (const d of [-1, 1]) b.box(Math.min(xa, xb) + 0.3, 1.1, z + d * 0.8, Math.max(xa, xb) - 0.3, 2.0, z + d * 0.83, LAMP, { collide: false, glow: 0.4 });
     const cx = (xa + xb) / 2;
     b.geo(cone, cx, H + 0.6, z, YEL, { scale: sc.set(1.15, 1.2, 1.15), rotY: Math.PI / 7 });
     b.box(cx - 0.04, H + 1.2, z - 0.04, cx + 0.04, H + 2.6, z + 0.04, METAL, { collide: false });
@@ -136,7 +136,7 @@ function entranceArch(b, ctx, xc, z) {
     bulbRow(b, xc + s * (T0 - 0.1), 0.6, z + 0.9, xc + s * (T0 - 0.1), 6.0, z + 0.9, 10);
   }
   b.box(xc - T0, 6.2, z - 0.5, xc + T0, 7.0, z + 0.5, NAVY, { collide: false });
-  b.box(xc - 4.3, 7.0, z - 0.1, xc + 4.3, 9.1, z + 0.1, 0xffcf3a, { collide: false, glow: true, skip: SKIP.BOTTOM });
+  b.box(xc - 4.3, 7.0, z - 0.1, xc + 4.3, 9.1, z + 0.1, 0xffcf3a, { collide: false, glow: 0.2, skip: SKIP.BOTTOM });
   bulbRow(b, xc - 4.3, 9.2, z, xc + 4.3, 9.2, z, 18);
   for (const d of [-1, 1]) {
     bulbRow(b, xc - T0 + 0.1, 6.12, z + d * 0.55, xc + T0 - 0.1, 6.12, z + d * 0.55, 14);

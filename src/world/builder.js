@@ -4,6 +4,8 @@
 //     la luce è "dipinta" nei colori dei vertici (niente luci vere per le stanze);
 //  2. i collider per la fisica (scatole, anche inclinate per rampe e scale);
 //  3. le forme semplici (scatole e rampe) usate per calcolare la griglia di navigazione.
+// In più: quali vertici "fanno luce" (glow, per il bagliore) e le strisce d'ombra morbida
+// sul pavimento alla base di muri e oggetti (aoStrips, "ambient occlusion" finta).
 import * as THREE from 'three';
 
 // Direzione della luce finta usata per ombreggiare le facce.
@@ -31,11 +33,13 @@ export const SKIP = { PX: 1, NX: 2, TOP: 4, BOTTOM: 8, PZ: 16, NZ: 32 };
 
 export class Builder {
   constructor() {
-    this.chunks = new Map();  // chiave → { pos: [], col: [] }
+    this.chunks = new Map();  // chiave → { pos: [], col: [], glow: [] }
     this.cur = null;
     this.water = [];          // triangoli dell'acqua (mesh trasparente a parte)
     this.colliders = [];      // { hx, hy, hz, x, y, z, q, surface }
     this.shapes = [];         // forme per la navigazione
+    this.tops = [];           // facce di sopra (pavimenti): { x0, z0, x1, z1, y }
+    this.edges = [];          // basi dei lati delle scatole: [xa, za, xb, zb, y, nx, nz, h]
     this.auto = 12;           // divide la geometria in blocchi da 12×12 m (si disegna solo ciò che si vede)
   }
 
@@ -47,13 +51,13 @@ export class Builder {
 
   /** Sceglie la mesh (riquadro) in cui finiscono i prossimi triangoli. */
   chunk(key) {
-    if (!this.chunks.has(key)) this.chunks.set(key, { pos: [], col: [] });
+    if (!this.chunks.has(key)) this.chunks.set(key, { pos: [], col: [], glow: [] });
     this.cur = this.chunks.get(key);
   }
 
   /**
    * Scatola allineata agli assi da (x0,y0,z0) a (x1,y1,z1).
-   * o = { collide: true, visible: true, surface: 'stone', glow: false, skip: 0, nav: true, ao: true, groups }
+   * o = { collide: true, visible: true, surface: 'stone', glow: false (true o un numero: quanto brilla col bloom), skip: 0, nav: true, ao: true, groups }
    * (groups = gruppi di collisione speciali, ad esempio la barriera che ferma solo i nemici)
    */
   box(x0, y0, z0, x1, y1, z1, color, o = {}) {
@@ -66,6 +70,14 @@ export class Builder {
       this._autoChunk(cx, cz, hx > this.auto / 2 || hz > this.auto / 2);
       mat4.compose(v.set(cx, cy, cz), q.identity(), n.set(hx, hy, hz));
       this._box(mat4, null, color, o, y0);
+      if (!o.glow) {
+        if (!(o.skip & SKIP.TOP)) this.tops.push({ x0, z0, x1, z1, y: y1 });
+        const h = y1 - y0;
+        if (o.ao !== false && h > 0.25) {
+          this.edges.push([x1, z0, x1, z1, y0, 1, 0, h], [x0, z0, x0, z1, y0, -1, 0, h]);
+          this.edges.push([x0, z1, x1, z1, y0, 0, 1, h], [x0, z0, x1, z0, y0, 0, -1, h]);
+        }
+      }
     }
     if (o.collide !== false) {
       this.colliders.push({ hx, hy, hz, x: cx, y: cy, z: cz, q: null, surface: o.surface || 'stone', groups: o.groups });
@@ -122,7 +134,7 @@ export class Builder {
       n.subVectors(c, b).cross(v.subVectors(a, b)).normalize();
       const s = o.glow ? 1 : shadeOf(n);
       for (let k = 0; k < 9; k++) out.pos.push(p[i + k]);
-      for (let k = 0; k < 3; k++) out.col.push(tmpC.r * s, tmpC.g * s, tmpC.b * s);
+      for (let k = 0; k < 3; k++) { out.col.push(tmpC.r * s, tmpC.g * s, tmpC.b * s); out.glow.push(o.glow === true ? 1 : +o.glow || 0); }
     }
     g.dispose();
   }
@@ -153,7 +165,55 @@ export class Builder {
         // "occlusione ambientale" finta: le pareti sono più scure vicino al pavimento
         const ao = side ? 0.7 + 0.3 * Math.min(1, Math.max(0, (p[1] - minY) / 1.4)) : 1;
         out.col.push(tmpC.r * s * ao, tmpC.g * s * ao, tmpC.b * s * ao);
+        out.glow.push(o.glow === true ? 1 : +o.glow || 0);
       }
     }
+  }
+
+  /**
+   * Strisce d'ombra morbida sul pavimento alla base di muri e oggetti: per ogni lato di scatola
+   * che poggia su un pavimento, una striscia larga fino a 0,8 m, scura vicino al muro e chiara fuori.
+   * Si disegnano moltiplicando il colore di ciò che c'è sotto (world/worldMaterial.js).
+   * Restituisce { pos, col } (col = quanto resta di luce: 1 = niente ombra).
+   */
+  aoStrips() {
+    // pavimenti in una griglia da 4 m per trovarli in fretta
+    const G = 4, grid = new Map();
+    for (const t of this.tops) {
+      for (let gx = Math.floor(t.x0 / G); gx <= Math.floor(t.x1 / G); gx++) {
+        for (let gz = Math.floor(t.z0 / G); gz <= Math.floor(t.z1 / G); gz++) {
+          const k = gx * 10007 + gz;
+          if (!grid.has(k)) grid.set(k, []);
+          grid.get(k).push(t);
+        }
+      }
+    }
+    const floorAt = (x, z, y) => {
+      const l = grid.get(Math.floor(x / G) * 10007 + Math.floor(z / G));
+      if (l) for (const t of l) if (Math.abs(t.y - y) < 0.03 && x > t.x0 && x < t.x1 && z > t.z0 && z < t.z1) return true;
+      return false;
+    };
+    const pos = [], col = [];
+    for (const [xa, za, xb, zb, y, nx, nz, h] of this.edges) {
+      const len = Math.hypot(xb - xa, zb - za);
+      const w = 0.8 * Math.min(1, 0.35 + h / 2.5);      // oggetti bassi: ombra più stretta
+      const dark = 0.68 + 0.17 * (1 - Math.min(1, h / 2)); // e più leggera
+      const n = Math.max(1, Math.ceil(len / 3));
+      for (let i = 0; i < n; i++) {
+        const t0 = i / n, t1 = (i + 1) / n;
+        const ax = xa + (xb - xa) * t0, az = za + (zb - za) * t0;
+        const bx = xa + (xb - xa) * t1, bz = za + (zb - za) * t1;
+        const mx = (ax + bx) / 2 + nx * w * 0.5, mz = (az + bz) / 2 + nz * w * 0.5;
+        if (!floorAt(mx, mz, y)) continue;
+        const yy = y + 0.012;
+        const cx = ax + nx * w, cz = az + nz * w, dx = bx + nx * w, dz = bz + nz * w;
+        // due triangoli rivolti verso l'alto
+        const quad = [[ax, az, dark], [bx, bz, dark], [dx, dz, 1], [ax, az, dark], [dx, dz, 1], [cx, cz, 1]];
+        const flip = nx * (bz - az) - nz * (bx - ax) > 0; // senso dei vertici: faccia verso l'alto
+        const order = flip ? [0, 2, 1, 3, 5, 4] : [0, 1, 2, 3, 4, 5];
+        for (const j of order) { const q = quad[j]; pos.push(q[0], yy, q[1]); col.push(q[2], q[2], q[2]); }
+      }
+    }
+    return { pos, col };
   }
 }

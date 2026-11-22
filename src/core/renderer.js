@@ -55,15 +55,28 @@ export function setRenderQuality(pixelRatio, dist) {
 camera.rotation.order = 'YXZ';
 
 // Dalla r155 Three.js usa intensità "fisiche": i valori del prototipo vanno moltiplicati circa per π.
-scene.add(new THREE.HemisphereLight(0xe4f3ff, 0x5a7a3a, 2.5));
-export const sun = new THREE.DirectionalLight(0xfff1dc, 3.0);
+// Luce per gli oggetti che si muovono (la mappa ha la luce dipinta nei vertici): cielo azzurro sopra,
+// erba sotto, sole caldo. Le ombre in tempo reale si accendono solo in qualità Alta (core/quality.js).
+export const hemi = new THREE.HemisphereLight(0xdcecff, 0x66784a, 2.4);
+scene.add(hemi);
+export const sun = new THREE.DirectionalLight(0xffe9c8, 3.2);
 sun.castShadow = false;
 const SM = isTouch ? 1024 : 2048;
 sun.shadow.mapSize.set(SM, SM);
 Object.assign(sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 90 });
 sun.shadow.camera.updateProjectionMatrix();
 sun.shadow.bias = -0.0006;
+sun.shadow.normalBias = 0.02;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 scene.add(sun, sun.target);
+
+/** Ombre in tempo reale (solo qualità Alta). Cambiarle fa ricompilare i materiali. */
+export function setShadows(on) {
+  if (renderer.shadowMap.enabled === on) return;
+  renderer.shadowMap.enabled = on;
+  sun.castShadow = on;
+  scene.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true; });
+}
 
 /**
  * Tiene la luce del sole (e la sua mappa delle ombre) centrata sul giocatore.
