@@ -555,6 +555,68 @@ Restiamo **low-poly**, ma più curato e d'atmosfera, senza perdere i 30 fps su i
   feedback dei colpi più chiaro
 - Palette di colori coerente per zona; tutto continua a essere generato via codice
 
+## Modalità sviluppatore (fase 14)
+
+Un pannello per **provare tutto velocemente**, senza dover giocare 20 round per arrivare a una cosa.
+
+### Chi la vede e come si attiva
+- Solo **chi fa da host** (o chi gioca da solo, che è host di se stesso). I client in multiplayer
+  non la vedono e non possono usarla
+- Impostazioni → in fondo "🛠 Modalità sviluppatore" (interruttore con conferma). Scorciatoia:
+  `?dev` nell'indirizzo la attiva subito
+- Quando è attiva compare un pulsante 🛠 piccolo e trascinabile che apre/chiude il pannello
+- Il pannello funziona con mouse, touch e controller; si può ridurre a icona; è diviso in schede
+
+### Trasparenza
+- Tutti i giocatori della stanza vedono un'etichetta **"🛠 DEV"** nell'HUD per tutta la partita
+- Se nella partita è stata usata, **record e statistiche non vengono salvati** (la schermata finale
+  dice "Partita di test")
+
+### Scheda Partita
+- **Ferma zombi**: blocca nemici e spawn (il mondo continua) · **Elimina tutti gli zombi** (senza punti)
+- Round: vai al round N, round successivo, ricomincia il round
+- **Crea nemici**: tipo (base, rosso, grosso, corazzato, boss) e quantità, davanti a te o dove guardi
+- Velocità del tempo (×0,25 / ×0,5 / ×1 / ×2) · ora del giorno (cursore giorno → notte)
+- Nuova mappa con seed scelto o casuale
+
+### Scheda Giocatore
+- Soldi: +1000, +10 000, imposta valore · vita piena
+- **Invincibile** · munizioni infinite · niente ricarica
+- Volo libero (attraversa i muri) · velocità di movimento ×1/×2/×4
+- **Teletrasporto**: negozio, bancarella munizioni, zona sicura, cassa, potenziatore, ruota, montagne
+  russe (stazione), backrooms, parcheggio, punto di partenza
+- In multiplayer l'host può applicare soldi, vita, invincibilità, armi e teletrasporto **a sé stesso
+  o a un giocatore scelto** (comandi eseguiti dall'host e inviati al client)
+
+### Scheda Armi
+- Prendi qualsiasi arma (anche la raygun) · livello di potenziamento 0/1/2 · munizioni piene
+- **Cassa misteriosa truccata**: la prossima estrazione dà l'arma scelta
+- Apri subito la bancarella munizioni (ignora il round 10) · azzera il limite della cura
+
+### Scheda Mondo e giostre
+- Evidenzia il **muro segreto** e i punti di spawn · mostra i percorsi dei nemici e le collisioni
+- Giostre: avvia, ferma, salta alla sosta delle montagne russe, velocità 1-2-3 anche senza
+  andare alla cabina di comando
+
+### Scheda Grafica e prestazioni
+- Contatore fps e tempi per parte (come `?prof`) · qualità Bassa/Media/Alta al volo
+- Interruttori per bloom, ombre, effetti di schermo, nebbia · vista a fil di ferro (wireframe)
+
+### Scheda Volti
+- Genera volti di prova (facce disegnate dal codice, mai foto) · svuota la galleria
+
+### Scheda Diagnosi
+- **"Copia stato"**: copia un riassunto in testo (versione, seed, round, posizione, armi, soldi,
+  fps, impostazioni, ultimi errori della console) da incollare a Claude per segnalare un bug
+- Registro degli ultimi eventi (acquisti, round, errori)
+
+### Regole tecniche
+- Codice in `src/dev/`, caricato **solo quando la modalità si attiva** (import dinamico): chi non la
+  usa non scarica niente in più
+- Le scorciatoie nell'indirizzo che esistono già (`?round=`, `?seed=`, `?ora=`, `?prof`, `?peer=`)
+  restano e sono elencate nel pannello
+- I comandi passano dalle stesse funzioni del gioco (negozio, round, armi), così si prova la logica vera
+
 ## Piattaforme
 
 - iPad e telefono: controlli touch (joystick e pulsanti), 30 fps stabili come minimo

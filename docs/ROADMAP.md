@@ -417,6 +417,25 @@ il mirino a croce visibile; cecchino col suo mirino; bazooka, lanciagranate, col
 Nessun errore in console. Il clic sinistro mentre si tiene il destro non è verificabile in headless
 (serve il puntatore catturato): è gestito con mousedown/mouseup apposta per questo caso.
 
+## Fase 14 – Modalità sviluppatore
+Dettagli in `docs/DESIGN.md`, sezione "Modalità sviluppatore (fase 14)". Due passi, poi prova.
+
+Passo 1 – Pannello e comandi principali:
+- [ ] Attivazione solo per l'host (impostazioni e `?dev`), pulsante 🛠, pannello a schede
+      usabile con mouse, touch e controller
+- [ ] Etichetta "🛠 DEV" per tutti; record e statistiche non salvati nelle partite di test
+- [ ] Scheda Partita: ferma/elimina zombi, round N, crea nemici, velocità del tempo, ora, seed
+- [ ] Scheda Giocatore: soldi, vita, invincibile, munizioni infinite, volo libero, velocità, teletrasporto
+- [ ] Scheda Armi: qualsiasi arma, livello di potenziamento, cassa truccata, bancarella aperta, cura
+- [ ] Codice in `src/dev/` caricato solo quando serve
+
+Passo 2 – Strumenti avanzati:
+- [ ] Scheda Mondo e giostre (muro segreto, spawn, percorsi, collisioni, comandi delle giostre)
+- [ ] Scheda Grafica e prestazioni (fps, qualità, interruttori degli effetti, wireframe)
+- [ ] Scheda Volti (volti di prova generati, svuota galleria)
+- [ ] Scheda Diagnosi ("Copia stato", registro eventi)
+- [ ] Multiplayer: comandi dell'host applicabili a un giocatore scelto, provati con server PeerJS locale
+
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano
 d'ingresso in salita dalla strada, piano terra a livello strada, poi secondo, terzo e quarto piano.

@@ -55,6 +55,7 @@ src/
   game/              round, punteggio, stati (lobby, gioco, pausa, game over)
   net/               multiplayer PeerJS (host/client, messaggi, invio volti)
   ui/                HUD, menu, schermate
+  dev/               modalità sviluppatore (solo host, caricata a richiesta)
 ```
 
 ## Prestazioni (iPad/telefono)
