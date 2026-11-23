@@ -162,6 +162,7 @@ export async function openCreateRoom() {
         broadcast({ t: 'lobby', list: lobby });
         thud(0.2, 520);
       },
+      onTrying(text) { $('lShareNote').textContent = text; },
       onLeave(id) {
         lobby = lobby.filter((p) => p.id !== id);
         memberFaces.delete(id);
@@ -196,7 +197,7 @@ export async function joinWithCode() {
   $('jErr').textContent = 'Mi collego…';
   $('jGo').disabled = true;
   try {
-    const me = await joinRoom(code, { onClose: hostGone });
+    const me = await joinRoom(code, { onClose: hostGone, onProgress: (t) => { $('jErr').textContent = t; } });
     lobby = [{ id: 'host', slot: 0 }, { id: me.id, slot: me.slot }];
     hud.hide('join');
     hud.show('lobby');
