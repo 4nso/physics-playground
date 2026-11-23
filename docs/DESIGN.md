@@ -38,8 +38,13 @@ cassa misteriosa (vedi "Progressione, negozio e zona segreta").
 | Fucile da cecchino | Colpo potentissimo, mirino con zoom | Negozio / cassa |
 | Lanciagranate | Granate a parabola, danno ad area | Negozio / cassa |
 | Bazooka | Razzo, grande esplosione ad area e spinta fisica | Negozio / cassa |
+| Coltello | Corpo a corpo veloce, pochi danni, colpi infiniti | Negozio (economico) / cassa |
+| Spada | Fendente largo che colpisce più nemici davanti, danni altissimi, un po' lenta | Negozio (caro) / cassa |
+| Mitra a tripletta | Ogni pressione spara 3 colpi in rapida sequenza, precisa | Negozio / cassa |
+| Uzi doppia | Una mitraglietta per mano, cadenza altissima, poco precisa, ricarica lenta | Negozio / cassa |
+| Raygun | Colpi laser verdi visibili (non raggio istantaneo) che esplodono con danno ad area | **Solo cassa, rarissima (~2%)** |
 
-Se ha senso, Code può proporre qualche arma in più.
+Dettagli di bilanciamento della fase 12 nella sezione "Arsenale folle e luna park più comodo".
 
 - Colpi istantanei (raycast) con scie e scintille visibili
 - Munizioni, ricarica, rinculo della visuale, mirino che si allarga
@@ -127,6 +132,48 @@ giocatore (le proprie esplosioni non fanno male, ma spingono: si può fare il "s
 
 Punti: ogni nemico dà i suoi punti a chi l'ha colpito per ultimo; il bonus di fine round
 (250 × round) va a tutti. Il record usa il totale della squadra (i punti spesi non si perdono).
+
+### Arsenale folle e luna park più comodo (fase 12)
+
+**Nuove armi** (valori indicativi, il bilanciamento fine lo fa Code provando):
+
+| Arma | Prezzo | Caricatore / riserva | Note |
+|---|---|---|---|
+| Coltello | 300 | infinito | colpo corpo a corpo rapido (~1,6 m), danno ~60, alla testa ×2 |
+| Spada | 5000 | infinito | fendente ad arco (~2,5 m, ~100°) che colpisce più nemici, danno ~250, ~0,6 s tra i colpi |
+| Mitra a tripletta | 2500 | 30 / 300 | 3 colpi a pressione, danno ~40 per colpo, precisa |
+| Uzi doppia | 2000 | 50 / 400 | due mitragliette, cadenza altissima, danno ~13, dispersione alta, ricarica lenta |
+| Raygun | non in vendita | 20 / 160 | proiettili verdi luminosi veloci (non istantanei), esplosione verde raggio ~2,5 m, danno ~300 ad area |
+
+- Coltello e spada: animazione del fendente, suono "swish", niente munizioni né ricarica; il colpo
+  spinge un po' i nemici. Su touch si usano con "Spara", sul controller con RT
+- Uzi doppia: nel modello in prima persona si vedono due armi, una per mano
+- Raygun: luce e suono speciali quando esce dalla cassa; le sue munizioni si ricaricano solo alla
+  bancarella delle munizioni. Le proprie esplosioni non fanno male (come le altre)
+- Tutte le nuove armi si possono potenziare (2 livelli, strisce viola, poi viola e arancione)
+
+**Cassa misteriosa con rarità** (non più uniforme):
+- comuni: fucile a pompa, mitra, fucile d'assalto, mitra a tripletta, uzi doppia, coltello
+- meno comuni: cecchino, lanciagranate, spada
+- rara: bazooka
+- rarissima: **raygun, ~2%**
+- non esce un'arma che hai già in mano
+
+**Munizioni di riserva raddoppiate** per tutte le armi esistenti (anche potenziate): pompa 30 → 60,
+mitra 150 → 300, assalto 150 → 300, cecchino 25 → 50, lanciagranate 24 → 48, bazooka 8 → 16.
+
+**Bancarella delle munizioni**: la bancarella POPCORN vicino all'ingresso LUNA PARK diventa
+"MUNIZIONI". Prima del round 10 ha la saracinesca abbassata con la scritta "Apre al round 10".
+Dal round 10 ricarica **al massimo tutte le armi che hai** (raygun compresa) per **4500 punti**.
+Il negozio continua a vendere le munizioni della singola arma.
+
+**Cura completa** nel negozio: riporta la vita al massimo, **2000 punti**, **una volta per round**.
+Il potenziamento "Vita massima +25" resta com'è.
+
+**Prestazioni prima di tutto**: anche su un MacBook Air M5 con qualità Alta il gioco non è fluido.
+Prima delle novità si misura dove si perde tempo (CPU: fisica, nemici, percorsi, oggetti creati a
+ogni fotogramma; GPU: effetti di schermo, ombre, risoluzione, chiamate di disegno) e si correggono
+le cause principali. Obiettivo: 60 fps stabili in qualità Alta su un Mac recente, 30+ su iPhone.
 
 ### Passaggio segreto e zona sicura
 - Nei corridoi gialli delle backrooms c'è un punto di muro **appena più giallo** degli altri,
@@ -352,7 +399,9 @@ più strutturata: un **luna park**. Restano gli elementi giocosi di oggi, ma si 
   ~14 m sopra il luna park (sul vialetto a z = 24), grande curva sopra il parcheggio (≥ 12 m, sopra
   i lampioni del tetto), ritorno basso lungo il muro nord, frenata e stazione
 - Trenino di 3 vagoni da 2 posti (6 posti). Si sale solo con il treno fermo in stazione ("Sali", F);
-  in corsa "Scendi" non si può: a fine corsa il treno si ferma e tutti scendono sulla banchina
+  in corsa "Scendi" non si può. **Fase 12**: alla fine del primo giro il treno rallenta e si ferma in
+  stazione per ~8 s con conto alla rovescia ("Riparte tra 8…"): chi vuole scende (e chi vuole può
+  salire), poi riparte per il secondo giro. A fine corsa si ferma e tutti scendono sulla banchina
 - Comandi nella casetta viola a est della banchina: "Avvia" (G), "Ferma" (si ferma alla prossima
   stazione: in aria non si frena), "Velocità 1-2-3" (V). Avvio ritardato di 6 s se nessuno è seduto
 - Una corsa = 2 giri. Velocità: catena 2,8 / 3,5 / 4,5 m/s; in discesa conta l'altezza persa

@@ -352,6 +352,32 @@ trascinamento, ma se Apple lo aggiunge funzionerà da solo.
 Verificato in headless con un controller simulato (iPad 1180×820, telefono 844×390, computer 1280×800):
 menu, partita, negozio, giostra, mirino del cecchino, pausa e impostazioni; nessun errore in console.
 
+## Fase 12 – Prestazioni, arsenale folle e luna park più comodo
+Dettagli in `docs/DESIGN.md`, sezione "Arsenale folle e luna park più comodo".
+Un passo alla volta, pubblicando e fermandosi per la prova.
+
+Passo 1 – Diagnosi e sistemazione delle prestazioni:
+- [ ] Misurare il tempo per fotogramma diviso tra CPU (fisica, nemici, percorsi, giostre, HUD)
+      e GPU (effetti di schermo, ombre, risoluzione, chiamate di disegno) in qualità Alta
+- [ ] Scrivere in DESIGN.md cosa pesava e cosa si è cambiato, con fps prima e dopo
+- [ ] Correggere le cause principali (es. effetti a risoluzione ridotta, meno chiamate di
+      disegno, niente oggetti creati a ogni fotogramma, percorsi dei nemici calcolati meno spesso)
+- [ ] Obiettivo: 60 fps stabili in Alta su un Mac recente, 30+ su iPhone in Media
+
+Passo 2 – Luna park più comodo ed economia:
+- [ ] Montagne russe: sosta di ~8 s in stazione dopo il primo giro, si può scendere (e salire)
+- [ ] Munizioni di riserva raddoppiate
+- [ ] Bancarella MUNIZIONI al posto di POPCORN: chiusa fino al round 10, poi 4500 punti per
+      riempire tutte le armi
+- [ ] Cura completa nel negozio: 2000 punti, una volta per round
+
+Passo 3 – Nuove armi:
+- [ ] Coltello e spada (corpo a corpo, animazioni, suoni)
+- [ ] Mitra a tripletta e uzi doppia (due armi in mano)
+- [ ] Raygun: proiettili verdi esplosivi, solo dalla cassa
+- [ ] Cassa misteriosa con rarità (raygun ~2%), effetto speciale per la raygun
+- [ ] Nuove armi nel negozio, potenziabili, in multiplayer, con touch e controller
+
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano
 d'ingresso in salita dalla strada, piano terra a livello strada, poi secondo, terzo e quarto piano.
