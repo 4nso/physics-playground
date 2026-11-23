@@ -568,7 +568,10 @@ Un pannello per **provare tutto velocemente**, senza dover giocare 20 round per 
 - Il pannello funziona con mouse, touch e controller; si può ridurre a icona; è diviso in schede
 
 ### Trasparenza
-- Tutti i giocatori della stanza vedono un'etichetta **"🛠 DEV"** nell'HUD per tutta la partita
+- Finché la modalità sviluppatore è spenta non compare niente. Dal momento in cui l'host la attiva,
+  tutti i giocatori della stanza vedono una piccola etichetta **"🛠 DEV"** in un angolo dell'HUD
+  (non sopra il personaggio), che resta fino alla fine di quella partita anche se l'host la
+  spegne. Alla partita successiva riparte pulita
 - Se nella partita è stata usata, **record e statistiche non vengono salvati** (la schermata finale
   dice "Partita di test")
 
