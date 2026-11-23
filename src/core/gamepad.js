@@ -221,9 +221,9 @@ function aimAssist(dt, lookMag, moveMag) {
 
 /* ---------- Menu ---------- */
 // Schermate in ordine di DOM: l'ultima visibile è quella in primo piano.
-const SCREENS = ['start', 'pause', 'over', 'lobby', 'join', 'gallery', 'crop', 'settings'];
+const SCREENS = ['start', 'pause', 'over', 'lobby', 'join', 'gallery', 'crop', 'settings', 'devPanel'];
 // B = indietro: il pulsante da premere per ogni schermata
-const BACK = { pause: 'resume', lobby: 'lLeave', join: 'jBack', gallery: 'gClose', crop: 'cSkip', settings: 'sClose' };
+const BACK = { pause: 'resume', lobby: 'lLeave', join: 'jBack', gallery: 'gClose', crop: 'cSkip', settings: 'sClose', devPanel: 'dvClose' };
 // Menu (≡) = il pulsante principale della schermata
 const MAIN = { start: 'play', pause: 'resume', over: 'again', settings: 'sClose' };
 const FOCUSABLE = 'button, label.btn, label.check, label.chk, input[type=range], input.nameIn, #jCode';
@@ -298,7 +298,8 @@ function press(el) {
 function menu(screen, dt, lx, ly) {
   if (screen !== focusScreen) { focusScreen = screen; clearFocus(); }
   if (!pad.active) return;
-  if (!focused || !screen.contains(focused) || !visible(focused)) setFocus(defaultFocus(screen));
+  // se la schermata si è ridisegnata (pannello sviluppatore) si riprende l'elemento segnato con padFocus
+  if (!focused || !screen.contains(focused) || !visible(focused)) setFocus(screen.querySelector('.padFocus') || defaultFocus(screen));
 
   // direzione: croce o levetta sinistra, con ripetizione se tenuta premuta
   let dir = '';

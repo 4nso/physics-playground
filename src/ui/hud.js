@@ -113,6 +113,12 @@ export const hud = {
   },
   clearFeed() { const box = $('feed'); if (box) box.innerHTML = ''; },
   setRound(n) { setText('pRound', `Round ${n}/${MAX_ROUNDS}`); },
+  /** Etichetta "🛠 DEV": in questa partita l'host ha usato la modalità sviluppatore. */
+  setDev(on) {
+    if (last.dev === on) return;
+    last.dev = on;
+    $('pDev').classList.toggle('hidden', !on);
+  },
   setEnemies(n) { setText('pEnemies', `👾 ${n}`); },
   /** Punti da spendere (la moneta del negozio). */
   setScore(n) { setText('pScore', `★ ${n}`); },

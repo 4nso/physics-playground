@@ -37,6 +37,8 @@ import { updateDecals } from './world/decals.js';
 import { updateDust } from './world/dust.js';
 import { initMobile } from './ui/mobile.js';
 import { prof, profBegin, mark, profEnd, profText } from './core/prof.js';
+import { dev, devHooks, setDevMode, devFromUrl } from './core/devmode.js';
+import { holdEnemies } from './enemies/enemies.js';
 
 const $ = (id) => document.getElementById(id);
 let last = performance.now();
@@ -75,7 +77,7 @@ const actions = {
   jump,
   pause() { if (closeShopping()) { requestLock(); return; } pauseGame(); },
   // il mouse liberato per comprare non mette in pausa
-  lockLost() { if (game.state === 'playing' && game.phase !== 'dead' && !isShopping()) pauseGame(); },
+  lockLost() { if (game.state === 'playing' && game.phase !== 'dead' && !isShopping() && !dev.panelOpen) pauseGame(); },
 };
 
 /* ---------- Touch: pulsante d'azione contestuale (docs/DESIGN.md → "Controlli touch") ---------- */
@@ -121,7 +123,8 @@ const padHooks = {
 function loop(now) {
   requestAnimationFrame(loop);
   const rawDt = Math.max(0, (now - last) / 1000);
-  const dt = Math.min(0.05, rawDt);
+  // modalità sviluppatore: il tempo può andare più piano o più veloce (×0,25 … ×2)
+  const dt = Math.min(0.05, rawDt) * dev.timeScale;
   last = now;
   profBegin();
   const playing = game.state === 'playing';
@@ -148,7 +151,9 @@ function loop(now) {
   mark('giocatore');
   if (authority) {
     const targets = teamTargets();
-    updateEnemies(gdt, alpha, playing, targets);
+    // modalità sviluppatore "Ferma zombi": nemici immobili, il resto del mondo continua
+    updateEnemies(dev.freeze ? 0 : gdt, alpha, playing && !dev.freeze, targets);
+    if (dev.freeze && playing) holdEnemies();
     mark('nemici');
     aliveTargets.length = 0;
     for (const t of targets) if (t.alive) aliveTargets.push(t);
@@ -169,6 +174,8 @@ function loop(now) {
   const canGrab = playing && net.mode !== 'client' && updateCrosshair(dt);
   if (isTouch) { curAction = touchAction(canGrab); hud.setAction(curAction); }
   hud.update(dt);
+  hud.setDev(!!game.devUsed && game.state !== 'menu');
+  if (dev.on && devHooks.tick) devHooks.tick(dt);
   mark('hud');
 
   updateDayNight(dt, game.state === 'menu' ? 0 : game.round);
@@ -254,12 +261,13 @@ async function start() {
   initGallery((n) => { $('openGallery').textContent = `🙂 Galleria volti (${n})`; });
   hud.ready();
   joinFromLink(); // aperto da un link d'invito: entra subito nella stanza
+  if (devFromUrl) setDevMode(true); // ?dev nell'indirizzo: modalità sviluppatore subito attiva
 }
 
 // Solo in sviluppo (npm run dev): oggetti utili per i test automatici. Non finisce nel sito pubblicato.
 if (import.meta.env.DEV) {
   Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js'), import('./game/game.js'), import('./game/rides.js')]).then(([m, v, g, r]) => {
-    window.__pp = { game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team, map, renderer, nav, rides: r, quality, prof, scene, spawnEnemy: m.spawnEnemy };
+    window.__pp = { dev, game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team, map, renderer, nav, rides: r, quality, prof, scene, spawnEnemy: m.spawnEnemy };
   });
 }
 

@@ -10,6 +10,7 @@ import { skyColors, skyState, applySkyColors } from '../core/sky.js';
 import { worldMat } from '../world/worldMaterial.js';
 import { grade } from '../core/post.js';
 import { weaponScene } from '../weapons/viewmodel.js';
+import { dev } from '../core/devmode.js';
 import { progress } from './difficulty.js';
 
 const C = (h) => new THREE.Color(h);
@@ -66,7 +67,7 @@ function apply(t) {
 
 /** A ogni frame. round = round attuale (0 nel menu). Il passaggio tra un round e l'altro dura qualche secondo. */
 export function updateDayNight(dt, round) {
-  daynight.target = forced ?? (round > 0 ? progress(round) : 0);
+  daynight.target = dev.dayOverride ?? forced ?? (round > 0 ? progress(round) : 0);
   let t = daynight.t;
   if (t < 0) t = daynight.target;
   else t += Math.max(-1, Math.min(1, daynight.target - t)) * Math.min(1, dt * 0.4);

@@ -19,6 +19,7 @@ import { boxBusy, boxHooks, upgraderFx } from './safezone.js';
 import { map } from '../world/map.js';
 import { net } from '../net/net.js';
 import { hud } from '../ui/hud.js';
+import { dev } from '../core/devmode.js';
 
 const $ = (id) => document.getElementById(id);
 const NEAR = 2.8;          // distanza dal punto davanti al banco per vedere il pannello
@@ -74,7 +75,7 @@ function offer(it) {
     return { kind: 'box', price: BOX_PRICE, label: 'Arma a caso' };
   }
   if (it.id === 'ammoall') {
-    if (curRound() < AMMO_STALL.round) return { kind: 'ammoall', price: 0, done: true, lock: true, label: `Apre al round ${AMMO_STALL.round}` };
+    if (!stallOpen()) return { kind: 'ammoall', price: 0, done: true, lock: true, label: `Apre al round ${AMMO_STALL.round}` };
     if (allAmmoFull()) return { kind: 'ammoall', price: 0, done: true, label: 'Armi già piene' };
     return { kind: 'ammoall', price: AMMO_STALL.price, label: 'Tutte le armi al massimo' };
   }
@@ -122,6 +123,7 @@ export function serverBuy(m, id, kind, extra = {}) {
     const own = Array.isArray(extra.own) ? extra.own : [];
     // rarità: comuni, meno comuni, rare e la raygun (~2%) — vedi BOX_WEIGHTS in defs.js
     boxWeapon = pickBoxWeapon(own);
+    if (dev.rigBox >= 0 && WEAPONS[dev.rigBox]) { boxWeapon = dev.rigBox; dev.rigBox = -1; } // cassa truccata
     if (boxWeapon < 0) return { ok: false, why: 'Hai già tutto!' };
     price = BOX_PRICE;
   } else if (kind === 'pap') {
@@ -131,7 +133,7 @@ export function serverBuy(m, id, kind, extra = {}) {
     if (lvl >= PAP.prices.length) return { ok: false, why: 'Già al massimo' };
     price = PAP.prices[lvl];
   } else if (kind === 'ammoall') {
-    if (curRound() < AMMO_STALL.round) return { ok: false, why: `Apre al round ${AMMO_STALL.round}` };
+    if (!stallOpen()) return { ok: false, why: `Apre al round ${AMMO_STALL.round}` };
     price = AMMO_STALL.price;
   } else if (kind === 'heal') {
     if (m.healRound === curRound()) return { ok: false, why: 'Cura già usata in questo round' };
@@ -203,6 +205,14 @@ export function setShopMember(fn) { localMember = fn; }
 let roundFn = null;
 export function setShopRound(fn) { roundFn = fn; }
 const curRound = () => (roundFn ? roundFn() : 0);
+/** La bancarella delle munizioni è aperta (dal round 10, o subito con la modalità sviluppatore). */
+const stallOpen = () => dev.stallOpen || curRound() >= AMMO_STALL.round;
+/** Modalità sviluppatore: la cura si può riusare subito (per questo giocatore, o per il membro m). */
+export function resetHealLimit(m) {
+  mine.healRound = -1;
+  if (m) m.healRound = -1;
+  dirty = true;
+}
 function buy(it) {
   const o = offer(it);
   if (o && o.lock) { buyFailed(o.label); return; }
@@ -419,7 +429,7 @@ const shutterMat = new THREE.MeshLambertMaterial({ map: shutterTex });
 let shutters = [], shutOpen = 0;
 function buildShutters() {
   for (const m of shutters) scene.remove(m);
-  shutOpen = curRound() >= AMMO_STALL.round ? 1 : 0;
+  shutOpen = (stallOpen() ? 1 : 0);
   shutters = (map.ammoStalls || []).map((s) => {
     const m = new THREE.Mesh(shutterGeo, shutterMat);
     m.position.set(s.x + s.fx * 0.07, SHUT_TOP, s.z + s.fz * 0.07);
@@ -431,7 +441,7 @@ function buildShutters() {
 }
 /** La saracinesca si arrotola verso l'alto quando arriva il round 10 (e si riabbassa a partita nuova). */
 function updateShutters(dt) {
-  const want = curRound() >= AMMO_STALL.round ? 1 : 0;
+  const want = (stallOpen() ? 1 : 0);
   if (want === shutOpen && dt) return;
   shutOpen = want > shutOpen ? Math.min(1, shutOpen + dt / 1.5) : want;
   for (const m of shutters) {

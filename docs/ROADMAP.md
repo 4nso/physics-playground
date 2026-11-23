@@ -420,14 +420,25 @@ Nessun errore in console. Il clic sinistro mentre si tiene il destro non è veri
 ## Fase 14 – Modalità sviluppatore
 Dettagli in `docs/DESIGN.md`, sezione "Modalità sviluppatore (fase 14)". Due passi, poi prova.
 
-Passo 1 – Pannello e comandi principali:
-- [ ] Attivazione solo per l'host (impostazioni e `?dev`), pulsante 🛠, pannello a schede
+Passo 1 – Pannello e comandi principali (in prova su iPad):
+- [x] Attivazione solo per l'host (impostazioni e `?dev`), pulsante 🛠, pannello a schede
       usabile con mouse, touch e controller
-- [ ] Etichetta "🛠 DEV" per tutti; record e statistiche non salvati nelle partite di test
-- [ ] Scheda Partita: ferma/elimina zombi, round N, crea nemici, velocità del tempo, ora, seed
-- [ ] Scheda Giocatore: soldi, vita, invincibile, munizioni infinite, volo libero, velocità, teletrasporto
-- [ ] Scheda Armi: qualsiasi arma, livello di potenziamento, cassa truccata, bancarella aperta, cura
-- [ ] Codice in `src/dev/` caricato solo quando serve
+- [x] Etichetta "🛠 DEV" per tutti; record e statistiche non salvati nelle partite di test
+- [x] Scheda Partita: ferma/elimina zombi, round N, crea nemici, velocità del tempo, ora, seed
+- [x] Scheda Giocatore: soldi, vita, invincibile, munizioni infinite, volo libero, velocità, teletrasporto
+- [x] Scheda Armi: qualsiasi arma, livello di potenziamento, cassa truccata, bancarella aperta, cura
+- [x] Codice in `src/dev/` caricato solo quando serve
+- [ ] Provato su iPad
+
+Note: si attiva da Impostazioni → "🛠 Sviluppatore" (con conferma) o con `?dev` nell'indirizzo; non
+resta salvata: ricaricando la pagina si spegne. Il pulsante 🛠 (trascinabile) apre il pannello; su
+PC anche il tasto `\` e, col controller, "🛠 Pannello sviluppatore" nel menu di pausa (croce per
+muoversi, A preme, B riduce a icona). Con il pannello aperto la partita continua. Il pannello (12 KB)
+si scarica solo all'attivazione. `?dev&round=10` fa partire la partita dal round 10. Sui client la
+modalità si spegne da sola e l'interruttore è disattivato. Per ora i comandi della scheda Giocatore
+valgono per l'host stesso; velocità del tempo, ora del giorno e bancarella aperta contano sull'host
+(i client vedono l'ora decisa dai round). Verificato in headless (1180×820, 844×390 touch e host +
+client con server PeerJS locale): nessun errore in console, il client vede "🛠 DEV" e non salva il record.
 
 Passo 2 – Strumenti avanzati:
 - [ ] Scheda Mondo e giostre (muro segreto, spawn, percorsi, collisioni, comandi delle giostre)

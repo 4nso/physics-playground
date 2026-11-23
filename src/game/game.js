@@ -21,6 +21,7 @@ import { faceByName } from '../faces/gallery.js';
 import { drawPoster } from '../faces/poster.js';
 import { placePosters } from '../world/posters.js';
 import { resetRides } from './rides.js';
+import { dev } from '../core/devmode.js';
 
 const $ = (id) => document.getElementById(id);
 const BREAK_TIME = 12;
@@ -43,6 +44,7 @@ export const game = {
   friendKills: new Map(), // nome dell'amico → quante volte l'ho eliminato (solo questo dispositivo)
   killedBy: '',           // nome dell'amico che mi ha messo a terra l'ultima volta
   killedByCount: new Map(), // nome dell'amico → quante volte mi ha messo a terra
+  devUsed: false,          // in questa partita l'host ha usato la modalità sviluppatore (partita di test)
 };
 
 /* ---------- Messaggi con i nomi degli amici ---------- */
@@ -182,6 +184,7 @@ enemyHooks.onKill = (e, head) => {
 enemyHooks.onPlayerHit = (damage, ex, ez, targetId, enemy) => {
   const m = team.get(targetId);
   if (!m || m.down || game.phase === 'dead') return;
+  if (m.local && dev.god) return; // modalità sviluppatore: invincibile
   m.health -= damage;
   const p = posOf(m);
   const dx = p.x - ex, dz = p.z - ez, d = Math.hypot(dx, dz) || 1;
@@ -299,9 +302,11 @@ export function gameOver(info) {
   hud.clearFeed();
   const r = info || { round: game.round, score: game.score, kills: game.kills };
   const win = !!r.win;
-  if (net.mode === 'host' && gameNet.toAll) gameNet.toAll({ t: 'over', round: r.round, score: r.score, kills: r.kills, win: win ? 1 : 0 });
+  if (r.dev) game.devUsed = true;
+  const test = !!game.devUsed; // partita di test (modalità sviluppatore): niente record
+  if (net.mode === 'host' && gameNet.toAll) gameNet.toAll({ t: 'over', round: r.round, score: r.score, kills: r.kills, win: win ? 1 : 0, dev: test ? 1 : 0 });
   const rec = loadRecord();
-  const isRecord = r.score > rec.score;
+  const isRecord = !test && r.score > rec.score;
   if (isRecord) saveRecord({ score: r.score, round: r.round });
   const many = team.size > 1;
   $('overTitle').textContent = win ? '🏆 Vittoria!' : 'Game over';
@@ -313,7 +318,8 @@ export function gameOver(info) {
   }
   if (game.killedBy && !win) $('overInfo').innerHTML = `${esc($('overInfo').textContent)}<br>💀 Ti ha ucciso <b>${esc(game.killedBy)}</b>`;
   showWanted();
-  $('overRecord').textContent = isRecord ? '🏆 Nuovo record!' : rec.score ? `Record: ${rec.score} punti · round ${rec.round}` : '';
+  $('overRecord').textContent = test ? '🛠 Partita di test: record e statistiche non salvati'
+    : isRecord ? '🏆 Nuovo record!' : rec.score ? `Record: ${rec.score} punti · round ${rec.round}` : '';
   $('again').style.display = net.mode === 'client' ? 'none' : '';
   $('overWait').style.display = net.mode === 'client' ? '' : 'none';
   hud.show('over');
@@ -362,7 +368,7 @@ export function startGame(faceSets, members, seed) {
   resetShop();
   setupSafeZones();
   resetRides();
-  Object.assign(game, { state: 'playing', phase: 'break', overlay: false, round: 0, score: 0, kills: 0, timer: 3, killedBy: '' });
+  Object.assign(game, { state: 'playing', phase: 'break', overlay: false, round: 0, score: 0, kills: 0, timer: 3, killedBy: '', devUsed: false });
   game.friendKills.clear();
   game.killedByCount.clear();
   hud.setRound(1);
@@ -436,9 +442,9 @@ export function updateGame(dt) {
     hud.setEnemies(0);
     return;
   }
-  // combattimento: fa comparire i nemici un po' alla volta
-  game.spawnT -= dt;
-  if (game.toSpawn > 0 && game.spawnT <= 0 && enemies.length < game.cfg.maxAlive) {
+  // combattimento: fa comparire i nemici un po' alla volta (non con "Ferma zombi")
+  if (!dev.freeze) game.spawnT -= dt;
+  if (!dev.freeze && game.toSpawn > 0 && game.spawnT <= 0 && enemies.length < game.cfg.maxAlive) {
     const e = spawnEnemy(nextVariant(), game.cfg);
     if (e.variant === 'boss') {
       const name = enemyName(e);
@@ -450,4 +456,17 @@ export function updateGame(dt) {
   }
   hud.setEnemies(enemies.length + game.toSpawn);
   if (game.toSpawn === 0 && enemies.length === 0) endRound();
+}
+
+/**
+ * Modalità sviluppatore: salta al round n (1..MAX_ROUNDS). I nemici rimasti vanno tolti prima
+ * (vedi src/dev/). Il round parte subito, con l'annuncio e i nemici giusti.
+ */
+export function devGoToRound(n) {
+  if (game.state !== 'playing') return;
+  n = Math.max(1, Math.min(MAX_ROUNDS, Math.round(n) || 1));
+  game.round = n - 1;
+  game.phase = 'break';
+  game.timer = 0;
+  game.toSpawn = 0;
 }

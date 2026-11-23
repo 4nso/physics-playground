@@ -1,0 +1,27 @@
+/* Modalità sviluppatore: pulsante 🛠 e pannello (caricati solo quando la modalità è attiva). */
+#devBtn{position:fixed;left:calc(14px + env(safe-area-inset-left));top:calc(226px + env(safe-area-inset-top));width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,210,58,.85);background:rgba(15,25,40,.72);color:#fff;font-size:22px;line-height:1;z-index:16;cursor:grab;touch-action:none;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+#devPanel{position:fixed;right:calc(8px + env(safe-area-inset-right));top:calc(8px + env(safe-area-inset-top));width:min(400px,calc(100vw - 16px));max-height:calc(100% - 16px - env(safe-area-inset-top));display:flex;flex-direction:column;background:rgba(14,22,36,.94);color:#eef2f8;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.45);z-index:16;font:600 13px/1.3 system-ui,-apple-system,sans-serif;touch-action:pan-y}
+#devPanel .dvHead{display:flex;align-items:center;gap:8px;padding:8px 8px 6px 12px}
+#devPanel .dvHead b{font-size:15px;white-space:nowrap}
+#dvInfo{flex:1;font:600 11px/1.2 ui-monospace,Menlo,monospace;color:#9fb0c8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dvClose{width:36px;height:32px;border:0;border-radius:9px;background:#2a3850;color:#fff;font-size:18px;font-weight:800;cursor:pointer}
+#devPanel .dvTabs{display:flex;gap:4px;padding:0 8px 6px}
+#devPanel .dvTabs button{flex:1;border:0;border-radius:9px;padding:7px 2px;background:#1f2b40;color:#b9c6da;font:inherit;font-size:12px;cursor:pointer}
+#devPanel .dvTabs button.on{background:#ffd23a;color:#1b2433}
+#dvBody{overflow-y:auto;padding:2px 10px 10px;-webkit-overflow-scrolling:touch}
+#devPanel .dvRow{padding:7px 0;border-top:1px solid rgba(255,255,255,.08)}
+#devPanel .dvT{display:block;color:#ffd23a;font-size:12px;margin-bottom:5px}
+#devPanel .dvT:empty{display:none}
+#devPanel .dvBtns{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+#devPanel .dvBtns:empty{display:none}
+#devPanel .dvBtns button{border:0;border-radius:8px;padding:7px 9px;background:#2a3850;color:#fff;font:inherit;font-size:12.5px;cursor:pointer;min-height:32px}
+#devPanel .dvBtns button.on{background:#3fae6a;color:#fff}
+#devPanel .dvBtns button.primary{background:linear-gradient(135deg,#ff7a45,#e8403a)}
+#devPanel .dvBtns button.danger{background:#5a2330;width:100%}
+#devPanel .dvBtns input[type=range]{flex:1;min-width:120px}
+#devPanel .dvBr{flex-basis:100%;height:0}
+#devPanel .dvVal{min-width:28px;text-align:center;font-size:15px}
+#devPanel small{display:block;color:#9fb0c8;font-weight:500;margin-top:5px;font-size:11.5px}
+#devPanel code{background:#24324a;padding:0 4px;border-radius:4px;font-size:11px}
+body.pad #devBtn{display:none}
+@media (max-height:500px){#devBtn{top:calc(160px + env(safe-area-inset-top))}#devPanel .dvBtns button{padding:5px 7px;min-height:28px}#devPanel .dvRow{padding:5px 0}}

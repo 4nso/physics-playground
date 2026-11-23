@@ -13,6 +13,7 @@ import { addTracer, impact, muzzleFlash, updateEffects } from './effects.js';
 import { shotSound, reloadSound, emptySound, switchSound } from './sounds.js';
 import { hud } from '../ui/hud.js';
 import { damageEnemy } from '../enemies/enemies.js';
+import { dev } from '../core/devmode.js';
 
 const state = {
   slots: [],      // armi in mano (indici in WEAPONS), al massimo MAX_SLOTS
@@ -175,7 +176,7 @@ function finishReload() {
   const w = currentWeapon(), a = state.ammo[state.current];
   const n = Math.min(w.mag - a.mag, a.reserve);
   a.mag += n;
-  if (a.reserve !== Infinity) a.reserve -= n;
+  if (a.reserve !== Infinity && !dev.infAmmo) a.reserve -= n; // munizioni infinite: la riserva resta
   setReloadProgress(0);
   refreshHud();
 }
@@ -343,7 +344,7 @@ function shoot() {
 
 function fireRound() {
   const w = currentWeapon(), a = state.ammo[state.current];
-  a.mag--;
+  if (!dev.noReload) a.mag--; // modalità sviluppatore "niente ricarica": il caricatore non cala
   camera.updateMatrixWorld();
   const e = camera.matrixWorld.elements;
   right.set(e[0], e[1], e[2]);
@@ -478,6 +479,7 @@ export function updateWeapons(dt, lookDX, lookDY) {
 
   const wantFire = state.trigger || state.tap;
   state.tap = false;
+  if (dev.infAmmo && a.reserve < w.mag) { a.reserve = w.reserve; refreshHud(); }
   if (wantFire && state.cooldown <= 0 && state.drawT <= 0 && state.reloadT <= 0) {
     if (a.mag > 0) shoot();
     else if (a.reserve > 0) reload();

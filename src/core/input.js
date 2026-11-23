@@ -267,7 +267,7 @@ export function setupInput(actions) {
  * swipe dal bordo per tornare indietro. Le schermate dei menu restano scorrevoli.
  */
 function blockGestures() {
-  const inMenu = (t) => t instanceof Element && t.closest('.screen, input, label, textarea');
+  const inMenu = (t) => t instanceof Element && t.closest('.screen, .devUI, input, label, textarea');
   const stop = (e) => { if (!inMenu(e.target)) e.preventDefault(); };
   document.addEventListener('touchstart', stop, { passive: false });
   document.addEventListener('touchmove', (e) => {

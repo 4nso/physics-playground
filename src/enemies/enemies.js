@@ -48,13 +48,14 @@ function spawnPoint() {
 /**
  * Crea un nemico. opts = configurazione del round (vedi game/difficulty.js):
  * { round, health, damage } — vita e danno di base, moltiplicati dalla variante.
+ * at = { x, y, z } punto a terra dove farlo comparire (modalità sviluppatore); di solito si sceglie da solo.
  */
-export function spawnEnemy(variant, opts) {
+export function spawnEnemy(variant, opts, at = null) {
   const v = VARIANTS[variant];
   const faceIdx = pickFaceIndex(faceSets, variant); // il volto può essere scelto per tipo di nemico (galleria)
   const model = buildEnemyModel(variant, faceSets[faceIdx]);
   const half = 0.45 * v.scale, radius = 0.33 * v.scale, centerY = half + radius;
-  const sp = spawnPoint();
+  const sp = at || spawnPoint();
   const body = world.createRigidBody(
     RAPIER.RigidBodyDesc.dynamic().setTranslation(sp.x, sp.y + centerY + 0.05, sp.z).lockRotations(),
   );
@@ -146,6 +147,28 @@ function removeEnemy(e, removeModel = true) {
   }
   scene.remove(e.bar.g);
   if (removeModel) { scene.remove(e.model.group); disposeModel(e.model); }
+}
+
+/**
+ * Modalità sviluppatore: elimina tutti i nemici senza dare punti (si sbriciolano lo stesso).
+ * fn(e) viene chiamata per ognuno prima di toglierlo (per avvisare i client).
+ */
+export function removeAllEnemies(fn) {
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    e.dead = true;
+    if (fn) fn(e);
+    removeEnemy(e, false);
+    crumbleModel(e.model, { x: 0, y: 0, z: 1 }, 3);
+  }
+}
+
+/** Modalità sviluppatore: nemici fermi sul posto (niente scivolate). */
+export function holdEnemies() {
+  for (const e of enemies) {
+    const v = e.body.linvel();
+    if (v.x || v.z) e.body.setLinvel({ x: 0, y: Math.min(0, v.y), z: 0 }, true);
+  }
 }
 
 export function clearEnemies() {

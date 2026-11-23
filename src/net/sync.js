@@ -20,9 +20,11 @@ import { setAvatar, removeAvatar, clearAvatars, updateAvatars, slotName, SLOT_CO
 import { VARIANT_KEYS, applyEnemySnapshot, killProxy, updateProxies, clearProxies, setProxyFaces } from './proxies.js';
 import { hud } from '../ui/hud.js';
 import { randomSeed } from '../world/rng.js';
+import { dev } from '../core/devmode.js';
 
 /** Seed della prossima partita: ?seed=123456 nell'indirizzo per rigiocare sempre la stessa mappa. */
 function matchSeed() {
+  if (dev.seed > 0) { const s = dev.seed; dev.seed = 0; return s; } // scelto dal pannello sviluppatore
   const s = parseInt(new URLSearchParams(location.search).get('seed'), 10);
   return s > 0 ? s : randomSeed();
 }
@@ -393,7 +395,8 @@ on('over', (msg) => gameOver(msg));
 
 on('s', (msg) => {
   if (net.mode !== 'client' || game.state === 'menu') return;
-  const [round, phase, timer, score, left, kills] = msg.g;
+  const [round, phase, timer, score, left, kills, devUsed] = msg.g;
+  if (devUsed) game.devUsed = true; // l'host usa la modalità sviluppatore: tutti vedono "🛠 DEV"
   game.round = round; game.phase = PHASES[phase]; game.timer = timer / 10; game.score = score; game.kills = kills;
   hud.setRound(Math.max(1, round));
   hud.setEnemies(left);
@@ -455,7 +458,7 @@ function snapshot() {
   }
   return {
     t: 's',
-    g: [game.round, Math.max(0, PHASES.indexOf(game.phase)), Math.round(game.timer * 10), game.score, enemies.length + game.toSpawn, game.kills],
+    g: [game.round, Math.max(0, PHASES.indexOf(game.phase)), Math.round(game.timer * 10), game.score, enemies.length + game.toSpawn, game.kills, game.devUsed ? 1 : 0],
     pl, en, ob, pk: pickupSnapshot(), rd: rideSnapshot(),
   };
 }

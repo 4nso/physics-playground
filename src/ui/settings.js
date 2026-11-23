@@ -1,6 +1,8 @@
 // Impostazioni del giocatore (sensibilità della visuale, dimensione dei pulsanti, qualità grafica,
 // contatore fps, mira col tasto destro, controller), salvate in localStorage.
 import { quality, setQualitySetting, onQuality, LEVEL_NAMES } from '../core/quality.js';
+import { dev, setDevMode } from '../core/devmode.js';
+import { net } from '../net/net.js';
 
 const KEY = 'syf-settings';
 const DEFAULTS = { look: 1, buttons: 1, quality: 'auto', fps: false, padLook: 1, aimAssist: true, vibration: true, aimMode: 'hold' };
@@ -72,6 +74,28 @@ export function initSettings() {
   $('sReset').onclick = () => { Object.assign(settings, DEFAULTS); setQualitySetting(settings.quality); changed(); };
   $('sClose').onclick = () => $('settings').classList.add('hidden');
   for (const id of ['openSettings', 'pauseSettings']) {
-    $(id).onclick = () => $('settings').classList.remove('hidden');
+    $(id).onclick = () => { refreshDev(); $('settings').classList.remove('hidden'); };
   }
+  // Modalità sviluppatore: solo da soli o per l'host, con conferma (non resta salvata: dura finché non ricarichi)
+  $('sDev').addEventListener('change', async (e) => {
+    const box = e.target;
+    if (!box.checked) { setDevMode(false); refreshDev(); return; }
+    if (net.mode === 'client') { box.checked = false; refreshDev(); return; }
+    if (!confirm('Attivare la modalità sviluppatore?\n\nCompare il pulsante 🛠 per provare tutto velocemente. In questa partita tutti vedranno "🛠 DEV" e record e statistiche non verranno salvati.')) {
+      box.checked = false;
+      return;
+    }
+    try { await setDevMode(true); } catch (err) { console.error(err); box.checked = false; }
+    refreshDev();
+  });
+}
+
+/** Stato dell'interruttore "Modalità sviluppatore" (i client della stanza non possono usarla). */
+function refreshDev() {
+  const client = net.mode === 'client';
+  $('sDev').checked = dev.on && !client;
+  $('sDev').disabled = client;
+  $('sDevNote').textContent = client
+    ? 'Solo chi fa da host può usarla.'
+    : 'Per provare tutto velocemente. Solo per chi gioca da solo o fa da host: gli altri vedono "🛠 DEV" e il record non si salva. Scorciatoia: ?dev nell\'indirizzo.';
 }

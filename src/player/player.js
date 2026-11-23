@@ -3,6 +3,7 @@ import { camera, view } from '../core/renderer.js';
 import { world, RAPIER, GROUPS, onBeforeStep } from '../core/physics.js';
 import { input } from '../core/input.js';
 import { map } from '../world/map.js';
+import { dev } from '../core/devmode.js';
 
 const RADIUS = 0.4, HALF = 0.4;        // capsula alta 1.6 m
 const EYE = 0.75;                       // occhi sopra il centro della capsula (≈1.55 m da terra)
@@ -91,8 +92,30 @@ export function resetPlayer(slot = 0) {
 
 export function jump() { player.jumpReq = true; }
 
+/** Modalità sviluppatore: porta il giocatore in (x, feetY, z), con i piedi a quell'altezza. */
+export function teleportPlayer(x, feetY, z, yaw) {
+  if (player.seated) standUp(x, feetY + HALF + RADIUS + 0.05, z);
+  const p = { x, y: feetY + HALF + RADIUS + 0.05, z };
+  player.body.setTranslation(p, true);
+  player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+  Object.assign(prev, p);
+  Object.assign(player.pos, p);
+  if (yaw !== undefined) player.yaw = yaw;
+}
+
+/** Modalità sviluppatore: volo libero (niente gravità né collisioni con i muri). */
+let flying = false;
+function setFlying(on) {
+  if (flying === on || player.seated) return;
+  flying = on;
+  player.collider.setEnabled(!on);
+  player.body.setGravityScale(on ? 0 : 1, true);
+  player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+}
+
 /** Si siede su una giostra: niente collisioni né gravità, la posizione la decide game/rides.js. */
 export function sitDown(x, y, z) {
+  flying = false;
   player.seated = true;
   player.collider.setEnabled(false);
   player.body.setGravityScale(0, true);
@@ -103,6 +126,7 @@ export function sitDown(x, y, z) {
 }
 /** Si alza dalla giostra e si ritrova in (x, y, z) (centro della capsula). */
 export function standUp(x, y, z) {
+  flying = false;
   player.seated = false;
   player.collider.setEnabled(true);
   player.body.setGravityScale(1, true);
@@ -131,6 +155,7 @@ export function updatePlayer(dt) {
   lx *= view.lookScale; ly *= view.lookScale; // col mirino zoomato lo sguardo è più lento e preciso
   player.lookDX = lx;
   player.lookDY = ly;
+  setFlying(dev.fly && player.alive);
   if (!player.alive) return;
   player.yaw += lx;
   player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch + ly));
@@ -155,9 +180,23 @@ export function updatePlayer(dt) {
   if (mag > 1) { f /= mag; r /= mag; }
   const runKey = k.ShiftLeft || k.ShiftRight || input.run || input.padRun;
   player.wantsRun = !!runKey && mag > 0.1;
-  const speed = player.aiming ? WALK_SPEED * AIM_SPEED : runKey ? RUN_SPEED : WALK_SPEED;
+  const speed = (player.aiming ? WALK_SPEED * AIM_SPEED : runKey ? RUN_SPEED : WALK_SPEED) * dev.speedMul;
   const s = Math.sin(player.yaw), c = Math.cos(player.yaw);
   const vx = (-s * f + c * r) * speed, vz = (-c * f - s * r) * speed;
+
+  if (flying) {
+    // si vola dove si guarda (guardando in alto e andando avanti si sale); Spazio sale, C/Ctrl scende
+    const cp = Math.cos(player.pitch), sp = Math.sin(player.pitch);
+    const fs = RUN_SPEED * 1.3 * dev.speedMul;
+    let vy = f * sp * fs;
+    if (k.Space) vy += fs;
+    if (k.KeyC || k.ControlLeft) vy -= fs;
+    player.body.setLinvel({ x: (-s * f * cp + c * r) * fs, y: vy, z: (-c * f * cp - s * r) * fs }, true);
+    player.jumpReq = false;
+    player.grounded = false;
+    player.speed = 0;
+    return;
+  }
 
   player.grounded = checkGrounded();
   const v = player.body.linvel();

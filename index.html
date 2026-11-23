@@ -20,6 +20,7 @@
   <div class="pill" id="pEnemies">👾 0</div>
   <div class="pill" id="pScore">★ 0</div>
   <div class="pill hidden" id="pBreak"></div>
+  <div class="pill hidden" id="pDev" title="L'host sta usando la modalità sviluppatore">🛠 DEV</div>
 </div>
 <canvas id="minimap" aria-hidden="true"></canvas>
 <div id="health"><span>❤</span><div id="hBar"><i></i></div><b id="hNum">100</b></div>
@@ -74,6 +75,7 @@
   <p class="sub" id="pauseInfo"></p>
   <button id="resume" class="btn primary big">Riprendi</button>
   <button id="pauseSettings" class="btn">⚙️ Impostazioni</button>
+  <button id="pauseDev" class="btn hidden">🛠 Pannello sviluppatore</button>
   <button id="restart" class="btn">Ricomincia</button>
   <button id="toMenu" class="btn">Menu principale</button>
 </div></div>
@@ -175,6 +177,9 @@
     <input id="sPad" type="range" min="0.4" max="2.2" step="0.05" value="1"></label>
   <label class="set check"><input id="sAssist" type="checkbox"> <span>Aiuto alla mira</span></label>
   <label class="set check"><input id="sVib" type="checkbox"> <span>Vibrazione (se il controller e il browser la supportano)</span></label>
+  <p class="setHead">🛠 Sviluppatore</p>
+  <label class="set check"><input id="sDev" type="checkbox"> <span>Modalità sviluppatore</span></label>
+  <p id="sDevNote" class="note">Per provare tutto velocemente. Solo per chi gioca da solo o fa da host: gli altri vedono "🛠 DEV" e il record non si salva.</p>
   <button id="sReset" class="btn">Valori predefiniti</button>
   <button id="sClose" class="btn primary">Fatto</button>
 </div></div>
