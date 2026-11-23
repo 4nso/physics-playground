@@ -57,6 +57,7 @@ const PALETTES = {
   dirt: [0x6b8f3a, 0x7a5a32, 0xa0c060],
   soft: [0xffffff, 0xffe080, 0xffb0b0],
   enemy: [0xffffff, 0xffe066, 0xff8a5a, 0xff5a4e],
+  ray: [0xd8ffe0, 0x6dff8a, 0x2bd450],      // raygun
 };
 const PAL = {};
 for (const k in PALETTES) PAL[k] = PALETTES[k].map((c) => new THREE.Color(c));

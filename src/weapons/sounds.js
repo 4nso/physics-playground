@@ -12,7 +12,49 @@ function noiseBuffer(ctx) {
   return noise;
 }
 
+/** Fendente (coltello, spada): fruscio d'aria che sale e scende. */
+function swishSound(w, volume) {
+  const ctx = audioCtx();
+  if (!ctx) return;
+  try {
+    const t = ctx.currentTime, big = w.id === 'sword', len = big ? 0.26 : 0.16, vol = (big ? 0.55 : 0.4) * volume;
+    const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    src.buffer = noiseBuffer(ctx);
+    f.type = 'bandpass'; f.Q.value = 1.4;
+    f.frequency.setValueAtTime(big ? 500 : 900, t);
+    f.frequency.exponentialRampToValueAtTime(big ? 2600 : 4200, t + len * 0.45);
+    f.frequency.exponentialRampToValueAtTime(big ? 700 : 1400, t + len);
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + len * 0.4);
+    g.gain.exponentialRampToValueAtTime(0.001, t + len);
+    src.connect(f).connect(g).connect(ctx.destination);
+    src.start(t, Math.random() * 0.5);
+    src.stop(t + len + 0.02);
+  } catch (e) { /* audio non disponibile */ }
+}
+
+/** Raygun: "piu-u" elettronico che scende di tono, con un ronzio. */
+function zapSound(w, volume) {
+  const ctx = audioCtx();
+  if (!ctx) return;
+  try {
+    const t = ctx.currentTime, vol = w.sound.vol * volume;
+    for (const [type, f0, f1, k] of [['square', 1500, 180, 0.35], ['sawtooth', 2400, 300, 0.2], ['sine', 900, 120, 0.6]]) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f0 * (0.95 + Math.random() * 0.1), t);
+      o.frequency.exponentialRampToValueAtTime(f1, t + 0.28);
+      g.gain.setValueAtTime(vol * k, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      o.connect(g).connect(ctx.destination);
+      o.start(t); o.stop(t + 0.32);
+    }
+  } catch (e) { /* audio non disponibile */ }
+}
+
 export function shotSound(w, volume = 1) {
+  if (w.melee) { swishSound(w, volume); return; }
+  if (w.sound.zap) { zapSound(w, volume); return; }
   const ctx = audioCtx();
   if (!ctx) return;
   try {
@@ -98,3 +140,22 @@ export function boomSound(volume = 1) {
 
 /** Piccolo "tonc" quando una granata rimbalza. */
 export const bounceSound = () => click(260, 0.08, 0, 0.05);
+
+/** Raygun uscita dalla cassa misteriosa: arpeggio "magico" che sale. */
+export function raygunJingle() {
+  const ctx = audioCtx();
+  if (!ctx) return;
+  try {
+    const t0 = ctx.currentTime;
+    [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => {
+      const t = t0 + i * 0.08, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      o.connect(g).connect(ctx.destination);
+      o.start(t); o.stop(t + 0.55);
+    });
+  } catch (e) { /* audio non disponibile */ }
+}

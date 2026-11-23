@@ -6,7 +6,7 @@ import { addDecal } from '../world/decals.js';
 import { player, addRecoil } from '../player/player.js';
 import { rumble } from '../core/rumble.js';
 import { WEAPONS, START_WEAPONS, MAX_SLOTS, weaponIndex, weaponStats } from './defs.js';
-import { models, showModel, hideModel, kickModel, setReloadProgress, muzzleWorld, updateViewModel, setSkin } from './viewmodel.js';
+import { models, showModel, hideModel, kickModel, swingModel, altMuzzle, setReloadProgress, muzzleWorld, updateViewModel, setSkin } from './viewmodel.js';
 import { spawnProjectile, updateProjectiles, clearProjectiles, projHooks, newPid } from './projectiles.js';
 import { addTracer, impact, muzzleFlash, updateEffects } from './effects.js';
 import { shotSound, reloadSound, emptySound, switchSound } from './sounds.js';
@@ -27,6 +27,9 @@ const state = {
   tap: false,     // un singolo colpo richiesto (clic senza pointer lock)
   bloom: 0,       // dispersione extra dovuta al fuoco continuo
   emptyClick: false,
+  burstLeft: 0,   // colpi che mancano nella raffica in corso (mitra a tripletta)
+  burstT: 0,
+  swingDir: 1,    // il fendente va una volta da destra e una da sinistra
   zoomed: false,  // mirino del cecchino
   levels: WEAPONS.map(() => 0), // livello del potenziatore per ogni arma (0, 1, 2)
 };
@@ -68,6 +71,7 @@ function equip(slot) {
   state.reloadT = 0;
   state.drawT = 0.3;
   state.bloom = 0;
+  state.burstLeft = 0;
   setZoomed(false);
   setReloadProgress(0);
   showModel(state.current);
@@ -127,6 +131,7 @@ export function setReloadMul(mul) { state.reloadMul = mul; }
 export function addAmmo() {
   WEAPONS.forEach((w0, i) => {
     const a = state.ammo[i], w = stats(i);
+    if (w.noPickup) return; // raygun: solo alla bancarella delle munizioni
     if (a.reserve !== Infinity) a.reserve = Math.min(w.reserve * 2, a.reserve + w.mag * 2);
   });
   refreshHud();
@@ -221,20 +226,25 @@ function currentSpread(w) {
  * (partita da solo o host), applica danni e spinte. Restituisce true se ha colpito qualcosa
  * (il punto finale è in `end`).
  */
-function castPellet(o, d, w, authority, shooterId) {
+function castPellet(o, d, w, authority, shooterId, hitSet = null) {
   const hit = castWorld(o, d, w.range, shotFilter.ignore);
   if (!hit) { end.copy(o).addScaledVector(d, w.range); return false; }
   end.copy(hit.point);
   normal.copy(hit.normal);
-  const n = w.pellets > 1 ? 3 : 7;
+  const n = w.pellets > 1 || w.melee ? 3 : 7;
   if (!hit.object) {
+    if (hitSet && hitSet.has('wall')) return true; // corpo a corpo: una sola scintilla sul muro
+    if (hitSet) hitSet.add('wall');
     impact(hit.point, normal, hit.surface, n + 1);
-    if (!hit.hidden) addDecal(hit.point, normal, 'hole');
+    if (!hit.hidden && !w.melee) addDecal(hit.point, normal, 'hole');
     return true;
   }
   const ud = hit.object.userData, obj = ud.obj, enemy = ud.enemy;
+  // corpo a corpo: ogni nemico (o oggetto) si colpisce una volta sola per fendente
+  const key = enemy || ud.enemyProxy || obj;
+  if (hitSet && key) { if (hitSet.has(key)) return true; hitSet.add(key); }
   if (enemy || ud.enemyProxy) {
-    impact(hit.point, normal, 'enemy', n);
+    impact(hit.point, normal, 'enemy', w.melee ? 10 : n);
     if (enemy && authority) {
       const head = !!ud.head;
       const killed = damageEnemy(enemy, w.damage * (head ? w.headMul || 2 : 1), d, hit.point, head, w.impulse, shooterId);
@@ -252,23 +262,53 @@ function castPellet(o, d, w, authority, shooterId) {
 const shotDirs = [];   // direzioni dei pallini dell'ultimo colpo (da mandare in rete)
 const shotEnds = [];   // punti d'arrivo (per far vedere le scie agli altri)
 
+const meleeSet = new Set();
+/** Direzioni del ventaglio di un colpo corpo a corpo (in shotDirs). */
+function meleeDirs(w) {
+  const M = w.melee;
+  for (let row = 0; row < M.rows; row++) {
+    const pitch = -0.22 * row; // una fila dritta e una un po' più in basso (nemici bassi, teste vicine)
+    for (let i = 0; i < M.rays; i++) {
+      const yaw = M.rays > 1 ? -M.arc / 2 + (M.arc * i) / (M.rays - 1) : 0;
+      dir.copy(fwd).multiplyScalar(Math.cos(yaw)).addScaledVector(right, Math.sin(yaw)).addScaledVector(up, Math.tan(pitch)).normalize();
+      shotDirs.push([dir.x, dir.y, dir.z]);
+    }
+  }
+}
+
+/** Grilletto: un colpo, una raffica (tripletta) o un fendente. */
 function shoot() {
+  const w = currentWeapon();
+  state.cooldown = w.rate;
+  if (w.burst) { state.burstLeft = w.burst - 1; state.burstT = w.burstGap; }
+  fireRound();
+}
+
+function fireRound() {
   const w = currentWeapon(), a = state.ammo[state.current];
   a.mag--;
-  state.cooldown = w.rate;
   camera.updateMatrixWorld();
   const e = camera.matrixWorld.elements;
   right.set(e[0], e[1], e[2]);
   up.set(e[4], e[5], e[6]);
   fwd.set(-e[8], -e[9], -e[10]);
   origin.setFromMatrixPosition(camera.matrixWorld);
+  if (w.dual) altMuzzle(); // uzi doppia: una volta la destra, una la sinistra
   muzzleWorld(muzzle);
   const spread = Math.tan(currentSpread(w));
   const authority = weaponHooks.isAuthority ? weaponHooks.isAuthority() : true;
   shotDirs.length = shotEnds.length = 0;
 
-  if (w.projectile) {
-    // granata o razzo: parte dalla canna nella direzione in cui guardi
+  if (w.melee) {
+    meleeDirs(w);
+    meleeSet.clear();
+    for (const d of shotDirs) {
+      dir.set(d[0], d[1], d[2]);
+      const hit = castPellet(origin, dir, w, authority, 'local', meleeSet);
+      shotEnds.push([end.x, end.y, end.z, hit ? 1 : 0]);
+    }
+  } else if (w.projectile) {
+    // granata, razzo o raggio verde: parte dalla canna nella direzione in cui guardi
     const r = Math.sqrt(Math.random()) * spread, a2 = Math.random() * Math.PI * 2;
     dir.copy(fwd).addScaledVector(right, Math.cos(a2) * r).addScaledVector(up, Math.sin(a2) * r).normalize();
     const pid = newPid();
@@ -287,8 +327,8 @@ function shoot() {
 
   state.bloom = Math.min(w.maxBloom, state.bloom + w.bloom);
   addRecoil(w.recoil, (Math.random() - 0.5) * w.recoil * 0.3);
-  kickModel(w.kick);
-  muzzleFlash(muzzle);
+  if (w.melee) { state.swingDir = -state.swingDir; swingModel(w.melee.swing, state.swingDir); }
+  else { kickModel(w.kick); muzzleFlash(muzzle); }
   shotSound(w);
   rumble(Math.min(1, 0.15 + w.recoil * 6), 0.35, w.projectile ? 140 : 60);
   refreshHud();
@@ -321,10 +361,11 @@ export function resolveRemoteShot(shooterId, o, dirs, wi) {
   remoteO.set(o[0], o[1], o[2]);
   remoteFrom.set(o[0], o[1] - 0.25, o[2]);
   const ends = [];
-  for (const d of dirs.slice(0, 12)) {
+  const set = w.melee ? new Set() : null;
+  for (const d of dirs.slice(0, 20)) {
     remoteD.set(d[0], d[1], d[2]).normalize();
-    const hit = castPellet(remoteO, remoteD, w, true, shooterId);
-    addTracer(remoteFrom, end);
+    const hit = castPellet(remoteO, remoteD, w, true, shooterId, set);
+    if (!w.melee) addTracer(remoteFrom, end);
     ends.push([end.x, end.y, end.z, hit ? 1 : 0]);
   }
   shotSound(w, 0.45);
@@ -335,6 +376,7 @@ export function resolveRemoteShot(shooterId, o, dirs, wi) {
 const UP = new THREE.Vector3(0, 1, 0);
 export function showRemoteShot(o, ends, wi) {
   remoteFrom.set(o[0], o[1] - 0.25, o[2]);
+  if (WEAPONS[wi] && WEAPONS[wi].melee) { shotSound(WEAPONS[wi], 0.45); return; } // fendente: solo il suono
   for (const e of ends) {
     end.set(e[0], e[1], e[2]);
     addTracer(remoteFrom, end);
@@ -365,6 +407,15 @@ export function updateWeapons(dt, lookDX, lookDY) {
     setReloadProgress(prog);
     hud.setReload(prog);
     if (state.reloadT <= 0) { state.reloadT = 0; finishReload(); }
+  }
+
+  // raffica in corso (mitra a tripletta): i colpi successivi arrivano da soli
+  if (state.burstLeft > 0) {
+    state.burstT -= dt;
+    if (state.burstT <= 0) {
+      if (a.mag > 0 && state.reloadT <= 0 && player.alive) { fireRound(); state.burstLeft--; state.burstT = w.burstGap; }
+      else state.burstLeft = 0;
+    }
   }
 
   const wantFire = state.trigger || state.tap;

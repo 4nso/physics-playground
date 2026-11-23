@@ -110,7 +110,111 @@ export const WEAPONS = [
     projectile: { kind: 'rocket', speed: 38, gravity: 0, bounce: 0, fuse: 4, radius: 5 },
     sound: { cut: 900, decay: 0.5, thump: 60, vol: 0.7 },
   },
+  /* ---------- Fase 12: arsenale folle ---------- */
+  // Armi corpo a corpo: niente munizioni né ricarica. Il colpo è un ventaglio di raggi corti
+  // (melee.rays in orizzontale × melee.rows in verticale) che colpisce ogni nemico al massimo una volta.
+  {
+    id: 'knife', name: 'Coltello', icon: '🔪',
+    price: 300, ammoPrice: 0,
+    mag: Infinity, reserve: Infinity,
+    rate: 0.42,
+    reload: 0,
+    pellets: 1,
+    damage: 60,                   // alla testa ×2
+    spread: 0, moveSpread: 0, bloom: 0, maxBloom: 0,
+    impulse: 5,
+    range: 1.6,
+    melee: { arc: 0.5, rays: 3, rows: 2, swing: 0.3 },
+    recoil: 0.01, kick: 0.02,
+    sound: { cut: 2600, decay: 0.16, thump: 160, vol: 0.4 },
+  },
+  {
+    id: 'sword', name: 'Spada', icon: '🗡️',
+    price: 5000, ammoPrice: 0,
+    mag: Infinity, reserve: Infinity,
+    rate: 0.6,
+    reload: 0,
+    pellets: 1,
+    damage: 250,
+    spread: 0, moveSpread: 0, bloom: 0, maxBloom: 0,
+    impulse: 9,
+    range: 2.5,
+    melee: { arc: 1.75, rays: 9, rows: 2, swing: 0.45 }, // fendente ad arco di ~100°
+    recoil: 0.02, kick: 0.03,
+    sound: { cut: 2600, decay: 0.16, thump: 160, vol: 0.5 },
+  },
+  {
+    id: 'burst', name: 'Mitra a tripletta', icon: '🔱',
+    price: 2500, ammoPrice: 700,
+    mag: 30, reserve: 300,
+    rate: 0.42,                   // tempo tra una raffica e l'altra
+    burst: 3, burstGap: 0.065,    // 3 colpi per pressione
+    reload: 1.9,
+    pellets: 1,
+    damage: 40,
+    spread: 0.003, moveSpread: 0.02, bloom: 0.003, maxBloom: 0.02,
+    impulse: 2.2,
+    range: 140,
+    recoil: 0.012, kick: 0.018,
+    sound: { cut: 3100, decay: 0.12, thump: 150, vol: 0.38 },
+  },
+  {
+    id: 'uzi', name: 'Uzi doppia', icon: '✌️',
+    price: 2000, ammoPrice: 600,
+    mag: 50, reserve: 400,
+    rate: 0.05,                   // cadenza altissima (le due armi si alternano)
+    dual: true,
+    reload: 2.8,
+    pellets: 1,
+    damage: 13,
+    spread: 0.03, moveSpread: 0.03, bloom: 0.006, maxBloom: 0.09,
+    impulse: 1.2,
+    range: 80,
+    recoil: 0.008, kick: 0.012,
+    sound: { cut: 3800, decay: 0.08, thump: 220, vol: 0.28 },
+  },
+  {
+    id: 'raygun', name: 'Raygun', icon: '🛸',
+    price: 0, ammoPrice: 0,
+    shop: false,                  // solo dalla cassa misteriosa
+    noPickup: true,               // le munizioni si ricaricano solo alla bancarella delle munizioni
+    mag: 20, reserve: 160,
+    rate: 0.32,
+    reload: 2.2,
+    pellets: 1,
+    damage: 300,                  // al centro dell'esplosione verde
+    spread: 0.002, moveSpread: 0.01, bloom: 0, maxBloom: 0,
+    impulse: 9,
+    range: 0,
+    recoil: 0.03, kick: 0.06,
+    // proiettile verde luminoso e veloce (non istantaneo): esplode appena tocca qualcosa
+    projectile: { kind: 'ray', speed: 46, gravity: 0, bounce: 0, fuse: 2.5, radius: 2.5 },
+    sound: { cut: 1800, decay: 0.3, thump: 900, vol: 0.5, zap: true },
+  },
 ];
+
+/**
+ * Cassa misteriosa con rarità (fase 12): peso di ogni arma (più alto = esce più spesso).
+ * Comuni 10, meno comuni 5, rara 2, raygun 1,5: circa 2% (il mitra iniziale di solito è escluso).
+ */
+export const BOX_WEIGHTS = {
+  shotgun: 10, smg: 10, rifle: 10, burst: 10, uzi: 10, knife: 10,
+  sniper: 5, launcher: 5, sword: 5,
+  bazooka: 2,
+  raygun: 1.5,
+};
+/** Arma a caso dalla cassa, esclusi gli indici in `exclude`. Restituisce -1 se non resta niente. */
+export function pickBoxWeapon(exclude) {
+  let total = 0;
+  const pool = [];
+  WEAPONS.forEach((w, i) => {
+    const k = BOX_WEIGHTS[w.id] || 0;
+    if (k > 0 && !exclude.includes(i)) { pool.push([i, k]); total += k; }
+  });
+  let r = Math.random() * total;
+  for (const [i, k] of pool) { r -= k; if (r <= 0) return i; }
+  return pool.length ? pool[pool.length - 1][0] : -1;
+}
 
 /** Armi con cui si parte: pistola e mitra. Si possono tenere al massimo MAX_SLOTS armi. */
 export const START_WEAPONS = ['pistol', 'smg'];

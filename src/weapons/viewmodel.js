@@ -162,8 +162,85 @@ function bazooka() {
   return finish(g, [0, 0.03, -0.44], [0.2, -0.19, -0.36]);
 }
 
+/* ---------- Fase 12: arsenale folle ---------- */
+const steel = mat(0xc9d1da, { metalness: 0.6, roughness: 0.3 });
+const gold = mat(0xd4a017, { metalness: 0.5, roughness: 0.35 });
+const rayGreen = glowMat(new THREE.MeshBasicMaterial({ color: 0x3dff6e }), 2.2);
+const rayRed = mat(0xc8322a, { roughness: 0.5, metalness: 0.3 });
+
+function knife() {
+  const g = new THREE.Group(), k = new THREE.Group();
+  k.rotation.set(0.35, 0.15, 0.2); // lama in avanti e un po' in alto
+  g.add(k);
+  sk(box(k, GM.dark, [0.03, 0.036, 0.11], [0, 0, 0.03]));     // manico
+  sk(box(k, GM.metal, [0.06, 0.014, 0.02], [0, 0, -0.03]));   // guardia
+  box(k, steel, [0.007, 0.034, 0.15], [0, 0.004, -0.115]);    // lama
+  box(k, steel, [0.006, 0.018, 0.04], [0, 0.012, -0.205]);    // punta
+  return finish(g, [0, 0.01, -0.22], [0.17, -0.16, -0.36]);
+}
+
+function sword() {
+  const g = new THREE.Group(), k = new THREE.Group();
+  k.rotation.set(0.95, 0.2, 0.35); // lama alta, inclinata verso il centro
+  g.add(k);
+  sk(box(k, GM.wood, [0.03, 0.03, 0.14], [0, 0, 0.07]));      // impugnatura
+  box(k, gold, [0.045, 0.045, 0.035], [0, 0, 0.15]);         // pomolo
+  sk(box(k, gold, [0.17, 0.022, 0.03], [0, 0, -0.01]));       // elsa
+  box(k, steel, [0.012, 0.05, 0.72], [0, 0, -0.39]);          // lama
+  box(k, steel, [0.01, 0.028, 0.06], [0, 0, -0.78]);          // punta
+  return finish(g, [0, 0, -0.8], [0.22, -0.24, -0.42]);
+}
+
+function burstRifle() {
+  const g = new THREE.Group();
+  box(g, GM.metal, [0.05, 0.072, 0.3], [0, 0, -0.08]);          // corpo
+  sk(box(g, GM.dark, [0.056, 0.058, 0.2], [0, -0.004, -0.3]));  // paramano
+  cyl(g, GM.dark, 0.011, 0.16, [0, 0.012, -0.47]);              // canna
+  sk(box(g, GM.accent, [0.054, 0.012, 0.12], [0, 0.042, -0.1])); // striscia rossa
+  box(g, GM.dark, [0.03, 0.13, 0.05], [0, -0.09, -0.13], -0.1); // caricatore
+  box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.08, 0.03], 0.25); // impugnatura
+  sk(box(g, GM.metal, [0.045, 0.08, 0.2], [0, -0.02, 0.18]));   // calcio
+  for (let i = 0; i < 3; i++) box(g, GM.accent, [0.01, 0.014, 0.01], [-0.012 + i * 0.012, 0.06, -0.3]); // tre puntini
+  return finish(g, [0, 0.012, -0.56], [0.16, -0.17, -0.52]);
+}
+
+/** Una mitraglietta dell'uzi doppia (x = destra/sinistra). */
+function uziGun(g, x) {
+  const side = Math.sign(x);
+  sk(box(g, GM.dark, [0.042, 0.062, 0.2], [x, 0, -0.06]));     // corpo
+  box(g, GM.metal, [0.044, 0.014, 0.18], [x, 0.036, -0.06]);    // coperchio
+  cyl(g, GM.metal, 0.009, 0.06, [x, 0.008, -0.19]);             // canna
+  box(g, GM.dark, [0.03, 0.16, 0.036], [x, -0.1, -0.02], 0.12); // impugnatura con caricatore
+  sk(box(g, GM.accent, [0.012, 0.012, 0.012], [x - side * 0.01, 0.05, -0.13])); // mirino
+}
+function uzi() {
+  const g = new THREE.Group();
+  uziGun(g, 0.17); uziGun(g, -0.17);
+  const m = finish(g, [0.17, 0.008, -0.23], [0, -0.17, -0.4]);
+  // seconda bocca (mano sinistra): le due armi sparano a turno (altMuzzle)
+  const u = m.userData, m2 = new THREE.Object3D(), f2 = u.flash.clone();
+  m2.position.set(-0.17, 0.008, -0.23);
+  m2.add(f2);
+  g.add(m2);
+  u.muzzles = [u.muzzle, m2]; u.flashes = [u.flash, f2]; u.side = 0;
+  return m;
+}
+
+function raygun() {
+  const g = new THREE.Group();
+  sk(cyl(g, rayRed, 0.034, 0.2, [0, 0.015, -0.06]));            // corpo
+  cyl(g, GM.metal, 0.045, 0.05, [0, 0.015, 0.05]);              // retro
+  for (let i = 0; i < 3; i++) cyl(g, rayGreen, 0.046 - i * 0.004, 0.014, [0, 0.015, -0.14 - i * 0.04]); // anelli
+  sk(cyl(g, GM.metal, 0.02, 0.12, [0, 0.015, -0.22]));          // canna
+  cyl(g, rayGreen, 0.024, 0.02, [0, 0.015, -0.285]);            // punta luminosa
+  part(g, new THREE.IcosahedronGeometry(1, 0), rayGreen, [0.03, 0.03, 0.03], [0, 0.065, -0.02]); // bulbo
+  box(g, GM.dark, [0.032, 0.1, 0.045], [0, -0.07, 0.03], 0.3);  // impugnatura
+  sk(box(g, GM.metal, [0.008, 0.035, 0.05], [0, -0.035, -0.03])); // ponticello
+  return finish(g, [0, 0.015, -0.3], [0.16, -0.16, -0.42]);
+}
+
 /** Stesso ordine di WEAPONS in defs.js. */
-export const models = [pistol(), shotgun(), smg(), rifle(), sniper(), launcher(), bazooka()];
+export const models = [pistol(), shotgun(), smg(), rifle(), sniper(), launcher(), bazooka(), knife(), sword(), burstRifle(), uzi(), raygun()];
 
 /* ---------- Animazione ---------- */
 const anim = {
@@ -184,6 +261,9 @@ const anim = {
   land: 0,      // abbassamento quando si atterra da un salto
   air: false,
   run: 0,       // 0..1 quanto si sta correndo (arma più bassa e inclinata)
+  swing: 0,     // fendente (coltello, spada): secondi rimasti
+  swingDur: 0.3,
+  swingDir: 1,
 };
 
 let hidden = false;
@@ -207,6 +287,17 @@ export function kickModel(amount) {
   anim.flash = 0.05;
   const f = models[anim.current].userData.flash;
   f.rotation.z = Math.random() * Math.PI;
+}
+/** Fendente delle armi corpo a corpo: dur = durata (s), dir = 1 da destra a sinistra, -1 al contrario. */
+export function swingModel(dur, dir) { anim.swing = anim.swingDur = dur; anim.swingDir = dir; }
+/** Uzi doppia: il prossimo colpo parte dall'altra mano. */
+export function altMuzzle() {
+  const u = models[anim.current].userData;
+  if (!u.muzzles) return;
+  u.flash.visible = false;
+  u.side = 1 - u.side;
+  u.muzzle = u.muzzles[u.side];
+  u.flash = u.flashes[u.side];
 }
 export function setReloadProgress(p) { anim.reload = p; }
 
@@ -244,6 +335,7 @@ export function updateViewModel(dt, speed, grounded, lookDX, lookDY) {
     else if (anim.air) { anim.air = false; anim.land = 1; }
     anim.land = Math.max(0, anim.land - dt * 4);
     anim.run += ((anim.speed > 7 ? 1 : 0) - anim.run) * f(6);
+    anim.swing = Math.max(0, anim.swing - dt);
   }
 
   const r = anim.reload > 0 ? Math.sin(anim.reload * Math.PI) : 0;
@@ -263,6 +355,17 @@ export function updateViewModel(dt, speed, grounded, lookDX, lookDY) {
     anim.swayX * 1.5 + run * 0.35,
     r * 0.6 + Math.sin(anim.bobT) * 0.02 * anim.bobAmt + run * 0.25,
   );
+
+  if (anim.swing > 0) {
+    // fendente: l'arma attraversa lo schermo in diagonale, con la punta in avanti a metà colpo
+    const p = 1 - anim.swing / anim.swingDur, env = Math.sin(p * Math.PI);
+    const ease = p * p * (3 - 2 * p), sweep = anim.swingDir * (0.9 - 1.8 * ease);
+    m.rotation.y += sweep * env * 1.1;
+    m.rotation.z += -sweep * env * 0.7;
+    m.rotation.x += -0.55 * env;
+    m.position.x += -sweep * env * 0.14 - 0.06 * env;
+    m.position.z += -0.08 * env;
+  }
 
   u.flash.visible = anim.flash > 0;
   flashLight.intensity = anim.flash > 0 ? 3 : 0;

@@ -29,7 +29,20 @@ const rocketMat = new THREE.MeshLambertMaterial({ color: 0x5d6b4a, flatShading: 
 const flameGeo = new THREE.ConeGeometry(0.07, 0.3, 6).rotateX(-Math.PI / 2).translate(0, 0, 0.38);
 const flameMat = glowMat(new THREE.MeshBasicMaterial({ color: 0xffb040 }), 3);
 
+// raggio verde della raygun: una palla luminosa con un alone
+const rayGeo = new THREE.IcosahedronGeometry(0.09, 1);
+const rayMat = glowMat(new THREE.MeshBasicMaterial({ color: 0x5dff7a }), 3.2);
+const rayHaloMat = glowMat(new THREE.MeshBasicMaterial({ color: 0x20c845, transparent: true, opacity: 0.45, depthWrite: false }), 1.8);
+
 function makeMesh(kind) {
+  if (kind === 'ray') {
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(rayGeo, rayMat));
+    const halo = new THREE.Mesh(rayGeo, rayHaloMat);
+    halo.scale.set(1.7, 1.7, 3.2); // allungato nella direzione del volo
+    g.add(halo);
+    return g;
+  }
   if (kind === 'rocket') {
     const g = new THREE.Group();
     g.add(new THREE.Mesh(rocketGeo, rocketMat));
@@ -38,7 +51,7 @@ function makeMesh(kind) {
   }
   return new THREE.Mesh(grenadeGeo, grenadeMat);
 }
-const pool = { grenade: [], rocket: [] };
+const pool = { grenade: [], rocket: [], ray: [] };
 function takeMesh(kind) {
   const m = pool[kind].pop() || makeMesh(kind);
   m.visible = true;
@@ -49,32 +62,40 @@ function giveMesh(kind, m) { scene.remove(m); pool[kind].push(m); }
 
 /* ---------- Palle di fuoco ---------- */
 const fireGeo = new THREE.IcosahedronGeometry(1, 1);
-const FIRE = [];
-for (let i = 0; i < 6; i++) {
-  const fire = new THREE.Mesh(fireGeo, glowMat(new THREE.MeshBasicMaterial({ color: 0xffa13a, transparent: true, depthWrite: false }), 2.4));
-  const smoke = new THREE.Mesh(fireGeo, new THREE.MeshBasicMaterial({ color: 0x4a4a4a, transparent: true, depthWrite: false }));
-  fire.visible = smoke.visible = false;
-  fire.frustumCulled = smoke.frustumCulled = false;
-  scene.add(fire, smoke);
-  FIRE.push({ fire, smoke, t: 1, r: 1 });
+// palle di fuoco arancioni (granate, razzi) e verdi (raygun)
+function firePool(n, fireCol, smokeCol) {
+  const list = [];
+  for (let i = 0; i < n; i++) {
+    const fire = new THREE.Mesh(fireGeo, glowMat(new THREE.MeshBasicMaterial({ color: fireCol, transparent: true, depthWrite: false }), 2.4));
+    const smoke = new THREE.Mesh(fireGeo, new THREE.MeshBasicMaterial({ color: smokeCol, transparent: true, depthWrite: false }));
+    fire.visible = smoke.visible = false;
+    fire.frustumCulled = smoke.frustumCulled = false;
+    scene.add(fire, smoke);
+    list.push({ fire, smoke, t: 1, r: 1 });
+  }
+  return { list, next: 0 };
 }
-let nextFire = 0;
+const FIRES = { orange: firePool(6, 0xffa13a, 0x4a4a4a), green: firePool(5, 0x4dff6a, 0x1f5a2e) };
+const FIRE = [...FIRES.orange.list, ...FIRES.green.list];
 const boomLight = new THREE.PointLight(0xffa040, 0, 18, 2);
 scene.add(boomLight);
 const UP = new THREE.Vector3(0, 1, 0);
 
 /** Solo effetti (fuoco, fumo, luce, schegge, suono, scossa): uguale su tutti i dispositivi. */
-function boomFx(x, y, z, radius) {
-  const f = FIRE[nextFire];
-  nextFire = (nextFire + 1) % FIRE.length;
+function boomFx(x, y, z, radius, green = false) {
+  const P = green ? FIRES.green : FIRES.orange;
+  const f = P.list[P.next];
+  P.next = (P.next + 1) % P.list.length;
   f.t = 0; f.r = radius;
   f.fire.position.set(x, y, z);
   f.smoke.position.set(x, y + 0.3, z);
   f.fire.visible = f.smoke.visible = true;
   boomLight.position.set(x, y + 0.5, z);
   boomLight.intensity = 40;
+  boomLight.color.setHex(green ? 0x50ff70 : 0xffa040);
   tmp.set(x, y, z);
-  impact(tmp, UP, 'metal', 26);
+  if (green) impact(tmp, UP, 'ray', 30);
+  impact(tmp, UP, 'metal', green ? 8 : 26);
   impact(tmp, UP, 'stone', 14);
   impact(tmp, UP, 'dirt', 16);   // detriti
   smoke(tmp, 7, radius);
@@ -169,7 +190,7 @@ function explode(p) {
   if (p.auth) {
     blastDamage(x, y, z, p.w, p.owner);
     if (projHooks.onBoom) projHooks.onBoom(p.pid, x, y, z, p.wi);
-    boomFx(x, y, z, p.w.projectile.radius);
+    boomFx(x, y, z, p.w.projectile.radius, p.kind === 'ray');
     remove(p);
   } else {
     // client: si ferma qui e aspetta l'esplosione dall'host (al massimo 2 secondi)
@@ -184,7 +205,7 @@ export function remoteBoom(pid, x, y, z, wi) {
   const p = list.find((q) => q.pid === pid);
   if (p) remove(p);
   const w = WEAPONS[wi];
-  boomFx(x, y, z, w && w.projectile ? w.projectile.radius : 4);
+  boomFx(x, y, z, w && w.projectile ? w.projectile.radius : 4, !!(w && w.projectile && w.projectile.kind === 'ray'));
 }
 
 export function updateProjectiles(dt) {
@@ -203,7 +224,7 @@ export function updateProjectiles(dt) {
       if (hit) {
         const ud = hit.object ? hit.object.userData : {};
         const onEnemy = !!(ud.enemy || ud.enemyProxy);
-        if (p.kind === 'rocket' || onEnemy) {
+        if (p.kind !== 'grenade' || onEnemy) {
           p.pos.copy(hit.point).addScaledVector(hit.normal, 0.15);
           explode(p);
           continue;
@@ -218,7 +239,10 @@ export function updateProjectiles(dt) {
       } else p.pos.add(step);
     }
     p.mesh.position.copy(p.pos);
-    if (p.kind === 'rocket') {
+    if (p.kind === 'ray') {
+      p.mesh.lookAt(pos.copy(p.pos).sub(p.vel));
+      if (Math.random() < 0.7) impact(p.pos, UP, 'ray', 1); // scia di scintille verdi
+    } else if (p.kind === 'rocket') {
       p.mesh.lookAt(pos.copy(p.pos).sub(p.vel));
       if (Math.random() < 0.6) impact(p.pos, UP, 'soft', 1); // scia di fumo
     } else {

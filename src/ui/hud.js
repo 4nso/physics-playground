@@ -167,8 +167,9 @@ export const hud = {
   setWeapon(index, name, mag, reserve, reloading) {
     document.querySelectorAll('#wSlots button').forEach((b, i) => b.classList.toggle('on', i === index));
     $('wName').textContent = name;
-    $('wMag').textContent = mag;
-    $('wRes').textContent = '/ ' + (reserve === Infinity ? '∞' : reserve);
+    // armi corpo a corpo (coltello, spada): niente munizioni
+    $('wMag').textContent = mag === Infinity ? '∞' : mag;
+    $('wRes').textContent = mag === Infinity ? '' : '/ ' + (reserve === Infinity ? '∞' : reserve);
     $('wAmmo').classList.toggle('low', mag === 0);
     $('weapon').classList.toggle('reloading', reloading);
     if (!reloading) $('wBar').firstChild.style.width = '0';

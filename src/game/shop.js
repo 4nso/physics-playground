@@ -13,7 +13,7 @@ import { pad } from '../core/gamepad.js';
 import { exitLock, requestLock } from '../core/input.js';
 import { thud } from '../core/audio.js';
 import { player, MAX_HEALTH } from '../player/player.js';
-import { WEAPONS, UPGRADES, BOX_PRICE, PAP, HEAL_PRICE, AMMO_STALL } from '../weapons/defs.js';
+import { WEAPONS, UPGRADES, BOX_PRICE, PAP, HEAL_PRICE, AMMO_STALL, pickBoxWeapon } from '../weapons/defs.js';
 import { giveWeapon, refillWeapon, ownsWeapon, slotsFull, currentWeapon, setReloadMul, setTrigger, ownedWeapons, currentWeaponIndex, currentWeaponLevel, setWeaponLevel, allAmmoFull, refillOwned } from '../weapons/weapons.js';
 import { boxBusy, boxHooks, upgraderFx } from './safezone.js';
 import { map } from '../world/map.js';
@@ -31,7 +31,7 @@ export const shopNet = { toHost: null };
 /* ---------- Oggetti in vendita ---------- */
 // Ordine nel pannello: prima le armi (tranne la pistola, che è gratis all'inizio), poi i potenziamenti.
 const ITEMS = [
-  ...WEAPONS.map((w, i) => ({ id: 'w' + i, wi: i })).filter((it) => WEAPONS[it.wi].id !== 'pistol'),
+  ...WEAPONS.map((w, i) => ({ id: 'w' + i, wi: i })).filter((it) => WEAPONS[it.wi].id !== 'pistol' && WEAPONS[it.wi].shop !== false),
   { id: 'heal' },
   { id: 'hp', up: 'hp' },
   { id: 'reload', up: 'reload' },
@@ -120,10 +120,10 @@ export function serverBuy(m, id, kind, extra = {}) {
   if (kind === 'box') {
     if (boxBusy(st.idx)) return { ok: false, why: 'La cassa sta già girando' };
     const own = Array.isArray(extra.own) ? extra.own : [];
-    const pool = WEAPONS.map((w, i) => i).filter((i) => WEAPONS[i].id !== 'pistol' && !own.includes(i));
-    if (!pool.length) return { ok: false, why: 'Hai già tutto!' };
+    // rarità: comuni, meno comuni, rare e la raygun (~2%) — vedi BOX_WEIGHTS in defs.js
+    boxWeapon = pickBoxWeapon(own);
+    if (boxWeapon < 0) return { ok: false, why: 'Hai già tutto!' };
     price = BOX_PRICE;
-    boxWeapon = pool[(Math.random() * pool.length) | 0];
   } else if (kind === 'pap') {
     const wi = extra.wi | 0;
     if (!WEAPONS[wi]) return { ok: false, why: '?' };
@@ -143,7 +143,7 @@ export function serverBuy(m, id, kind, extra = {}) {
     price = u.prices[m.upg[id]];
   } else {
     const w = WEAPONS[+String(id).slice(1)];
-    if (!w || String(id)[0] !== 'w') return { ok: false, why: '?' };
+    if (!w || String(id)[0] !== 'w' || w.shop === false) return { ok: false, why: '?' };
     price = kind === 'ammo' ? w.ammoPrice : w.price;
     if (!price) return { ok: false, why: '?' };
   }

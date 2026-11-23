@@ -10,6 +10,7 @@ import { WEAPONS } from '../weapons/defs.js';
 import { models } from '../weapons/viewmodel.js';
 import { giveWeapon } from '../weapons/weapons.js';
 import { impact } from '../weapons/effects.js';
+import { raygunJingle } from '../weapons/sounds.js';
 import { map, inSafeZone } from '../world/map.js';
 import { hud } from '../ui/hud.js';
 
@@ -135,6 +136,7 @@ export function startBoxSpin(idx, wi, mine) {
   const b = boxes[idx];
   if (!b) return;
   b.t = 0; b.wi = wi; b.mine = mine; b.given = false; b.nextSwap = 0.35; b.shown = -1;
+  light.color.setHex(0xffd860);
   thud(0.3, 330);
 }
 
@@ -153,7 +155,7 @@ function updateBox(b, dt) {
   b.hinge.rotation.x = -1.9 * open;
   glowMat.opacity = 0.35 * open;
   light.position.set(b.group.position.x, b.group.position.y + 1.2, b.group.position.z);
-  light.intensity = 6 * open;
+  light.intensity = (b.given && WEAPONS[b.wi].id === 'raygun' ? 14 : 6) * open;
   // armi che salgono e girano, cambiando sempre più piano
   b.show.position.y = BH + 0.35 + Math.min(1, t / 0.6) * 0.5 + Math.sin(t * 3) * 0.04;
   b.show.rotation.y = t < SPIN ? t * 2.2 : b.show.rotation.y * 0.9;
@@ -168,12 +170,18 @@ function updateBox(b, dt) {
   } else if (!b.given) {
     b.given = true;
     showGun(b, b.wi);
-    thud(0.35, 880);
-    impact(new THREE.Vector3(b.group.position.x, b.group.position.y + 1.3, b.group.position.z), UP, 'metal', 22);
+    const w = WEAPONS[b.wi], ray = w.id === 'raygun';
+    const top = new THREE.Vector3(b.group.position.x, b.group.position.y + 1.3, b.group.position.z);
+    if (ray) {
+      // la rarissima: luce verde, pioggia di scintille verdi e un arpeggio
+      light.color.setHex(0x40ff70);
+      impact(top, UP, 'ray', 60);
+      raygunJingle();
+    } else thud(0.35, 880);
+    impact(top, UP, 'metal', ray ? 20 : 22);
     if (b.mine) {
       const replaced = giveWeapon(b.wi);
-      const w = WEAPONS[b.wi];
-      hud.flash(`🎁 ${w.icon} ${w.name}!` + (replaced ? `<br><small>Hai lasciato: ${replaced}</small>` : ''), 2.2);
+      hud.flash((ray ? `✨ RARISSIMA! ${w.icon} ${w.name}!` : `🎁 ${w.icon} ${w.name}!`) + (replaced ? `<br><small>Hai lasciato: ${replaced}</small>` : ''), ray ? 3 : 2.2);
     }
   }
   if (t > SPIN + SHOW) showGun(b, -1);

@@ -170,6 +170,27 @@ Il negozio continua a vendere le munizioni della singola arma.
 **Cura completa** nel negozio: riporta la vita al massimo, **2000 punti**, **una volta per round**.
 Il potenziamento "Vita massima +25" resta com'è.
 
+#### Valori attuali (passo 3, in `src/weapons/defs.js`)
+
+| Arma | Prezzo | Caricatore / riserva | Danno | Note |
+|---|---|---|---|---|
+| Coltello | 300 | ∞ | 60 (testa ×2) | portata 1,6 m, un colpo ogni 0,42 s |
+| Spada | 5000 | ∞ | 250 | arco di 100°, portata 2,5 m, colpisce tutti i nemici nell'arco, 0,6 s |
+| Mitra a tripletta | 2500 (munizioni 700) | 30 / 300 | 40 | 3 colpi a pressione (0,065 s tra uno e l'altro), 0,42 s tra le raffiche |
+| Uzi doppia | 2000 (munizioni 600) | 50 / 400 | 13 | un colpo ogni 0,05 s, le due armi sparano a turno, dispersione alta, ricarica 2,8 s |
+| Raygun | solo cassa | 20 / 160 | 300 ad area (2,5 m) | palla verde a 46 m/s, esplode appena tocca qualcosa |
+
+- Coltello e spada: il colpo è un ventaglio di raggi corti (2 file, una dritta e una un po' più in basso);
+  ogni nemico si colpisce una volta per fendente e viene spinto. Fendente animato (una volta da destra,
+  una da sinistra), suono "swish". Niente munizioni né ricarica: il contatore mostra ∞.
+- Raygun: le munizioni non si trovano a terra né al negozio, solo alla bancarella delle munizioni.
+  Esplosione verde con luce verde; le proprie esplosioni spingono ma non fanno male.
+- Cassa misteriosa: pesi comuni 10 (pompa, mitra, assalto, tripletta, uzi, coltello), meno comuni 5
+  (cecchino, lanciagranate, spada), rara 2 (bazooka), raygun 1,5. Con pistola e mitra in mano la raygun
+  esce circa il 2% delle volte (misurato su 100 000 estrazioni). Quando esce: luce verde, scintille
+  verdi, arpeggio e scritta "RARISSIMA!".
+- Tutte si potenziano col potenziatore come le altre (danno, caricatore, cadenza; strisce viola e arancione).
+
 #### Valori attuali (passo 2)
 - Munizioni di riserva raddoppiate in `src/weapons/defs.js` (anche le armi potenziate, che le moltiplicano).
 - **Bancarella delle munizioni**: è la prima bancarella a sinistra del viale del luna park (dove c'era

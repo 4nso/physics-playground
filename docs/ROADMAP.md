@@ -385,12 +385,18 @@ acquisto (punti tolti, armi piene), cura (seconda nello stesso round rifiutata),
 russe con il giocatore seduto (riparte) e scendendo durante la sosta. Multiplayer: stessa logica
 dell'host già usata per negozio e cassa, non provato con due dispositivi.
 
-Passo 3 – Nuove armi:
-- [ ] Coltello e spada (corpo a corpo, animazioni, suoni)
-- [ ] Mitra a tripletta e uzi doppia (due armi in mano)
-- [ ] Raygun: proiettili verdi esplosivi, solo dalla cassa
-- [ ] Cassa misteriosa con rarità (raygun ~2%), effetto speciale per la raygun
-- [ ] Nuove armi nel negozio, potenziabili, in multiplayer, con touch e controller
+Passo 3 – Nuove armi (in prova):
+- [x] Coltello e spada (corpo a corpo, animazioni, suoni)
+- [x] Mitra a tripletta e uzi doppia (due armi in mano)
+- [x] Raygun: proiettili verdi esplosivi, solo dalla cassa
+- [x] Cassa misteriosa con rarità (raygun ~2%), effetto speciale per la raygun
+- [x] Nuove armi nel negozio, potenziabili, in multiplayer, con touch e controller
+
+Note: valori in DESIGN.md ("Valori attuali (passo 3)"). Si usano come le altre armi: "Spara" su touch,
+RT sul controller, clic col mouse. Verificato in headless: danni di ogni arma (coltello 60, spada 250,
+tripletta 3×40 a pressione, uzi, raygun ad area), probabilità della cassa su 100 000 estrazioni,
+negozio su telefono (le 10 armi più cura e potenziamenti stanno nel pannello), multiplayer con server
+PeerJS locale (spada, raygun e tripletta di un client fanno danno ai nemici dell'host).
 
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano
