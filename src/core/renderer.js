@@ -29,6 +29,17 @@ scene.background = new THREE.Color(SKY);
 scene.fog = new THREE.Fog(SKY, fogNear, viewDist - 3);
 
 export const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, viewDist);
+/**
+ * Telecamera dell'arma in prima persona: stessa posizione della telecamera del mondo ma campo
+ * visivo sempre normale, così lo zoom della mira non ingrandisce l'arma (vedi syncWeaponCamera).
+ */
+export const weaponCamera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.02, 10);
+weaponCamera.matrixAutoUpdate = false;
+weaponCamera.matrixWorldAutoUpdate = false;
+export function syncWeaponCamera() {
+  weaponCamera.matrixWorld.copy(camera.matrixWorld);
+  weaponCamera.matrixWorldInverse.copy(camera.matrixWorldInverse);
+}
 
 /**
  * Vista "dall'alto" (k da 0 a 1): seduti in cima alle giostre la nebbia si allontana
@@ -123,7 +134,7 @@ export function followSun(x, z) {
  * limitiamo quello orizzontale a circa 100°, altrimenti l'immagine sembra "a occhio di pesce".
  */
 const VFOV = 70, HFOV_MAX = 100;
-/** Zoom della visuale (mirino del cecchino): 1 = normale. lookScale rallenta lo sguardo quando si zooma. */
+/** Zoom della visuale (mirino del cecchino o mira di precisione): 1 = normale. lookScale rallenta lo sguardo quando si zooma. */
 export const view = { zoom: 1, lookScale: 1 };
 let baseFov = VFOV;
 export function setZoom(z) {
@@ -136,6 +147,11 @@ function applyFov() {
   const r = THREE.MathUtils.degToRad(baseFov / 2);
   camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(r) / view.zoom));
   camera.updateProjectionMatrix();
+  if (weaponCamera.fov !== baseFov || weaponCamera.aspect !== camera.aspect) {
+    weaponCamera.fov = baseFov;
+    weaponCamera.aspect = camera.aspect;
+    weaponCamera.updateProjectionMatrix();
+  }
 }
 /**
  * Misura vera dell'area di gioco. Su iPad (app dalla schermata Home, finestre di iPadOS)

@@ -1,9 +1,9 @@
 // Impostazioni del giocatore (sensibilità della visuale, dimensione dei pulsanti, qualità grafica,
-// contatore fps, controller), salvate in localStorage.
+// contatore fps, mira col tasto destro, controller), salvate in localStorage.
 import { quality, setQualitySetting, onQuality, LEVEL_NAMES } from '../core/quality.js';
 
 const KEY = 'syf-settings';
-const DEFAULTS = { look: 1, buttons: 1, quality: 'auto', fps: false, padLook: 1, aimAssist: true, vibration: true };
+const DEFAULTS = { look: 1, buttons: 1, quality: 'auto', fps: false, padLook: 1, aimAssist: true, vibration: true, aimMode: 'hold' };
 const $ = (id) => document.getElementById(id);
 
 export const settings = { ...DEFAULTS };
@@ -38,6 +38,7 @@ function refresh() {
   $('sBtnV').textContent = pct(settings.buttons);
   for (const b of document.querySelectorAll('#sQuality [data-q]')) b.classList.toggle('on', b.dataset.q === settings.quality);
   $('sQualityV').textContent = settings.quality === 'auto' ? `Automatica (${LEVEL_NAMES[quality.level]})` : LEVEL_NAMES[quality.level];
+  for (const b of document.querySelectorAll('#sAim [data-a]')) b.classList.toggle('on', b.dataset.a === settings.aimMode);
   $('sFps').checked = settings.fps;
   $('sPad').value = settings.padLook;
   $('sPadV').textContent = pct(settings.padLook);
@@ -56,6 +57,12 @@ export function initSettings() {
     if (!b) return;
     settings.quality = b.dataset.q;
     setQualitySetting(settings.quality);
+    changed();
+  });
+  $('sAim').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-a]');
+    if (!b) return;
+    settings.aimMode = b.dataset.a;
     changed();
   });
   $('sFps').addEventListener('change', (e) => { settings.fps = e.target.checked; changed(); });

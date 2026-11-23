@@ -60,6 +60,24 @@ let skinParts = [];
 const sk = (mesh) => { skinParts.push(mesh); return mesh; };
 const SKIN = [mat(0x9b4dff, { roughness: 0.4, emissive: 0x2a0a55 }), mat(0xff8a1f, { roughness: 0.4, emissive: 0x4a1c00 })];
 
+/*
+ * Tacche di mira (fase 13): una tacca posteriore (due "orecchie" con una fessura in mezzo) e un mirino
+ * anteriore sottile con la punta rossa. Le cime sono tutte alla stessa altezza y, sulla linea x = 0:
+ * quando si mira l'arma viene messa in (0, -y, …) senza rotazioni, così la punta del mirino finisce
+ * esattamente al centro dello schermo, dentro la fessura.
+ *  rearZ/rearBase, frontZ/frontBase = posizione lungo la canna e altezza della parte su cui poggiano
+ *  eye = distanza dell'occhio dalla tacca posteriore mentre si mira
+ */
+let pendingSight = null;
+function sights(g, y, rearZ, rearBase, frontZ, frontBase, eye) {
+  const gap = 0.0075, ear = 0.009, hr = y - rearBase;
+  for (const sd of [-1, 1]) box(g, GM.dark, [ear, hr, 0.01], [sd * (gap / 2 + ear / 2), rearBase + hr / 2, rearZ]);
+  const hf = y - frontBase, tip = Math.min(0.006, hf * 0.5);
+  box(g, GM.dark, [0.0045, hf - tip, 0.006], [0, frontBase + (hf - tip) / 2, frontZ]);
+  box(g, GM.accent, [0.0045, tip, 0.006], [0, y - tip / 2, frontZ]);
+  pendingSight = { y, z: -eye - rearZ };
+}
+
 function finish(g, muzzlePos, base) {
   const muzzle = new THREE.Object3D();
   muzzle.position.set(...muzzlePos);
@@ -69,8 +87,9 @@ function finish(g, muzzlePos, base) {
   flash.position.z = -0.04;
   flash.visible = false;
   muzzle.add(flash);
-  g.userData = { muzzle, flash, base: new THREE.Vector3(...base), skin: skinParts.map((m) => ({ m, mat: m.material })) };
+  g.userData = { muzzle, flash, base: new THREE.Vector3(...base), skin: skinParts.map((m) => ({ m, mat: m.material })), sight: pendingSight };
   skinParts = [];
+  pendingSight = null;
   g.visible = false;
   viewRoot.add(g);
   return g;
@@ -82,7 +101,7 @@ function pistol() {
   box(g, GM.dark, [0.032, 0.026, 0.16], [0, -0.012, -0.04]);     // telaio
   box(g, GM.dark, [0.03, 0.11, 0.046], [0, -0.065, 0.035], 0.25); // impugnatura
   box(g, GM.dark, [0.008, 0.03, 0.04], [0, -0.035, -0.02]);      // grilletto
-  sk(box(g, GM.accent, [0.01, 0.012, 0.012], [0, 0.046, -0.14]));    // mirino
+  sights(g, 0.052, 0.035, 0.04, -0.135, 0.04, 0.36);
   cyl(g, GM.dark, 0.009, 0.02, [0, 0.02, -0.155]);
   return finish(g, [0, 0.02, -0.17], [0.16, -0.155, -0.42]);
 }
@@ -95,7 +114,7 @@ function shotgun() {
   box(g, GM.dark, [0.052, 0.072, 0.19], [0, 0.004, -0.02]);      // castello
   sk(box(g, GM.wood, [0.04, 0.085, 0.26], [0, -0.035, 0.2], -0.12)); // calcio
   box(g, GM.wood, [0.034, 0.09, 0.045], [0, -0.07, 0.07], 0.35); // impugnatura
-  box(g, GM.accent, [0.008, 0.01, 0.01], [0, 0.043, -0.65]);     // mirino
+  sights(g, 0.05, -0.03, 0.04, -0.64, 0.036, 0.24);
   return finish(g, [0, 0.022, -0.68], [0.17, -0.18, -0.56]);
 }
 
@@ -107,7 +126,7 @@ function smg() {
   sk(box(g, GM.metal, [0.03, 0.16, 0.05], [0, -0.11, -0.12], 0.15)); // caricatore
   box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.08, 0.04], 0.25);  // impugnatura
   box(g, GM.dark, [0.02, 0.05, 0.2], [0, -0.01, 0.16]);          // calcio
-  box(g, GM.accent, [0.03, 0.02, 0.03], [0, 0.064, 0.0]);        // tacca di mira
+  sights(g, 0.068, 0.02, 0.054, -0.19, 0.054, 0.22);
   return finish(g, [0, 0.01, -0.37], [0.16, -0.165, -0.52]);
 }
 
@@ -120,7 +139,7 @@ function rifle() {
   box(g, GM.metal, [0.03, 0.15, 0.06], [0, -0.1, -0.15], -0.2);  // caricatore curvo
   box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.08, 0.03], 0.25);  // impugnatura
   sk(box(g, GM.sand, [0.045, 0.09, 0.22], [0, -0.02, 0.2]));         // calcio
-  box(g, GM.accent, [0.012, 0.03, 0.012], [0, 0.07, -0.42]);     // mirino
+  sights(g, 0.085, 0.0, 0.07, -0.42, 0.026, 0.2);
   return finish(g, [0, 0.012, -0.61], [0.16, -0.17, -0.55]);
 }
 
@@ -200,29 +219,36 @@ function burstRifle() {
   box(g, GM.dark, [0.03, 0.13, 0.05], [0, -0.09, -0.13], -0.1); // caricatore
   box(g, GM.dark, [0.035, 0.1, 0.045], [0, -0.08, 0.03], 0.25); // impugnatura
   sk(box(g, GM.metal, [0.045, 0.08, 0.2], [0, -0.02, 0.18]));   // calcio
-  for (let i = 0; i < 3; i++) box(g, GM.accent, [0.01, 0.014, 0.01], [-0.012 + i * 0.012, 0.06, -0.3]); // tre puntini
+  for (let i = 0; i < 3; i++) box(g, GM.accent, [0.004, 0.012, 0.012], [0.03, 0, -0.34 + i * 0.03]); // tre puntini sul fianco
+  sights(g, 0.062, 0.04, 0.036, -0.38, 0.025, 0.2);
   return finish(g, [0, 0.012, -0.56], [0.16, -0.17, -0.52]);
 }
 
-/** Una mitraglietta dell'uzi doppia (x = destra/sinistra). */
-function uziGun(g, x) {
-  const side = Math.sign(x);
-  sk(box(g, GM.dark, [0.042, 0.062, 0.2], [x, 0, -0.06]));     // corpo
-  box(g, GM.metal, [0.044, 0.014, 0.18], [x, 0.036, -0.06]);    // coperchio
-  cyl(g, GM.metal, 0.009, 0.06, [x, 0.008, -0.19]);             // canna
-  box(g, GM.dark, [0.03, 0.16, 0.036], [x, -0.1, -0.02], 0.12); // impugnatura con caricatore
-  sk(box(g, GM.accent, [0.012, 0.012, 0.012], [x - side * 0.01, 0.05, -0.13])); // mirino
+/** Una mitraglietta dell'uzi doppia, in un gruppo tutto suo (side = 1 destra, -1 sinistra). */
+const UZI_X = 0.17, UZI_X_AIM = 0.1; // quando si mira le due armi si avvicinano al centro
+function uziGun(g, side) {
+  const k = new THREE.Group();
+  k.position.x = side * UZI_X;
+  g.add(k);
+  sk(box(k, GM.dark, [0.042, 0.062, 0.2], [0, 0, -0.06]));     // corpo
+  box(k, GM.metal, [0.044, 0.014, 0.18], [0, 0.036, -0.06]);    // coperchio
+  cyl(k, GM.metal, 0.009, 0.06, [0, 0.008, -0.19]);             // canna
+  box(k, GM.dark, [0.03, 0.16, 0.036], [0, -0.1, -0.02], 0.12); // impugnatura con caricatore
+  sk(box(k, GM.accent, [0.012, 0.012, 0.012], [-side * 0.01, 0.05, -0.13])); // mirino
+  return k;
 }
 function uzi() {
   const g = new THREE.Group();
-  uziGun(g, 0.17); uziGun(g, -0.17);
-  const m = finish(g, [0.17, 0.008, -0.23], [0, -0.17, -0.4]);
-  // seconda bocca (mano sinistra): le due armi sparano a turno (altMuzzle)
+  const gr = uziGun(g, 1), gl = uziGun(g, -1);
+  const m = finish(g, [0, 0.008, -0.23], [0, -0.17, -0.4]);
+  // ogni bocca sta nel gruppo della sua arma; le due armi sparano a turno (altMuzzle)
   const u = m.userData, m2 = new THREE.Object3D(), f2 = u.flash.clone();
-  m2.position.set(-0.17, 0.008, -0.23);
+  gr.add(u.muzzle);
+  m2.position.copy(u.muzzle.position);
   m2.add(f2);
-  g.add(m2);
+  gl.add(m2);
   u.muzzles = [u.muzzle, m2]; u.flashes = [u.flash, f2]; u.side = 0;
+  u.guns = [gr, gl];
   return m;
 }
 
@@ -233,7 +259,8 @@ function raygun() {
   for (let i = 0; i < 3; i++) cyl(g, rayGreen, 0.046 - i * 0.004, 0.014, [0, 0.015, -0.14 - i * 0.04]); // anelli
   sk(cyl(g, GM.metal, 0.02, 0.12, [0, 0.015, -0.22]));          // canna
   cyl(g, rayGreen, 0.024, 0.02, [0, 0.015, -0.285]);            // punta luminosa
-  part(g, new THREE.IcosahedronGeometry(1, 0), rayGreen, [0.03, 0.03, 0.03], [0, 0.065, -0.02]); // bulbo
+  part(g, new THREE.IcosahedronGeometry(1, 0), rayGreen, [0.026, 0.026, 0.026], [0.038, 0.04, -0.02]); // bulbo (sul fianco: non copre le tacche)
+  sights(g, 0.075, 0.05, 0.06, -0.24, 0.035, 0.24);
   box(g, GM.dark, [0.032, 0.1, 0.045], [0, -0.07, 0.03], 0.3);  // impugnatura
   sk(box(g, GM.metal, [0.008, 0.035, 0.05], [0, -0.035, -0.03])); // ponticello
   return finish(g, [0, 0.015, -0.3], [0.16, -0.16, -0.42]);
@@ -264,6 +291,7 @@ const anim = {
   swing: 0,     // fendente (coltello, spada): secondi rimasti
   swingDur: 0.3,
   swingDir: 1,
+  aim: 0,       // mira di precisione: 0 = normale, 1 = arma al centro (vedi setAimAmount)
 };
 
 let hidden = false;
@@ -300,6 +328,8 @@ export function altMuzzle() {
   u.flash = u.flashes[u.side];
 }
 export function setReloadProgress(p) { anim.reload = p; }
+/** Mira di precisione: p da 0 (normale) a 1 (si guarda attraverso le tacche). */
+export function setAimAmount(p) { anim.aim = p; }
 
 const tmp = new THREE.Vector3();
 /** Posizione della bocca dell'arma nel mondo (per far partire le scie). */
@@ -340,14 +370,17 @@ export function updateViewModel(dt, speed, grounded, lookDX, lookDY) {
 
   const r = anim.reload > 0 ? Math.sin(anim.reload * Math.PI) : 0;
   const d = anim.draw * anim.draw;
+  const aim = anim.aim * anim.aim * (3 - 2 * anim.aim); // transizione morbida
+  const calm = 1 - 0.85 * aim; // mirando l'arma ondeggia molto meno
   // respiro da fermi (sparisce camminando), atterraggio che spinge giù, corsa: arma bassa e inclinata
   const still = 1 - anim.bobAmt;
-  const breath = Math.sin(anim.t * 1.7) * 0.0022 * still;
-  const land = Math.sin(anim.land * Math.PI) * 0.03;
+  const breath = Math.sin(anim.t * 1.7) * 0.0022 * still * calm;
+  const land = Math.sin(anim.land * Math.PI) * 0.03 * calm;
   const run = anim.run * (1 - r);
+  const bob = anim.bobAmt * calm;
   m.position.set(
-    u.base.x + Math.sin(anim.bobT) * 0.009 * anim.bobAmt + anim.swayX * 0.5 + run * 0.025,
-    u.base.y - (1 - Math.cos(anim.bobT * 2)) * 0.005 * anim.bobAmt - d * 0.3 - r * 0.07 + anim.swayY * 0.5 + breath - land - run * 0.03,
+    u.base.x + Math.sin(anim.bobT) * 0.009 * bob + anim.swayX * 0.5 * calm + run * 0.025,
+    u.base.y - (1 - Math.cos(anim.bobT * 2)) * 0.005 * bob - d * 0.3 - r * 0.07 + anim.swayY * 0.5 * calm + breath - land - run * 0.03,
     u.base.z + anim.kick * 0.4 + run * 0.02,
   );
   m.rotation.set(
@@ -365,6 +398,23 @@ export function updateViewModel(dt, speed, grounded, lookDX, lookDY) {
     m.rotation.x += -0.55 * env;
     m.position.x += -sweep * env * 0.14 - 0.06 * env;
     m.position.z += -0.08 * env;
+  }
+
+  if (aim > 0) {
+    if (u.sight) {
+      // tacche allineate al centro: posizione fissa davanti all'occhio, niente rotazioni (solo un po' di rinculo)
+      tmp.set(0, -u.sight.y, u.sight.z + anim.kick * 0.25);
+      m.position.lerp(tmp, aim);
+      m.rotation.set(m.rotation.x + (anim.kick * 0.25 - m.rotation.x) * aim, m.rotation.y * (1 - aim), m.rotation.z * (1 - aim));
+    } else {
+      // mira "leggera" (uzi doppia): le armi salgono un po' e si avvicinano al centro
+      m.position.y += 0.025 * aim;
+      m.position.z -= 0.02 * aim;
+    }
+  }
+  if (u.guns) {
+    const x = UZI_X + (UZI_X_AIM - UZI_X) * aim;
+    u.guns[0].position.x = x; u.guns[1].position.x = -x;
   }
 
   u.flash.visible = anim.flash > 0;

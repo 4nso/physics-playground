@@ -15,7 +15,7 @@ import { syncObjects, updateRope } from './world/objects.js';
 import { player, createPlayer, resetPlayer, updatePlayer, updateCamera, jump } from './player/player.js';
 import { throwHeld, toggleGrab, updateHeld, updateCrosshair, isHolding } from './player/interact.js';
 import { weaponScene } from './weapons/viewmodel.js';
-import { initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, nextWeapon, toggleZoom, hasZoom, isZoomed } from './weapons/weapons.js';
+import { initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, nextWeapon, toggleZoom, isZoomed, aimButton, aimReleaseAll } from './weapons/weapons.js';
 import { updateShop, toggleShopping, closeShopping, isShopping, padShopInteract, padShopping, padShopMove, padShopBuy, shopAction, touchShopAction } from './game/shop.js';
 import { updateSafeZones } from './game/safezone.js';
 import { updateRides, rideAction, rideNearKind, rideActionButton } from './game/rides.js';
@@ -66,8 +66,9 @@ const actions = {
     else if (a.id === 'throw') throwHeld();
     else actions.grab();
   },
-  // tasto destro: mirino se l'arma ce l'ha, altrimenti afferra
-  alt() { if (hasZoom()) toggleZoom(); else actions.grab(); },
+  // tasto destro: mira di precisione (cecchino: il suo mirino). Afferrare su PC è solo il tasto E.
+  aim(on) { if (!on || (player.alive && game.state === 'playing' && !game.overlay)) aimButton(on); },
+  aimRelease: aimReleaseAll,
   zoom() { if (player.alive) toggleZoom(); },
   shop: toggleShopping,
   ride(what) { if (game.state === 'playing') rideAction(what); },

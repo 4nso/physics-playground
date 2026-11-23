@@ -68,8 +68,9 @@ export function requestLock() {
 
 /**
  * Collega l'input alle azioni di gioco.
- * actions: { trigger(on), tap, reload, weapon(i), nextWeapon(dir), grab, act, alt, zoom, shop, ride(what), jump, pause, lockLost }
- *  - alt: tasto destro del mouse (mirino col cecchino, altrimenti afferra)
+ * actions: { trigger(on), tap, reload, weapon(i), nextWeapon(dir), grab, act, aim(on), aimRelease, zoom, shop, ride(what), jump, pause, lockLost }
+ *  - aim(on): tasto destro del mouse premuto/rilasciato (mira di precisione; cecchino: mirino)
+ *  - aimRelease: il mouse è stato liberato, smetti di mirare
  *  - trigger(true/false): grilletto premuto/rilasciato (fuoco continuo)
  *  - tap: un colpo singolo (clic del mouse quando il puntatore non è catturato)
  */
@@ -89,6 +90,7 @@ export function setupInput(actions) {
     if (fireId !== null || mouseFire) actions.trigger(false);
     fireId = null;
     mouseFire = false;
+    actions.aimRelease();
   };
 
   addEventListener('keydown', (e) => {
@@ -135,11 +137,7 @@ export function setupInput(actions) {
     if (!input.enabled) return;
     initAudio();
     if (e.pointerType === 'mouse') {
-      if (locked()) {
-        if (e.button === 0) { mouseFire = true; actions.trigger(true); }
-        else if (e.button === 2) actions.alt();
-        return;
-      }
+      if (locked()) return; // con il puntatore catturato i tasti li gestisce mousedown (più sotto)
       mouseUsed = true;
       requestLock();
       mouseDrag = { x: e.clientX, y: e.clientY, moved: 0, button: e.button };
@@ -204,12 +202,24 @@ export function setupInput(actions) {
     }
   });
 
+  /*
+   * Tasti del mouse con il puntatore catturato. Si usano mousedown/mouseup e non i pointer event:
+   * se un tasto è già giù (es. il destro per mirare), premere l'altro non genera un nuovo pointerdown
+   * ma solo un pointermove, e lo sparo andrebbe perso.
+   */
+  canvas.addEventListener('mousedown', (e) => {
+    if (!input.enabled || !locked()) return;
+    if (e.button === 0 && !mouseFire) { mouseFire = true; actions.trigger(true); }
+    else if (e.button === 2) actions.aim(true);
+  });
+  addEventListener('mouseup', (e) => {
+    if (e.button === 0 && mouseFire) { mouseFire = false; actions.trigger(false); }
+    else if (e.button === 2) actions.aim(false);
+  });
+
   function endPointer(e) {
     if (e.pointerType === 'mouse') {
-      if (mouseFire && e.button === 0) { mouseFire = false; actions.trigger(false); }
-      if (mouseDrag && !locked() && mouseDrag.moved < 6) {
-        if (mouseDrag.button === 2) actions.alt(); else actions.tap();
-      }
+      if (mouseDrag && !locked() && mouseDrag.moved < 6 && mouseDrag.button === 0) actions.tap();
       mouseDrag = null;
       return;
     }

@@ -194,6 +194,23 @@ export const WEAPONS = [
 ];
 
 /**
+ * Mira di precisione col tasto destro (fase 13, solo PC). Le armi che non sono qui non mirano
+ * (il cecchino usa il suo mirino con `zoom`).
+ *  zoom = ingrandimento · spread = quanto resta della dispersione (anche quella del movimento)
+ *  recoil = quanto resta del rinculo della visuale · light = mira "leggera" senza tacche (uzi doppia)
+ */
+const ADS = {
+  pistol: { zoom: 1.3 },
+  shotgun: { zoom: 1.3, spread: 0.6 },   // i pallini restano un po' sparpagliati
+  smg: { zoom: 1.3 },
+  rifle: { zoom: 1.5 },
+  burst: { zoom: 1.5 },
+  raygun: { zoom: 1.3 },
+  uzi: { zoom: 1.12, light: true, spread: 0.7, recoil: 0.8 },
+};
+for (const w of WEAPONS) w.ads = ADS[w.id] ? { spread: 0.3, recoil: 0.5, light: false, ...ADS[w.id] } : null;
+
+/**
  * Cassa misteriosa con rarità (fase 12): peso di ogni arma (più alto = esce più spesso).
  * Comuni 10, meno comuni 5, rara 2, raygun 1,5: circa 2% (il mitra iniziale di solito è escluso).
  */

@@ -8,7 +8,7 @@
 //     (vignettatura), conversione nei colori dello schermo.
 // In qualità Bassa niente di tutto questo: si disegna direttamente sullo schermo, come prima.
 import * as THREE from 'three';
-import { renderer } from './renderer.js';
+import { renderer, weaponCamera, syncWeaponCamera } from './renderer.js';
 
 const tri = new THREE.BufferGeometry();
 tri.setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3));
@@ -166,12 +166,14 @@ function draw(mat, target) {
 
 /** Disegna il frame: scena, poi l'arma sopra a tutto. */
 export function renderFrame(scene, weaponScene, camera) {
+  camera.updateMatrixWorld();
+  syncWeaponCamera();
   if (mode === 'off') {
     renderer.setRenderTarget(null);
     renderer.clear();
     renderer.render(scene, camera);
     renderer.clearDepth();
-    renderer.render(weaponScene, camera);
+    renderer.render(weaponScene, weaponCamera);
     return;
   }
   ensureTargets();
@@ -179,7 +181,7 @@ export function renderFrame(scene, weaponScene, camera) {
   renderer.clear();
   renderer.render(scene, camera);
   renderer.clearDepth();
-  renderer.render(weaponScene, camera);
+  renderer.render(weaponScene, weaponCamera);
 
   brightMat.uniforms.tSrc.value = rtScene.texture;
   draw(brightMat, rtA);

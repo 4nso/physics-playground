@@ -143,6 +143,7 @@ body.touch #wBar{position:absolute;left:12px;right:12px;bottom:3px;height:3px;ma
 .set span{display:flex;justify-content:space-between;margin-bottom:6px}
 .set input{width:100%;touch-action:pan-x}
 body:not(.touch) .touchOnly{display:none}
+body.touch .deskOnly{display:none}
 .seg{display:flex;gap:4px;background:#eef1f6;border-radius:12px;padding:4px}
 .seg button{flex:1;border:0;background:none;padding:8px 0;border-radius:9px;font:inherit;font-size:14px;font-weight:700;color:#55607a;cursor:pointer}
 .seg button.on{background:#fff;color:#e8403a;box-shadow:0 1px 4px rgba(0,0,0,.15)}

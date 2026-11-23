@@ -283,6 +283,21 @@ attivare in futuro con poco lavoro).
 - Le armi potenziate (strisce viola/arancione) mirano allo stesso modo
 - In multiplayer non cambia niente per gli altri: la mira è solo locale
 
+#### Valori attuali (fase 13)
+- Transizione 0,2 s. Zoom ×1,3 (pistola, mitra, fucile a pompa, raygun), ×1,5 (fucile d'assalto,
+  mitra a tripletta), ×1,12 per l'uzi doppia. La sensibilità del mouse è divisa per lo zoom.
+- Mirando resta il 30% della dispersione (fucile a pompa 60%, uzi 70%) e il 50% del rinculo della
+  visuale (uzi 80%). Si cammina al 70% e la corsa (Shift) interrompe la mira.
+- Le tacche: tacca posteriore a due "orecchie" e mirino anteriore sottile con la punta rossa, con le
+  cime alla stessa altezza. Mirando, l'arma si mette senza rotazioni con quella linea sull'asse dello
+  sguardo: la punta rossa è esattamente al centro dello schermo.
+- L'arma in prima persona ha una telecamera sua con il campo visivo normale: lo zoom ingrandisce il
+  mondo ma non l'arma.
+- Tasti del mouse: con il puntatore catturato si usano mousedown/mouseup (con il destro già premuto,
+  il clic sinistro non genera un nuovo pointerdown). Il controller resta com'è (LT = mirino del cecchino).
+- Codice: `aimButton`/`updateAim` in `src/weapons/weapons.js`, `sights()` e `setAimAmount` in
+  `src/weapons/viewmodel.js`, tabella `ADS` in `src/weapons/defs.js`.
+
 ### Passaggio segreto e zona sicura
 - Nei corridoi gialli delle backrooms c'è un punto di muro **appena più giallo** degli altri,
   con una differenza minima, da notare solo guardando bene. La posizione cambia con il seed

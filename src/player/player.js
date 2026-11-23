@@ -11,6 +11,8 @@ export const MAX_HEALTH = 100;
 /** Velocità del giocatore (m/s): camminata e corsa. I nemici non superano mai WALK_SPEED. */
 export const WALK_SPEED = 5.5;
 export const RUN_SPEED = 9;
+/** Mirando si cammina al 70%. */
+const AIM_SPEED = 0.7;
 
 export const player = {
   body: null,
@@ -34,6 +36,10 @@ export const player = {
   /** Seduto su una giostra: il corpo segue il posto (seatPos, centro della capsula) e non si cammina. */
   seated: false,
   seatPos: { x: 0, y: 0, z: 0 },
+  /** Mira di precisione (la decide weapons.js): si cammina più piano e non si corre. */
+  aiming: false,
+  /** Sta chiedendo di correre mentre si muove (la corsa interrompe la mira). */
+  wantsRun: false,
 };
 const prev = { x: SPAWN.x, y: SPAWN.y, z: SPAWN.z };
 
@@ -135,6 +141,7 @@ export function updatePlayer(dt) {
     player.jumpReq = false;
     player.speed = 0;
     player.grounded = true;
+    player.wantsRun = false;
     return;
   }
 
@@ -146,7 +153,9 @@ export function updatePlayer(dt) {
   if (k.KeyA || k.ArrowLeft) r -= 1;
   const mag = Math.hypot(f, r);
   if (mag > 1) { f /= mag; r /= mag; }
-  const speed = k.ShiftLeft || k.ShiftRight || input.run || input.padRun ? RUN_SPEED : WALK_SPEED;
+  const runKey = k.ShiftLeft || k.ShiftRight || input.run || input.padRun;
+  player.wantsRun = !!runKey && mag > 0.1;
+  const speed = player.aiming ? WALK_SPEED * AIM_SPEED : runKey ? RUN_SPEED : WALK_SPEED;
   const s = Math.sin(player.yaw), c = Math.cos(player.yaw);
   const vx = (-s * f + c * r) * speed, vz = (-c * f - s * r) * speed;
 

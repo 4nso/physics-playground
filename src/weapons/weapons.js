@@ -6,7 +6,8 @@ import { addDecal } from '../world/decals.js';
 import { player, addRecoil } from '../player/player.js';
 import { rumble } from '../core/rumble.js';
 import { WEAPONS, START_WEAPONS, MAX_SLOTS, weaponIndex, weaponStats } from './defs.js';
-import { models, showModel, hideModel, kickModel, swingModel, altMuzzle, setReloadProgress, muzzleWorld, updateViewModel, setSkin } from './viewmodel.js';
+import { models, showModel, hideModel, kickModel, swingModel, altMuzzle, setReloadProgress, setAimAmount, muzzleWorld, updateViewModel, setSkin } from './viewmodel.js';
+import { settings } from '../ui/settings.js';
 import { spawnProjectile, updateProjectiles, clearProjectiles, projHooks, newPid } from './projectiles.js';
 import { addTracer, impact, muzzleFlash, updateEffects } from './effects.js';
 import { shotSound, reloadSound, emptySound, switchSound } from './sounds.js';
@@ -31,6 +32,8 @@ const state = {
   burstT: 0,
   swingDir: 1,    // il fendente va una volta da destra e una da sinistra
   zoomed: false,  // mirino del cecchino
+  aimWant: false, // mira di precisione richiesta (tasto destro)
+  aim: 0,         // avanzamento della mira: 0 = normale, 1 = si guarda attraverso le tacche
   levels: WEAPONS.map(() => 0), // livello del potenziatore per ogni arma (0, 1, 2)
 };
 /** Valori dell'arma wi con il suo livello di potenziamento. */
@@ -73,6 +76,7 @@ function equip(slot) {
   state.bloom = 0;
   state.burstLeft = 0;
   setZoomed(false);
+  stopAim();
   setReloadProgress(0);
   showModel(state.current);
   switchSound();
@@ -162,6 +166,7 @@ export function reload() {
   state.reloadTotal = w.reload * state.reloadMul;
   state.reloadT = state.reloadTotal;
   setZoomed(false);
+  state.aimWant = false; // la ricarica interrompe la mira
   reloadSound(state.reloadTotal);
   refreshHud();
 }
@@ -207,8 +212,58 @@ export function toggleZoom() {
 }
 export const hasZoom = () => !!currentWeapon().zoom;
 export const isZoomed = () => state.zoomed;
-/** Toglie il mirino (ad esempio quando si va in pausa o si muore). */
-export function unzoom() { if (state.zoomed) setZoomed(false); }
+/** Toglie il mirino e la mira (ad esempio quando si va in pausa o si muore). */
+export function unzoom() { if (state.zoomed) setZoomed(false); stopAim(); }
+
+/* ---------- Mira di precisione col tasto destro (fase 13, solo PC) ---------- */
+const AIM_TIME = 0.2; // secondi per portare l'arma al centro
+let zoomByMouse = false; // mirino del cecchino aperto tenendo premuto il tasto destro
+/** Smette subito di mirare (cambio arma, pausa, fine partita). */
+function stopAim() {
+  state.aimWant = false;
+  state.aim = 0;
+  zoomByMouse = false;
+  setAimAmount(0);
+  if (!state.zoomed) setZoom(1);
+  hud.setAim(0);
+}
+/** Quanto la mira è "dentro", con la transizione morbida (0..1). */
+const aimK = () => state.aim * state.aim * (3 - 2 * state.aim);
+/**
+ * Tasto destro premuto (on = true) o rilasciato. Con "tieni premuto" si mira finché è giù,
+ * con "premi per attivare" ogni pressione accende o spegne. Il cecchino usa il suo mirino.
+ */
+export function aimButton(on) {
+  const w = currentWeapon(), toggle = settings.aimMode === 'toggle';
+  if (w.zoom) {
+    if (toggle) { if (on) toggleZoom(); return; }
+    if (on && !state.zoomed) { toggleZoom(); zoomByMouse = state.zoomed; } else if (!on && zoomByMouse) { zoomByMouse = false; if (state.zoomed) setZoomed(false); }
+    return;
+  }
+  if (!w.ads) return;
+  if (toggle) { if (on) state.aimWant = !state.aimWant; } else state.aimWant = on;
+}
+/** Il mouse è stato liberato o la finestra ha perso il fuoco: con "tieni premuto" si smette di mirare. */
+export function aimReleaseAll() {
+  if (settings.aimMode === 'toggle') return;
+  state.aimWant = false;
+  if (zoomByMouse) { zoomByMouse = false; if (state.zoomed) setZoomed(false); }
+}
+export const isAiming = () => state.aimWant;
+
+function updateAim(dt, w) {
+  const ads = w.ads;
+  // ricarica, corsa o morte interrompono la mira
+  if (state.aimWant && (!ads || state.reloadT > 0 || player.wantsRun || !player.alive)) state.aimWant = false;
+  player.aiming = state.aimWant;
+  const prev = state.aim, step = dt / AIM_TIME;
+  state.aim = state.aimWant ? Math.min(1, state.aim + step) : Math.max(0, state.aim - step);
+  if (state.aim === prev && (state.aim === 0 || state.aim === 1)) return;
+  const k = aimK();
+  setAimAmount(state.aim);
+  if (!state.zoomed) setZoom(1 + ((ads ? ads.zoom : 1) - 1) * k); // anche la sensibilità scende con lo zoom
+  hud.setAim(ads && !ads.light ? k : 0); // con le tacche il mirino a croce sparisce
+}
 
 /* ---------- Sparo ---------- */
 const origin = new THREE.Vector3(), fwd = new THREE.Vector3(), right = new THREE.Vector3(), up = new THREE.Vector3();
@@ -218,7 +273,9 @@ const impulse = { x: 0, y: 0, z: 0 }, at = { x: 0, y: 0, z: 0 };
 function currentSpread(w) {
   const air = player.grounded ? 0 : 0.03;
   const base = state.zoomed && w.zoomSpread !== undefined ? w.zoomSpread : w.spread;
-  return base + state.bloom + Math.min(1, player.speed / 5.5) * w.moveSpread + air;
+  // mirando resta solo una parte della dispersione (anche di quella dovuta al movimento)
+  const aim = w.ads ? 1 - (1 - w.ads.spread) * aimK() : 1;
+  return (base + state.bloom + Math.min(1, player.speed / 5.5) * w.moveSpread) * aim + air;
 }
 
 /**
@@ -326,9 +383,10 @@ function fireRound() {
   if (!w.projectile && weaponHooks.onShot) weaponHooks.onShot(origin, shotDirs, shotEnds, state.current);
 
   state.bloom = Math.min(w.maxBloom, state.bloom + w.bloom);
-  addRecoil(w.recoil, (Math.random() - 0.5) * w.recoil * 0.3);
+  const rk = w.ads ? 1 - (1 - w.ads.recoil) * aimK() : 1; // mirando la visuale sale meno
+  addRecoil(w.recoil * rk, (Math.random() - 0.5) * w.recoil * 0.3 * rk);
   if (w.melee) { state.swingDir = -state.swingDir; swingModel(w.melee.swing, state.swingDir); }
-  else { kickModel(w.kick); muzzleFlash(muzzle); }
+  else { kickModel(w.kick * (0.5 + 0.5 * rk)); muzzleFlash(muzzle); }
   shotSound(w);
   rumble(Math.min(1, 0.15 + w.recoil * 6), 0.35, w.projectile ? 140 : 60);
   refreshHud();
@@ -427,6 +485,7 @@ export function updateWeapons(dt, lookDX, lookDY) {
   }
 
   if (state.zoomed && !player.alive) setZoomed(false);
+  updateAim(dt, w);
   updateViewModel(dt, player.speed, player.grounded, lookDX, lookDY);
   updateEffects(dt);
   updateProjectiles(dt);
