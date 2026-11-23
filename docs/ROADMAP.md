@@ -398,16 +398,24 @@ tripletta 3×40 a pressione, uzi, raygun ad area), probabilità della cassa su 1
 negozio su telefono (le 10 armi più cura e potenziamenti stanno nel pannello), multiplayer con server
 PeerJS locale (spada, raygun e tripletta di un client fanno danno ai nemici dell'host).
 
-## Fase 13 – Mira di precisione su PC
+## Fase 13 – Mira di precisione su PC (in prova sul Mac)
 Dettagli in `docs/DESIGN.md`, sezione "Mira di precisione (fase 13, solo PC)".
-- [ ] Tasto destro = mira (tieni premuto), sinistro = spara; opzione "premi per attivare"
-- [ ] Tacche di mira nel modello in prima persona di ogni arma con mira, allineate al centro
-- [ ] Transizione morbida, zoom leggero, mirino a croce nascosto
-- [ ] Dispersione e rinculo ridotti, movimento più lento, niente corsa; sensibilità in base allo zoom
-- [ ] Uzi doppia con mira "leggera"; cecchino col suo mirino e lo stesso comportamento
-- [ ] Niente mira per lanciagranate, bazooka, coltello e spada
-- [ ] Afferrare su PC solo con E; touch e controller invariati
-- [ ] Verificato con screenshot headless (desktop 1440×900) che le tacche siano al centro per ogni arma
+- [x] Tasto destro = mira (tieni premuto), sinistro = spara; opzione "premi per attivare"
+- [x] Tacche di mira nel modello in prima persona di ogni arma con mira, allineate al centro
+- [x] Transizione morbida, zoom leggero, mirino a croce nascosto
+- [x] Dispersione e rinculo ridotti, movimento più lento, niente corsa; sensibilità in base allo zoom
+- [x] Uzi doppia con mira "leggera"; cecchino col suo mirino e lo stesso comportamento
+- [x] Niente mira per lanciagranate, bazooka, coltello e spada
+- [x] Afferrare su PC solo con E; touch e controller invariati
+- [x] Verificato con screenshot headless (desktop 1440×900) che le tacche siano al centro per ogni arma
+- [ ] Provato sul Mac con mouse e tastiera (dal proprietario)
+
+Note: verificato in headless (desktop 1440×900): per pistola, fucile a pompa, mitra, fucile d'assalto,
+mitra a tripletta e raygun la punta rossa del mirino cade esattamente al centro dello schermo
+(720, 450), il mirino a croce sparisce e lo zoom è quello previsto; uzi doppia con le armi più vicine e
+il mirino a croce visibile; cecchino col suo mirino; bazooka, lanciagranate, coltello e spada senza mira.
+Nessun errore in console. Il clic sinistro mentre si tiene il destro non è verificabile in headless
+(serve il puntatore catturato): è gestito con mousedown/mouseup apposta per questo caso.
 
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano
