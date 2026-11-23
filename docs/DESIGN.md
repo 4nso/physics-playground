@@ -253,6 +253,36 @@ Misure (headless, risoluzione MacBook Air 1470×956 a 2×, qualità Alta):
 
 Gli fps veri del Mac si leggono solo sul Mac, con il contatore (e `?prof`).
 
+### Mira di precisione (fase 13, solo PC)
+
+La classica mira degli FPS ("aim down sights"): **tasto destro per mirare, sinistro per sparare**.
+Per ora solo con mouse e tastiera; touch e controller restano come sono (sul controller LT si potrà
+attivare in futuro con poco lavoro).
+
+- **Tieni premuto il tasto destro** per mirare, rilasci e torni normale. Nelle impostazioni c'è
+  l'opzione "Mira: tieni premuto / premi per attivare" (predefinito: tieni premuto)
+- **Transizione morbida** (~0,2 s): l'arma si sposta al centro dello schermo e si guarda attraverso
+  le **tacche di mira**. Ogni arma con mira ha nel modello in prima persona una tacca posteriore e
+  un mirino anteriore (modellati via codice) allineati esattamente al centro
+- **Zoom leggero** (circa ×1,3; fucile d'assalto e mitra a tripletta un po' di più, ~×1,5);
+  il mirino a croce sparisce
+- **Più precisione, meno mobilità**: dispersione molto ridotta (anche quella del movimento),
+  rinculo della visuale ridotto; in cambio si cammina più piano (~70%) e non si corre
+- **Sensibilità del mouse** ridotta in proporzione allo zoom, così la mira resta controllabile
+- Ricarica, cambio arma o corsa interrompono la mira
+
+| Arma | Mira |
+|---|---|
+| Pistola, mitra, fucile a pompa, fucile d'assalto, mitra a tripletta, raygun | Completa, con tacche |
+| Uzi doppia | "Leggera": le due armi si avvicinano al centro, piccolo zoom, un po' meno dispersione (con due armi le tacche non si allineano) |
+| Fucile da cecchino | Il suo mirino con zoom di sempre, ma con lo stesso comportamento del tasto destro (tieni premuto) |
+| Lanciagranate, bazooka | Nessuna mira |
+| Coltello, spada | Nessuna mira |
+
+- **Afferrare** su PC resta solo sul tasto **E** (il tasto destro non afferra più)
+- Le armi potenziate (strisce viola/arancione) mirano allo stesso modo
+- In multiplayer non cambia niente per gli altri: la mira è solo locale
+
 ### Passaggio segreto e zona sicura
 - Nei corridoi gialli delle backrooms c'è un punto di muro **appena più giallo** degli altri,
   con una differenza minima, da notare solo guardando bene. La posizione cambia con il seed

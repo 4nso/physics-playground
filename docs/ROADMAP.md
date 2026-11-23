@@ -398,6 +398,17 @@ tripletta 3×40 a pressione, uzi, raygun ad area), probabilità della cassa su 1
 negozio su telefono (le 10 armi più cura e potenziamenti stanno nel pannello), multiplayer con server
 PeerJS locale (spada, raygun e tripletta di un client fanno danno ai nemici dell'host).
 
+## Fase 13 – Mira di precisione su PC
+Dettagli in `docs/DESIGN.md`, sezione "Mira di precisione (fase 13, solo PC)".
+- [ ] Tasto destro = mira (tieni premuto), sinistro = spara; opzione "premi per attivare"
+- [ ] Tacche di mira nel modello in prima persona di ogni arma con mira, allineate al centro
+- [ ] Transizione morbida, zoom leggero, mirino a croce nascosto
+- [ ] Dispersione e rinculo ridotti, movimento più lento, niente corsa; sensibilità in base allo zoom
+- [ ] Uzi doppia con mira "leggera"; cecchino col suo mirino e lo stesso comportamento
+- [ ] Niente mira per lanciagranate, bazooka, coltello e spada
+- [ ] Afferrare su PC solo con E; touch e controller invariati
+- [ ] Verificato con screenshot headless (desktop 1440×900) che le tacche siano al centro per ogni arma
+
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano
 d'ingresso in salita dalla strada, piano terra a livello strada, poi secondo, terzo e quarto piano.
