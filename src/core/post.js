@@ -9,6 +9,7 @@
 // In qualità Bassa niente di tutto questo: si disegna direttamente sullo schermo, come prima.
 import * as THREE from 'three';
 import { renderer, weaponCamera, syncWeaponCamera } from './renderer.js';
+import { dev } from './devmode.js';
 
 const tri = new THREE.BufferGeometry();
 tri.setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3));
@@ -168,7 +169,7 @@ function draw(mat, target) {
 export function renderFrame(scene, weaponScene, camera) {
   camera.updateMatrixWorld();
   syncWeaponCamera();
-  if (mode === 'off') {
+  if (mode === 'off' || dev.noPost) {
     renderer.setRenderTarget(null);
     renderer.clear();
     renderer.render(scene, camera);
@@ -185,7 +186,7 @@ export function renderFrame(scene, weaponScene, camera) {
 
   brightMat.uniforms.tSrc.value = rtScene.texture;
   draw(brightMat, rtA);
-  const passes = mode === 'high' ? 2 : 1;
+  const passes = dev.noBloom ? 0 : mode === 'high' ? 2 : 1;
   for (let i = 0; i < passes; i++) {
     const s = i + 1;
     blurMat.uniforms.tSrc.value = rtA.texture;
@@ -197,5 +198,8 @@ export function renderFrame(scene, weaponScene, camera) {
   }
   finalMat.uniforms.tScene.value = rtScene.texture;
   finalMat.uniforms.tBloom.value = rtA.texture;
+  const bloom = grade.bloom.value;
+  if (dev.noBloom) grade.bloom.value = 0; // modalità sviluppatore: alone spento
   draw(finalMat, null);
+  grade.bloom.value = bloom;
 }

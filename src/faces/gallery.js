@@ -88,6 +88,9 @@ export function initGallery(changed) {
   render();
 }
 
+/** Ridisegna la galleria e aggiorna il contatore dei volti (dopo modifiche fatte da fuori). */
+export const refreshGallery = () => render();
+
 export function openGallery() {
   $('gallery').classList.remove('hidden');
   render();

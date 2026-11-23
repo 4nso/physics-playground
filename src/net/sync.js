@@ -3,10 +3,11 @@
 // Ogni client muove il proprio giocatore e manda posizione e colpi all'host.
 import { world, RAPIER, GROUPS } from '../core/physics.js';
 import { thud } from '../core/audio.js';
-import { player, pushPlayer, spawnPoint } from '../player/player.js';
+import { player, pushPlayer, spawnPoint, teleportPlayer } from '../player/player.js';
+import { WEAPONS } from '../weapons/defs.js';
 import { enemies, enemyHooks } from '../enemies/enemies.js';
 import { objects, applyObjectState } from '../world/objects.js';
-import { weaponHooks, resolveRemoteShot, showRemoteShot, currentWeaponIndex, resolveRemoteProjectile, showRemoteProjectile } from '../weapons/weapons.js';
+import { giveWeapon, setWeaponLevel, refillOwned, weaponHooks, resolveRemoteShot, showRemoteShot, currentWeaponIndex, resolveRemoteProjectile, showRemoteProjectile } from '../weapons/weapons.js';
 import { projHooks, remoteBoom } from '../weapons/projectiles.js';
 import { shopNet, serverBuy, applyBuy, buyFailed } from '../game/shop.js';
 import { startBoxSpin } from '../game/safezone.js';
@@ -392,6 +393,17 @@ on('hurt', (msg) => {
   thud(0.35, 80);
 });
 on('over', (msg) => gameOver(msg));
+// modalità sviluppatore dell'host: comandi per questo giocatore (teletrasporto, armi, munizioni)
+on('devcmd', (msg) => {
+  if (net.mode !== 'client' || game.state !== 'playing') return;
+  const wi = msg.wi | 0;
+  if (msg.c === 'tp' && [msg.x, msg.y, msg.z].every(Number.isFinite)) {
+    teleportPlayer(msg.x, msg.y, msg.z, Number.isFinite(msg.yaw) ? msg.yaw : undefined);
+    hud.flash('🛠 L\'host ti ha teletrasportato', 1.4);
+  } else if (msg.c === 'give' && WEAPONS[wi]) giveWeapon(wi);
+  else if (msg.c === 'level' && WEAPONS[wi]) { setWeaponLevel(wi, Math.max(0, Math.min(2, msg.l | 0))); hud.flash(`🛠 ${WEAPONS[wi].name}: livello ${msg.l | 0}`, 1.4); }
+  else if (msg.c === 'refill') { refillOwned(); hud.flash('🛠 Munizioni piene', 1.2); }
+});
 
 on('s', (msg) => {
   if (net.mode !== 'client' || game.state === 'menu') return;

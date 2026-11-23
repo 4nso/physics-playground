@@ -5,8 +5,8 @@
 #devPanel .dvHead b{font-size:15px;white-space:nowrap}
 #dvInfo{flex:1;font:600 11px/1.2 ui-monospace,Menlo,monospace;color:#9fb0c8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #dvClose{width:36px;height:32px;border:0;border-radius:9px;background:#2a3850;color:#fff;font-size:18px;font-weight:800;cursor:pointer}
-#devPanel .dvTabs{display:flex;gap:4px;padding:0 8px 6px}
-#devPanel .dvTabs button{flex:1;border:0;border-radius:9px;padding:7px 2px;background:#1f2b40;color:#b9c6da;font:inherit;font-size:12px;cursor:pointer}
+#devPanel .dvTabs{display:flex;flex-wrap:wrap;gap:4px;padding:0 8px 6px}
+#devPanel .dvTabs button{flex:1 1 22%;border:0;border-radius:9px;padding:7px 2px;background:#1f2b40;color:#b9c6da;font:inherit;font-size:12px;cursor:pointer}
 #devPanel .dvTabs button.on{background:#ffd23a;color:#1b2433}
 #dvBody{overflow-y:auto;padding:2px 10px 10px;-webkit-overflow-scrolling:touch}
 #devPanel .dvRow{padding:7px 0;border-top:1px solid rgba(255,255,255,.08)}
@@ -23,5 +23,8 @@
 #devPanel .dvVal{min-width:28px;text-align:center;font-size:15px}
 #devPanel small{display:block;color:#9fb0c8;font-weight:500;margin-top:5px;font-size:11.5px}
 #devPanel code{background:#24324a;padding:0 4px;border-radius:4px;font-size:11px}
+#devPanel .dvLive{font:600 11.5px/1.35 ui-monospace,Menlo,monospace;color:#cfe3ff}
+#devPanel .dvLog{display:block;width:100%;box-sizing:border-box;max-height:180px;overflow:auto;margin:4px 0 0;padding:6px 8px;background:#0b1220;color:#cfe3ff;border:0;border-radius:8px;font:500 11px/1.4 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+#devPanel textarea.dvLog{height:160px;resize:vertical;user-select:text;-webkit-user-select:text}
 body.pad #devBtn{display:none}
-@media (max-height:500px){#devBtn{top:calc(160px + env(safe-area-inset-top))}#devPanel .dvBtns button{padding:5px 7px;min-height:28px}#devPanel .dvRow{padding:5px 0}}
+@media (max-height:500px){#devPanel .dvTabs button{flex-basis:12%;padding:5px 2px;font-size:11px}#devBtn{top:calc(160px + env(safe-area-inset-top))}#devPanel .dvBtns button{padding:5px 7px;min-height:28px}#devPanel .dvRow{padding:5px 0}}

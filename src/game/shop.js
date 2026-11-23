@@ -19,7 +19,7 @@ import { boxBusy, boxHooks, upgraderFx } from './safezone.js';
 import { map } from '../world/map.js';
 import { net } from '../net/net.js';
 import { hud } from '../ui/hud.js';
-import { dev } from '../core/devmode.js';
+import { dev, devLog } from '../core/devmode.js';
 
 const $ = (id) => document.getElementById(id);
 const NEAR = 2.8;          // distanza dal punto davanti al banco per vedere il pannello
@@ -151,6 +151,7 @@ export function serverBuy(m, id, kind, extra = {}) {
   }
   if ((m.money || 0) < price) return { ok: false, why: `Servono ${price} punti` };
   m.money -= price;
+  devLog(`Acquisto ${kind} ${kind === 'up' || kind === 'weapon' || kind === 'ammo' ? id : ''} (${price}) – ${m.local ? 'io' : m.id}`);
   if (kind === 'box') {
     level = boxWeapon;
     if (boxHooks.spin) boxHooks.spin(st.idx, boxWeapon, m.id); // tutti vedono la cassa girare

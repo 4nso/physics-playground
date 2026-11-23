@@ -17,6 +17,8 @@ export const dev = {
   stallOpen: false, // bancarella delle munizioni aperta anche prima del round 10
   dayOverride: null, // ora del giorno scelta a mano (0 giorno … 1 notte), null = segue i round
   seed: 0,          // seed della prossima mappa scelto dal pannello (0 = normale)
+  noPost: false,    // scheda Grafica: effetti di schermo spenti (si disegna come in qualità Bassa)
+  noBloom: false,   // scheda Grafica: niente alone intorno alle luci
 };
 
 /** Collegamenti impostati dal pannello quando è caricato: tick(dt) a ogni frame. */
@@ -38,3 +40,24 @@ export async function setDevMode(on) {
 
 /** `?dev` nell'indirizzo: la modalità parte subito. */
 export const devFromUrl = /[?&]dev\b/.test(location.search);
+
+/* ---------- Registro per la scheda Diagnosi ----------
+ * Sempre attivo (costa pochissimo): così "Copia stato" ha anche gli errori successi prima di
+ * accendere la modalità sviluppatore. Solo in memoria, mai inviato da nessuna parte. */
+const MAX_LOG = 40;
+export const devLogs = { events: [], errors: [] };
+const stamp = () => new Date().toTimeString().slice(0, 8);
+function push(list, text) {
+  list.push(`${stamp()} ${String(text).slice(0, 300)}`);
+  if (list.length > MAX_LOG) list.shift();
+}
+/** Un evento della partita (round, acquisti, fine partita…). */
+export function devLog(text) { push(devLogs.events, text); }
+function noteError(text) { push(devLogs.errors, text); push(devLogs.events, '❌ ' + text); }
+addEventListener('error', (e) => noteError(`${e.message || 'errore'}${e.filename ? ` (${e.filename.split('/').pop()}:${e.lineno})` : ''}`));
+addEventListener('unhandledrejection', (e) => noteError(`promessa: ${e.reason && e.reason.message ? e.reason.message : e.reason}`));
+const origError = console.error.bind(console);
+console.error = (...a) => {
+  try { noteError(a.map((x) => (x && x.message) || String(x)).join(' ')); } catch (err) { /* ignora */ }
+  origError(...a);
+};

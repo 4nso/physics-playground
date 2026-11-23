@@ -127,6 +127,8 @@ export function setWeaponLevel(wi, level) {
   refillWeapon(wi);
 }
 export const weaponLevel = (wi) => state.levels[wi];
+/** Munizioni dell'arma wi { mag, reserve } (per la diagnosi). */
+export const ammoOf = (wi) => ({ mag: state.ammo[wi].mag, reserve: state.ammo[wi].reserve });
 export const currentWeaponLevel = () => state.levels[state.current];
 
 /** Potenziamento "ricarica veloce": mul = 1 normale, 0.8 = 20% più veloce... */

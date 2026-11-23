@@ -45,13 +45,18 @@ export function syncWeaponCamera() {
  * Vista "dall'alto" (k da 0 a 1): seduti in cima alle giostre la nebbia si allontana
  * e si vede tutta la mappa. La chiamano le giostre (game/rides.js).
  */
+let fogOn = true;
 export function setSkyView(k) {
   skyK = k;
-  scene.fog.near = fogNear + 30 * k;
-  scene.fog.far = viewDist - 3 + 55 * k;
+  scene.fog.near = fogOn ? fogNear + 30 * k : 1e5;
+  scene.fog.far = fogOn ? viewDist - 3 + 55 * k : 2e5;
   camera.far = viewDist + 55 * k;
   camera.updateProjectionMatrix();
 }
+
+/** Modalità sviluppatore: nebbia accesa o spenta (si vede il bordo della distanza di vista). */
+export function setFog(on) { fogOn = on; setSkyView(skyK); }
+export const fogEnabled = () => fogOn;
 
 /**
  * Qualità grafica: pixelRatio = risoluzione, dist = distanza di vista (m),

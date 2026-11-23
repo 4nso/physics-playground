@@ -21,7 +21,7 @@ import { faceByName } from '../faces/gallery.js';
 import { drawPoster } from '../faces/poster.js';
 import { placePosters } from '../world/posters.js';
 import { resetRides } from './rides.js';
-import { dev } from '../core/devmode.js';
+import { dev, devLog } from '../core/devmode.js';
 
 const $ = (id) => document.getElementById(id);
 const BREAK_TIME = 12;
@@ -138,6 +138,7 @@ function beginRound() {
   game.spawnT = 0.5;
   hud.setRound(game.round);
   hud.setBreak(null);
+  devLog(`Round ${game.round}: ${game.cfg.total} nemici`);
   if (net.mode === 'host' && gameNet.toAll) gameNet.toAll({ t: 'round', r: game.round });
   let text = game.round === MAX_ROUNDS ? `Round ${game.round}: l'ultimo!` : `Round ${game.round}`;
   if (game.cfg.bosses) text += `<br><small>⚠️ Round del boss${game.cfg.bosses > 1 ? ' (sono ' + game.cfg.bosses + '!)' : ''}</small>`;
@@ -156,6 +157,7 @@ function endRound() {
   game.timer = BREAK_TIME;
   const bonus = 250 * game.round;
   game.score += bonus;
+  devLog(`Round ${game.round} superato (+${bonus})`);
   for (const m of team.values()) {
     m.money = (m.money || 0) + bonus; // il bonus del round va a tutti
     if (!m.down) m.health = Math.min(m.maxHealth || MAX_HEALTH, m.health + 20);
@@ -184,7 +186,7 @@ enemyHooks.onKill = (e, head) => {
 enemyHooks.onPlayerHit = (damage, ex, ez, targetId, enemy) => {
   const m = team.get(targetId);
   if (!m || m.down || game.phase === 'dead') return;
-  if (m.local && dev.god) return; // modalità sviluppatore: invincibile
+  if ((m.local && dev.god) || m.devGod) return; // modalità sviluppatore: invincibile (anche un giocatore scelto dall'host)
   m.health -= damage;
   const p = posOf(m);
   const dx = p.x - ex, dz = p.z - ez, d = Math.hypot(dx, dz) || 1;
@@ -226,6 +228,7 @@ export function applyPick(kind) {
 }
 
 function downMember(m) {
+  devLog(`A terra: ${m.local ? 'io' : m.id}`);
   m.health = 0;
   m.down = true;
   m.reviveT = 0;
@@ -301,6 +304,7 @@ export function gameOver(info) {
   hud.flash('', 0); // niente messaggi sopra la schermata finale
   hud.clearFeed();
   const r = info || { round: game.round, score: game.score, kills: game.kills };
+  devLog(`Fine partita: round ${r.round}, ${r.score} punti${r.win ? ' (vittoria)' : ''}`);
   const win = !!r.win;
   if (r.dev) game.devUsed = true;
   const test = !!game.devUsed; // partita di test (modalità sviluppatore): niente record
@@ -363,6 +367,7 @@ export function startGame(faceSets, members, seed) {
   buildLevel();
   placePosters(faceSets); // manifesti "RICERCATO" con le facce sui muri
   setupTeam(members);
+  devLog(`Nuova partita: mappa ${map.seed}, ${members.length} giocator${members.length > 1 ? 'i' : 'e'}`);
   resetPlayer(net.mySlot);
   resetWeapons();
   resetShop();

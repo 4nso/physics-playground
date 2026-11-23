@@ -440,12 +440,26 @@ valgono per l'host stesso; velocità del tempo, ora del giorno e bancarella aper
 (i client vedono l'ora decisa dai round). Verificato in headless (1180×820, 844×390 touch e host +
 client con server PeerJS locale): nessun errore in console, il client vede "🛠 DEV" e non salva il record.
 
-Passo 2 – Strumenti avanzati:
-- [ ] Scheda Mondo e giostre (muro segreto, spawn, percorsi, collisioni, comandi delle giostre)
-- [ ] Scheda Grafica e prestazioni (fps, qualità, interruttori degli effetti, wireframe)
-- [ ] Scheda Volti (volti di prova generati, svuota galleria)
-- [ ] Scheda Diagnosi ("Copia stato", registro eventi)
-- [ ] Multiplayer: comandi dell'host applicabili a un giocatore scelto, provati con server PeerJS locale
+Passo 2 – Strumenti avanzati (in prova su iPad):
+- [x] Scheda Mondo e giostre (muro segreto, spawn, percorsi, collisioni, comandi delle giostre)
+- [x] Scheda Grafica e prestazioni (fps, qualità, interruttori degli effetti, wireframe)
+- [x] Scheda Volti (volti di prova generati, svuota galleria)
+- [x] Scheda Diagnosi ("Copia stato", registro eventi)
+- [x] Multiplayer: comandi dell'host applicabili a un giocatore scelto, provati con server PeerJS locale
+- [ ] Provato su iPad (passo 1 e passo 2)
+
+Note: il pannello ora ha 7 schede su due righe. Mondo: muro segreto (riquadro e raggio verdi), ultimi 30
+punti di comparsa (colonnine rosse), percorsi dei nemici (linee gialle), contorni delle collisioni entro
+22 m; si vedono attraverso i muri. Giostre: avvia, ferma, velocità 1-2-3 e "salta alla sosta" delle
+montagne russe, da qualsiasi punto. Grafica: fps, disegni e triangoli, tempi per parte (come `?prof`),
+qualità al volo (non salvata), interruttori di effetti di schermo, bloom, ombre, nebbia e fil di ferro.
+Volti: 3 o 8 facce disegnate dal codice ("Prova 1"…), svuota galleria con conferma. Diagnosi: "Copia
+stato" (versione con commit e data della build, mappa, round, posizione, armi, soldi, fps, impostazioni,
+ultimi errori ed eventi) e registro degli ultimi eventi; errori ed eventi si registrano sempre, solo in
+memoria. Multiplayer: in Giocatore e Armi compare "Applica a" con i giocatori della stanza; soldi, vita
+(anche rianimare), invincibilità, armi, livello, munizioni e teletrasporto (anche "Da me") valgono per il
+giocatore scelto: l'host decide e manda il comando al suo dispositivo. Verificato in headless (anche host
++ client con server PeerJS locale): nessun errore in console.
 
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano

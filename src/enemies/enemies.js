@@ -11,6 +11,8 @@ import { pickFaceIndex } from '../faces/gallery.js';
 import { WALK_SPEED } from '../player/player.js';
 
 export const enemies = [];
+/** Ultimi punti di comparsa (per la modalità sviluppatore: scheda Mondo). */
+export const recentSpawns = [];
 /** Avvisi verso il gioco: onKill(enemy, headshot, dir, force), onPlayerHit(damage, x, z, targetId, enemy) */
 export const enemyHooks = { onKill: null, onPlayerHit: null };
 
@@ -56,6 +58,8 @@ export function spawnEnemy(variant, opts, at = null) {
   const model = buildEnemyModel(variant, faceSets[faceIdx]);
   const half = 0.45 * v.scale, radius = 0.33 * v.scale, centerY = half + radius;
   const sp = at || spawnPoint();
+  recentSpawns.push({ x: sp.x, y: sp.y, z: sp.z });
+  if (recentSpawns.length > 30) recentSpawns.shift();
   const body = world.createRigidBody(
     RAPIER.RigidBodyDesc.dynamic().setTranslation(sp.x, sp.y + centerY + 0.05, sp.z).lockRotations(),
   );

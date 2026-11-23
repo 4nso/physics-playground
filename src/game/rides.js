@@ -276,6 +276,25 @@ export function serverRide(id, ri, a, c) {
   return '';
 }
 
+/**
+ * Modalità sviluppatore (chi comanda): comandi della giostra ri senza andare alla cabina.
+ * a = 'start' | 'stop' | 'level' (v = 1..3) | 'pause' (montagne russe: subito alla sosta in stazione).
+ */
+export function devRide(ri, a, v) {
+  const r = rides[ri];
+  if (!r) return '';
+  const D = drv(r), icon = r.def.icon;
+  if (a === 'level') { r.level = Math.max(1, Math.min(3, v | 0)); return `${icon} Velocità ${r.level}`; }
+  if (a === 'start') return r.state === 'running' || r.state === 'countdown' ? '' : `${icon} ${D.start(r)}`;
+  if (a === 'stop') { const t = D.stop(r); return t ? `${icon} ${t}` : ''; }
+  if (a === 'pause' && r.def.kind === 'coaster') {
+    if (r.state === 'idle' || r.state === 'countdown') r.goal = 0;
+    Object.assign(r, { state: 'pause', pos: r.def.stationS, vel: 0, timer: C.PAUSE });
+    return `${icon} Sosta in stazione`;
+  }
+  return '';
+}
+
 /** Avanza lo stato di una giostra (solo chi comanda). */
 function simulate(r, dt) {
   for (let k = 0; k < r.seats.length; k++) if (r.seats[k] && !memberOk(r.seats[k])) r.seats[k] = null;

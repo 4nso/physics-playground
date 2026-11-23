@@ -5,7 +5,18 @@
 import * as THREE from 'three';
 import './panel.css';
 import { dev, devHooks, setDevMode } from '../core/devmode.js';
-import { camera } from '../core/renderer.js';
+import { camera, scene, renderer, setShadows, setFog, fogEnabled } from '../core/renderer.js';
+import { quality, setQualitySetting, LEVEL_NAMES } from '../core/quality.js';
+import { prof } from '../core/prof.js';
+import { settings } from '../ui/settings.js';
+import { rides, devRide } from '../game/rides.js';
+import { playerName } from '../net/avatars.js';
+import { countFaces, refreshGallery } from '../faces/gallery.js';
+import { addFace, clearFaces } from '../faces/store.js';
+import { proceduralFace } from '../faces/procedural.js';
+import { devLogs, devLog } from '../core/devmode.js';
+import { overlay, updateOverlays, clearOverlays } from './world.js';
+import { stateText, copyText, VERSION } from './diag.js';
 import { requestLock, exitLock, input } from '../core/input.js';
 import { pad } from '../core/gamepad.js';
 import { initAudio } from '../core/audio.js';
@@ -20,7 +31,7 @@ import { resetHealLimit } from '../game/shop.js';
 import { WEAPONS } from '../weapons/defs.js';
 import { giveWeapon, setWeaponLevel, currentWeaponIndex, weaponLevel, refillOwned } from '../weapons/weapons.js';
 import { startMatch } from '../net/sync.js';
-import { net, broadcast } from '../net/net.js';
+import { net, broadcast, sendTo } from '../net/net.js';
 import { hud } from '../ui/hud.js';
 
 const $ = (id) => document.getElementById(id);
@@ -38,11 +49,15 @@ const ui = {
   spawnN: 5,
   roundN: 10,
   infoT: 0,
+  target: null,   // id del giocatore a cui applicare i comandi (null = io)
+  faces: null,    // volti in galleria (letti all'apertura della scheda Volti)
 };
 const urlRound = (() => { const v = parseInt(new URLSearchParams(location.search).get('round'), 10); return v > 0 ? v : 0; })();
 let urlRoundDone = false;
 
-const TABS = [['partita', '🎮 Partita'], ['giocatore', '🙂 Giocatore'], ['armi', '🔫 Armi']];
+const TABS = [['partita', '🎮 Partita'], ['giocatore', '🙂 Giocatore'], ['armi', '🔫 Armi'], ['mondo', '🎡 Mondo'],
+  ['grafica', '🖥 Grafica'], ['volti', '🖼 Volti'], ['diagnosi', '🩺 Diagnosi']];
+const wireMat = new THREE.MeshBasicMaterial({ color: 0x40ff9a, wireframe: true, fog: false });
 const KINDS = [['base', 'Base'], ['fast', 'Rosso'], ['big', 'Grosso'], ['armored', 'Corazzato'], ['boss', 'Boss']];
 const TIMES = [0.25, 0.5, 1, 2];
 const SPEEDS = [1, 2, 4];
@@ -59,7 +74,11 @@ export function startDev() {
 
 function shutdown() {
   closePanel(false);
-  Object.assign(dev, { on: false, freeze: false, god: false, infAmmo: false, noReload: false, fly: false, speedMul: 1, timeScale: 1, rigBox: -1, stallOpen: false, dayOverride: null, seed: 0 });
+  Object.assign(dev, { on: false, freeze: false, god: false, infAmmo: false, noReload: false, fly: false, speedMul: 1, timeScale: 1, rigBox: -1, stallOpen: false, dayOverride: null, seed: 0, noPost: false, noBloom: false });
+  for (const m of team.values()) delete m.devGod;
+  clearOverlays();
+  scene.overrideMaterial = null;
+  setFog(true);
   if (ui.built) $('devBtn').classList.add('hidden');
   $('pauseDev').classList.add('hidden');
 }
@@ -199,6 +218,7 @@ function tick(dt) {
     devGoToRound(urlRound);
   }
   if (game.state === 'menu') urlRoundDone = false;
+  updateOverlays(dt);
   ui.infoT -= dt;
   if (dev.panelOpen && ui.infoT <= 0) { ui.infoT = 0.4; refreshInfo(); }
 }
@@ -206,7 +226,18 @@ function tick(dt) {
 function refreshInfo() {
   const me = localMember();
   $('dvInfo').textContent = `R${Math.max(0, game.round)} · 👾${enemies.length + (game.toSpawn || 0)} · ★${me ? me.money || 0 : 0} · mappa ${map.seed}`;
+  // valori che cambiano da soli nelle schede Grafica e Diagnosi
+  const fps = $('dvFps');
+  if (fps) fps.textContent = `${quality.fps} fps · ${LEVEL_NAMES[quality.level]}${quality.res < 1 ? ` · ris. ${Math.round(quality.res * 100)}%` : ''} · ${renderer.info.render.calls} disegni · ${Math.round(renderer.info.render.triangles / 1000)}k triangoli`;
+  const log = $('dvLog');
+  if (log) {
+    const text = devLogs.events.slice(-14).reverse().join('\n') || 'Nessun evento per ora';
+    if (log.textContent !== text) log.textContent = text;
+  }
+  const rs = $('dvRides');
+  if (rs) rs.textContent = rides.map((r) => `${r.def.icon} ${RIDE_STATE[r.state] || r.state} · v${r.level}`).join('   ');
 }
+const RIDE_STATE = { idle: 'ferma', countdown: 'sta per partire', running: 'in corsa', unloading: 'fine corsa', pause: 'sosta' };
 
 /* ---------- Schede ---------- */
 const btn = (a, v, label, on = false, cls = '') => `<button data-a="${a}"${v !== undefined ? ` data-v="${esc(v)}"` : ''} class="${on ? 'on ' : ''}${cls}">${label}</button>`;
@@ -216,9 +247,8 @@ function renderTab() {
   if (!ui.built) return;
   for (const b of document.querySelectorAll('#devPanel [data-tab]')) b.classList.toggle('on', b.dataset.tab === ui.tab);
   const body = $('dvBody');
-  if (ui.tab === 'giocatore') body.innerHTML = tabPlayer();
-  else if (ui.tab === 'armi') body.innerHTML = tabWeapons();
-  else body.innerHTML = tabGame();
+  const tabs = { giocatore: tabPlayer, armi: tabWeapons, mondo: tabWorld, grafica: tabGraphics, volti: tabFaces, diagnosi: tabDiag };
+  body.innerHTML = (tabs[ui.tab] || tabGame)();
   refreshInfo();
 }
 /** Dopo un comando: stessa scheda, valori aggiornati (senza perdere la selezione del controller). */
@@ -251,28 +281,96 @@ function tabGame() {
   ].join('');
 }
 
+/* ---------- A chi si applicano i comandi (multiplayer) ---------- */
+/** Il giocatore scelto (se è uscito dalla stanza: io). */
+function target() {
+  const m = ui.target ? team.get(ui.target) : null;
+  return m || localMember();
+}
+const isRemote = (m) => !!m && !m.local;
+const who = (m) => (isRemote(m) ? esc(playerName(m.id, m.slot)) : 'te');
+function targetRow() {
+  if (team.size < 2) return '';
+  const t = target();
+  const list = [...team.values()].sort((x, y) => x.slot - y.slot);
+  return row('Applica a', list.map((m) => btn('target', m.id, m.local ? '🙂 Io' : `👤 ${esc(playerName(m.id, m.slot))}`, t === m)).join(''),
+    'Soldi, vita, invincibilità, armi e teletrasporto valgono anche per il giocatore scelto');
+}
+/** Comando per un client (lo esegue il suo dispositivo, vedi net/sync.js). */
+const toClient = (m, msg) => sendTo(m.id, { t: 'devcmd', ...msg });
+
 function tabPlayer() {
-  const me = localMember();
-  const money = me ? me.money || 0 : 0;
+  const m = target(), remote = isRemote(m);
+  const money = m ? m.money || 0 : 0;
+  const god = remote ? !!m.devGod : dev.god;
   return [
-    row(`Soldi (★ ${money})`, btn('money', 1000, '+1000') + btn('money', 10000, '+10 000') + btn('moneySet', undefined, 'Imposta…')),
-    row(`Vita (${me ? Math.round(me.health) : 0}/${me ? me.maxHealth || MAX_HEALTH : MAX_HEALTH})`, btn('heal', undefined, '❤️ Vita piena') + btn('god', undefined, dev.god ? '🛡 Invincibile' : '🛡 Invincibile: no', dev.god)),
-    row('Munizioni', btn('infAmmo', undefined, '∞ Munizioni infinite', dev.infAmmo) + btn('noReload', undefined, '⚡ Niente ricarica', dev.noReload)),
-    row('Movimento', btn('fly', undefined, dev.fly ? '🕊 Volo libero: sì' : '🕊 Volo libero', dev.fly) + SPEEDS.map((s) => btn('speed', s, `×${s}`, dev.speedMul === s)).join(''),
+    targetRow(),
+    row(`Soldi di ${who(m)} (★ ${money})`, btn('money', 1000, '+1000') + btn('money', 10000, '+10 000') + btn('moneySet', undefined, 'Imposta…')),
+    row(`Vita (${m ? Math.round(m.health) : 0}/${m ? m.maxHealth || MAX_HEALTH : MAX_HEALTH})`, btn('heal', undefined, m && m.down ? '⛑ Rianima' : '❤️ Vita piena') + btn('god', undefined, god ? '🛡 Invincibile' : '🛡 Invincibile: no', god)),
+    remote ? '' : row('Munizioni', btn('infAmmo', undefined, '∞ Munizioni infinite', dev.infAmmo) + btn('noReload', undefined, '⚡ Niente ricarica', dev.noReload)),
+    remote ? '' : row('Movimento', btn('fly', undefined, dev.fly ? '🕊 Volo libero: sì' : '🕊 Volo libero', dev.fly) + SPEEDS.map((s) => btn('speed', s, `×${s}`, dev.speedMul === s)).join(''),
       'In volo vai dove guardi (guarda in alto per salire) · tastiera: Spazio sale, C scende · attraversi i muri'),
-    row('Teletrasporto', DESTS.map(([id, label]) => btn('tp', id, label)).join('')),
-    team.size > 1 ? row('', '', 'Per ora i comandi valgono solo per te (gli altri giocatori: nel passo 2).') : '',
+    row(`Teletrasporto${remote ? ` di ${who(m)}` : ''}`, DESTS.map(([id, label]) => btn('tp', id, label)).join('') + (remote ? btn('tp', 'me', '🙂 Da me') : '')),
+    remote ? row('', '', 'Munizioni infinite, niente ricarica, volo e velocità valgono solo per te.') : '',
   ].join('');
 }
 
 function tabWeapons() {
-  const wi = currentWeaponIndex(), lvl = weaponLevel(wi);
+  const m = target(), remote = isRemote(m);
+  const wi = remote ? (m.weapon | 0) : currentWeaponIndex();
+  const lvl = remote ? (m.wlv && m.wlv[wi]) || 0 : weaponLevel(wi);
+  const w = WEAPONS[wi] || WEAPONS[0];
   return [
-    row('Prendi un\'arma', WEAPONS.map((w, i) => btn('give', i, `${w.icon} ${esc(w.name)}`, wi === i)).join('')),
-    row(`Potenziamento di ${WEAPONS[wi].icon} ${esc(WEAPONS[wi].name)}`, [0, 1, 2].map((l) => btn('level', l, l ? '★'.repeat(l) : 'Base', lvl === l)).join('') + btn('refill', undefined, '📦 Munizioni piene')),
-    row('🎁 Cassa misteriosa truccata', btn('rig', -1, 'A caso', dev.rigBox < 0) + WEAPONS.map((w, i) => btn('rig', i, w.icon, dev.rigBox === i)).join(''),
-      dev.rigBox >= 0 ? `La prossima estrazione dà: ${WEAPONS[dev.rigBox].icon} ${esc(WEAPONS[dev.rigBox].name)}` : 'La prossima estrazione è normale'),
-    row('Negozio', btn('stall', undefined, dev.stallOpen ? '📦 Bancarella aperta' : '📦 Apri la bancarella munizioni', dev.stallOpen) + btn('healReset', undefined, '💊 Azzera il limite della cura')),
+    targetRow(),
+    row(`Dai un'arma a ${who(m)}`, WEAPONS.map((x, i) => btn('give', i, `${x.icon} ${esc(x.name)}`, wi === i)).join('')),
+    row(`Potenziamento di ${w.icon} ${esc(w.name)}${remote ? ' (l\'arma che ha in mano)' : ''}`, [0, 1, 2].map((l) => btn('level', l, l ? '★'.repeat(l) : 'Base', lvl === l)).join('') + btn('refill', undefined, '📦 Munizioni piene')),
+    row('🎁 Cassa misteriosa truccata', btn('rig', -1, 'A caso', dev.rigBox < 0) + WEAPONS.map((x, i) => btn('rig', i, x.icon, dev.rigBox === i)).join(''),
+      dev.rigBox >= 0 ? `La prossima estrazione (di chiunque) dà: ${WEAPONS[dev.rigBox].icon} ${esc(WEAPONS[dev.rigBox].name)}` : 'La prossima estrazione è normale'),
+    row('Negozio', btn('stall', undefined, dev.stallOpen ? '📦 Bancarella aperta' : '📦 Apri la bancarella munizioni', dev.stallOpen) + btn('healReset', undefined, `💊 Azzera il limite della cura${remote ? ` di ${who(m)}` : ''}`)),
+  ].join('');
+}
+
+function tabWorld() {
+  const t = (k, label) => btn('ov', k, label, overlay[k]);
+  const rideRows = rides.map((r, i) => row(`${r.def.icon} ${esc(r.def.name)} · ${RIDE_STATE[r.state] || r.state}`,
+    btn('ride', `${i}:start`, '▶️ Avvia') + btn('ride', `${i}:stop`, '⏹️ Ferma')
+    + [1, 2, 3].map((l) => btn('ride', `${i}:level:${l}`, `⚡${l}`, r.level === l)).join('')
+    + (r.def.kind === 'coaster' ? btn('ride', `${i}:pause`, '⏸ Salta alla sosta') : ''))).join('');
+  return [
+    row('Mostra sulla mappa', t('secret', '🟩 Muro segreto') + t('spawns', '🟥 Punti di comparsa') + t('paths', '🟨 Percorsi dei nemici') + t('colliders', '📦 Collisioni'),
+      'Si vedono anche attraverso i muri. Comparsa: dove sono nati gli ultimi 30 nemici. Collisioni: entro 22 m da te.'),
+    rideRows || row('Giostre', '', 'Nessuna giostra in questa mappa'),
+    row('', '<span id="dvRides" class="dvLive"></span>', 'I comandi funzionano da qualsiasi punto, senza andare alla cabina.'),
+  ].join('');
+}
+
+function tabGraphics() {
+  const on = (k, label, val) => btn(k, undefined, label, val);
+  return [
+    row('Prestazioni', `<span id="dvFps" class="dvLive"></span><i class="dvBr"></i>` + on('prof', '⏱ Contatore e tempi per parte', prof.on),
+      'Come ?prof: millisecondi di ogni parte del gioco, sotto il contatore in alto'),
+    row(`Qualità (${settings.quality === 'auto' ? 'automatica' : 'scelta a mano'})`, [['auto', 'Auto'], ['low', 'Bassa'], ['medium', 'Media'], ['high', 'Alta']].map(([q, l]) => btn('quality', q, l, settings.quality === q)).join(''),
+      'Solo per ora: non cambia le Impostazioni salvate'),
+    row('Effetti (verde = acceso)', on('gPost', '✨ Effetti di schermo', !dev.noPost) + on('gBloom', '💡 Bloom', !dev.noBloom) + on('gShadow', '🌗 Ombre', renderer.shadowMap.enabled)
+      + on('gFog', '🌫 Nebbia', fogEnabled()) + on('gWire', '🕸 Fil di ferro', scene.overrideMaterial === wireMat),
+      'Effetti di schermo e bloom ci sono solo in Media e Alta; le ombre solo in Alta (cambiando qualità tornano come prima)'),
+  ].join('');
+}
+
+function tabFaces() {
+  if (ui.faces === null) countFaces().then((n) => { ui.faces = n; if (ui.tab === 'volti') refresh(); }).catch(() => {});
+  return [
+    row(`Galleria (${ui.faces === null ? '…' : ui.faces} volti)`, btn('faces', 3, '🎨 3 volti di prova') + btn('faces', 8, '🎨 8 volti di prova') + btn('facesClear', undefined, '🗑 Svuota la galleria', false, 'danger'),
+      'I volti di prova sono facce disegnate dal codice (mai foto), chiamate "Prova 1", "Prova 2"… Si vedono sui nemici dalla prossima partita.'),
+  ].join('');
+}
+
+function tabDiag() {
+  return [
+    row('Segnalare un bug', btn('copy', undefined, '📋 Copia stato', false, 'primary'),
+      `Copia un riassunto (versione, mappa, round, posizione, armi, soldi, fps, impostazioni, ultimi errori) da incollare a Claude. Versione: ${esc(VERSION)}`),
+    row('Ultimi eventi', '', '<pre id="dvLog" class="dvLog"></pre>'),
+    row('', '', '<textarea id="dvState" class="dvLog hidden" readonly></textarea>'),
   ].join('');
 }
 
@@ -284,11 +382,11 @@ const needGame = () => {
 };
 
 function run(a, v) {
-  const me = localMember();
+  const m = target(), remote = isRemote(m);
   switch (a) {
     /* Partita */
-    case 'freeze': dev.freeze = !dev.freeze; break;
-    case 'killall': if (needGame()) killAll(); break;
+    case 'freeze': dev.freeze = !dev.freeze; devLog(`🛠 Zombi ${dev.freeze ? 'fermi' : 'liberi'}`); break;
+    case 'killall': if (needGame()) { killAll(); devLog('🛠 Eliminati tutti i nemici'); } break;
     case 'nextRound': if (needGame()) { killAll(); devGoToRound(game.round + 1); } break;
     case 'restartRound': if (needGame()) { killAll(); devGoToRound(Math.max(1, game.round)); } break;
     case 'roundN': ui.roundN = Math.max(1, Math.min(MAX_ROUNDS, ui.roundN + +v)); break;
@@ -300,35 +398,100 @@ function run(a, v) {
     case 'dayAuto': dev.dayOverride = null; break;
     case 'newMap': newMap(v); break;
     case 'off': setDevMode(false); hud.flash('🛠 Modalità sviluppatore spenta', 1.6); break;
-    /* Giocatore */
-    case 'money': if (me) me.money = (me.money || 0) + +v; break;
+    /* Giocatore (io o quello scelto) */
+    case 'target': ui.target = v; break;
+    case 'money': if (m) m.money = (m.money || 0) + +v; break;
     case 'moneySet': {
-      if (!me) break;
-      const s = prompt('Quanti punti vuoi avere?', String(me.money || 0));
+      if (!m) break;
+      const s = prompt('Quanti punti?', String(m.money || 0));
       const n = parseInt(String(s || '').replace(/\D/g, ''), 10);
-      if (n >= 0) me.money = Math.min(1e7, n);
+      if (n >= 0) m.money = Math.min(1e7, n);
       break;
     }
-    case 'heal': if (me && needGame()) healMember(me); break;
-    case 'god': dev.god = !dev.god; break;
+    case 'heal': if (m && needGame()) healMember(m); break;
+    case 'god': if (remote) m.devGod = !m.devGod; else dev.god = !dev.god; break;
     case 'infAmmo': dev.infAmmo = !dev.infAmmo; if (dev.infAmmo) refillOwned(); break;
     case 'noReload': dev.noReload = !dev.noReload; if (dev.noReload) refillOwned(); break;
     case 'fly': dev.fly = !dev.fly; break;
     case 'speed': dev.speedMul = +v; break;
-    case 'tp': if (needGame()) teleport(v); break;
+    case 'tp': if (needGame()) teleport(v, m); break;
     /* Armi */
-    case 'give': if (needGame()) giveWeapon(+v); break;
+    case 'give':
+      if (!needGame()) break;
+      if (remote) { toClient(m, { c: 'give', wi: +v }); m.weapon = +v; } else giveWeapon(+v);
+      break;
     case 'level': {
-      const wi = currentWeaponIndex();
-      setWeaponLevel(wi, +v);
-      if (me) { if (!me.wlv) me.wlv = {}; me.wlv[wi] = +v; } // l'host usa questo livello per i danni
+      const wi = remote ? m.weapon | 0 : currentWeaponIndex();
+      if (m) { if (!m.wlv) m.wlv = {}; m.wlv[wi] = +v; } // l'host usa questo livello per i danni
+      if (remote) toClient(m, { c: 'level', wi, l: +v }); else setWeaponLevel(wi, +v);
       break;
     }
-    case 'refill': refillOwned(); hud.flash('📦 Munizioni piene', 1.2); break;
+    case 'refill': if (remote) toClient(m, { c: 'refill' }); else { refillOwned(); hud.flash('📦 Munizioni piene', 1.2); } break;
     case 'rig': dev.rigBox = +v; break;
     case 'stall': dev.stallOpen = !dev.stallOpen; break;
-    case 'healReset': resetHealLimit(me); hud.flash('💊 La cura si può riusare', 1.2); break;
+    case 'healReset': resetHealLimit(m); hud.flash('💊 La cura si può riusare', 1.2); break;
+    /* Mondo e giostre */
+    case 'ov': overlay[v] = !overlay[v]; break;
+    case 'ride': {
+      const [ri, act, lvl] = String(v).split(':');
+      const msg = devRide(+ri, act, +lvl);
+      if (msg) hud.flash(msg, 1.6);
+      break;
+    }
+    /* Grafica */
+    case 'prof': setProf(!prof.on); break;
+    case 'quality': settings.quality = v; setQualitySetting(v); break;
+    case 'gPost': dev.noPost = !dev.noPost; break;
+    case 'gBloom': dev.noBloom = !dev.noBloom; break;
+    case 'gShadow': setShadows(!renderer.shadowMap.enabled); break;
+    case 'gFog': setFog(!fogEnabled()); break;
+    case 'gWire': scene.overrideMaterial = scene.overrideMaterial === wireMat ? null : wireMat; break;
+    /* Volti */
+    case 'faces': makeTestFaces(+v); break;
+    case 'facesClear':
+      if (confirm('Eliminare tutti i volti della galleria da questo dispositivo?')) {
+        clearFaces().then(() => { ui.faces = 0; refreshGallery(); refresh(); hud.flash('🗑 Galleria vuota', 1.4); });
+      }
+      break;
+    /* Diagnosi */
+    case 'copy': copyState(); break;
   }
+}
+
+/** Contatore fps con i tempi per parte (come ?prof). */
+function setProf(on) {
+  prof.on = on;
+  const el = $('fps');
+  el.classList.toggle('prof', on);
+  el.classList.toggle('hidden', !on && !settings.fps);
+}
+
+/** Volti di prova: facce disegnate dal codice, salvate nella galleria come se fossero foto. */
+async function makeTestFaces(n) {
+  const start = (ui.faces || 0) + 1;
+  hud.flash(`🎨 Disegno ${n} volti di prova…`, 1.2);
+  for (let i = 0; i < n; i++) {
+    const f = proceduralFace();
+    const c = document.createElement('canvas');
+    c.width = c.height = 512;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = false; // pixel netti, come i volti low-poly
+    g.drawImage(f.canvas, 0, 0, 512, 512);
+    const blob = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.85));
+    if (blob) await addFace(blob, `Prova ${start + i}`);
+  }
+  ui.faces = await countFaces();
+  refreshGallery();
+  refresh();
+  hud.flash(`🎨 ${n} volti di prova aggiunti (dalla prossima partita)`, 2);
+}
+
+async function copyState() {
+  const text = stateText();
+  const ok = await copyText(text);
+  const t = $('dvState');
+  if (t) { t.value = text; t.classList.remove('hidden'); }
+  hud.flash(ok ? '📋 Stato copiato: incollalo nella chat con Claude' : '📋 Non riesco a copiare: seleziona il testo qui sotto', 2.4);
 }
 
 /** Elimina tutti i nemici senza punti (in multiplayer si sbriciolano anche dagli altri). */
@@ -391,8 +554,9 @@ function zoneCenter(id) {
   const zn = map.zones.find((z) => z.id === id);
   return zn ? groundAt((zn.x0 + zn.x1) / 2, (map.bounds.minZ + map.bounds.maxZ) / 2, 0) : null;
 }
-function teleport(id) {
+function teleport(id, m) {
   let p = null, yaw;
+  if (id === 'me') { p = { x: player.pos.x + Math.sin(player.yaw) * -1.5, y: player.pos.y - 0.85, z: player.pos.z + Math.cos(player.yaw) * -1.5 }; yaw = player.yaw + Math.PI; }
   const ride = (k) => (map.rides || []).find((r) => r.kind === k);
   if (id === 'shop' && map.shops[0]) { const s = map.shops[0]; p = { x: s.x, y: s.y, z: s.z }; }
   else if (id === 'stall' && map.ammoStalls[0]) { const s = map.ammoStalls[0]; p = groundAt(s.ux, s.uz); }
@@ -404,7 +568,8 @@ function teleport(id) {
   else if (id === 'parking') p = zoneCenter('parcheggio');
   else if (id === 'spawn') { p = map.spawn; yaw = map.spawn.yaw || 0; }
   if (!p) { hud.flash('🛠 Non c\'è in questa mappa', 1.4); return; }
-  teleportPlayer(p.x, p.y, p.z, yaw);
+  if (isRemote(m)) toClient(m, { c: 'tp', x: p.x, y: p.y, z: p.z, yaw });
+  else teleportPlayer(p.x, p.y, p.z, yaw);
   const label = (DESTS.find((x) => x[0] === id) || [])[1] || '';
   hud.flash(`🛠 ${label}`, 1);
 }

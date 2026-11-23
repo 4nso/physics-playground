@@ -1,6 +1,13 @@
 import { defineConfig } from 'vite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
+
+// Versione mostrata in "Copia stato" (modalità sviluppatore): numero, commit e data della build.
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+let commit = '';
+try { commit = execSync('git rev-parse --short HEAD').toString().trim(); } catch (e) { /* niente git */ }
+const VERSION = `${pkg.version}${commit ? ' · ' + commit : ''} · ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC`;
 
 // Motore di MediaPipe (WASM, ~14 MB) per il ritaglio intelligente dei volti (src/faces/detect.js).
 // Non sta nel repository: si prende da node_modules e si copia nella build in "mediapipe/".
@@ -26,6 +33,7 @@ const mediapipeWasm = () => ({
 export default defineConfig({
   base: '/physics-playground/',
   plugins: [mediapipeWasm()],
+  define: { __APP_VERSION__: JSON.stringify(VERSION) },
   build: {
     target: 'es2020',
     chunkSizeWarningLimit: 6000, // Rapier include il motore fisico (WASM) dentro il JS
