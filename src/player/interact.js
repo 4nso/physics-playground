@@ -71,10 +71,16 @@ export function updateHeld() {
 export const isHolding = () => !!held;
 
 /** Aggiorna il mirino: giallo se c'è qualcosa da afferrare. Restituisce true in quel caso. */
-export function updateCrosshair() {
-  if (held) return false;
+// Il raggio contro tutti i pezzi colpibili (nemici compresi) si lancia 15 volte al secondo, non a ogni frame.
+let crossT = 0, crossCan = false;
+export function updateCrosshair(dt) {
+  if (held) { crossT = 0; return false; }
+  crossT -= dt;
+  if (crossT > 0) return crossCan;
+  crossT = 1 / 15;
   const h = aim(7);
   const can = !!(h && h.object.userData.obj);
-  hud.setCanGrab(can);
+  if (can !== crossCan) hud.setCanGrab(can);
+  crossCan = can;
   return can;
 }

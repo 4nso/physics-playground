@@ -87,7 +87,6 @@ export function spawnEnemy(variant, opts) {
   for (const p of model.parts) { p.userData.enemy = e; pickables.push(p); }
   model.group.position.set(sp.x, sp.y, sp.z);
   model.group.scale.setScalar(0.01);
-  model.group.traverse((o) => { o.castShadow = true; }); // ombra in qualità Alta
   scene.add(model.group);
   // Oggetti lanciati o la palla demolitrice fanno male se arrivano veloci
   contactHandlers.set(collider.handle, (other) => {

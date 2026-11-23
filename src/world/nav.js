@@ -209,6 +209,7 @@ export function buildNav(shapeList, area, start) {
   }
   nav.aliveList = Int32Array.from(list);
   fields.length = 0;
+  job = null;
 }
 
 /**
@@ -240,26 +241,35 @@ export function nodeAt(x, feetY, z, any = false) {
 }
 
 /* ---------- Campi di percorso (uno per giocatore) ---------- */
+// Il calcolo di un campo (Dijkstra su ~14 000 nodi) costa qualche millisecondo: per non avere
+// scatti si fa a pezzi, su più fotogrammi, in una copia; quando è finito prende il posto di quello vecchio
+// (fase 12). Nel frattempo i nemici seguono il campo precedente, che va benissimo per pochi fotogrammi.
+const STEP_BUDGET = 1500; // nodi estratti dalla coda per fotogramma (~0,2 ms su un computer recente)
+let job = null;           // campo in calcolo (uno alla volta: la coda è condivisa)
 class Field {
   constructor() {
     this.dist = new Float32Array(nav.count);
     this.next = new Int32Array(nav.count);
+    this.wDist = new Float32Array(nav.count); // copie di lavoro del calcolo a pezzi
+    this.wNext = new Int32Array(nav.count);
     this.src = -1;
+    this.wSrc = -1;
     this.age = 99;
     this.id = null;
   }
-  compute(src) {
-    const { dist, next } = this;
-    dist.fill(Infinity);
-    next.fill(-1);
-    this.src = src;
-    this.age = 0;
-    if (src < 0) return;
-    // Dijkstra con una coda a priorità (heap binario)
+  /** Inizia il calcolo verso il nodo src (lo finisce step()). */
+  start(src) {
+    this.wDist.fill(Infinity);
+    this.wNext.fill(-1);
+    this.wSrc = src;
     heapN = 0;
-    dist[src] = 0;
-    push(src, 0);
-    while (heapN > 0) {
+    if (src >= 0) { this.wDist[src] = 0; push(src, 0); }
+    job = this;
+  }
+  /** Continua il calcolo per al massimo `budget` nodi; true quando è finito (e il campo nuovo è in uso). */
+  step(budget) {
+    const dist = this.wDist, next = this.wNext;
+    while (heapN > 0 && budget-- > 0) {
       const a = pop();
       const da = popD;
       if (da > dist[a]) continue;
@@ -270,6 +280,18 @@ class Field {
         if (nd < dist[b]) { dist[b] = nd; next[b] = a; push(b, nd); }
       }
     }
+    if (heapN > 0) return false;
+    this.wDist = this.dist; this.wNext = this.next;
+    this.dist = dist; this.next = next;
+    this.src = this.wSrc;
+    job = null;
+    return true;
+  }
+  /** Calcolo completo subito (campo nuovo, quando i nemici non hanno ancora un percorso). */
+  compute(src) {
+    this.start(src);
+    this.step(Infinity);
+    this.age = 0;
   }
 }
 
@@ -314,22 +336,27 @@ export const fields = [];
 export function updateFields(dt, targets) {
   if (!nav.ready) return;
   for (let i = fields.length - 1; i >= 0; i--) {
-    if (!targets.some((t) => t.id === fields[i].id && t.alive)) fields.splice(i, 1);
+    if (!targets.some((t) => t.id === fields[i].id && t.alive)) {
+      if (job === fields[i]) job = null;
+      fields.splice(i, 1);
+    }
   }
   let worst = null, worstScore = 0;
   for (const t of targets) {
     if (!t.alive) continue;
-    let f = fields.find((x) => x.id === t.id);
+    let f = null;
+    for (const x of fields) if (x.id === t.id) { f = x; break; }
     if (!f) { f = new Field(); f.id = t.id; fields.push(f); }
     f.age += dt;
     const n = nodeAt(t.x, t.y - 0.8, t.z);
     f.want = n;
-    if (n >= 0 && n !== f.src) {
-      const score = f.src < 0 ? 100 : f.age;
-      if (score > 0.25 && score > worstScore) { worst = f; worstScore = score; }
+    if (n >= 0 && n !== f.src && f !== job) {
+      if (f.src < 0) { f.compute(n); continue; } // nessun percorso ancora: subito
+      if (f.age > 0.25 && f.age > worstScore) { worst = f; worstScore = f.age; }
     }
   }
-  if (worst) worst.compute(worst.want);
+  if (job) job.step(STEP_BUDGET);
+  else if (worst) { worst.age = 0; worst.start(worst.want); worst.step(STEP_BUDGET); }
 }
 
 /**

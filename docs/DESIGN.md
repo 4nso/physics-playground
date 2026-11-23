@@ -175,6 +175,50 @@ Prima delle novità si misura dove si perde tempo (CPU: fisica, nemici, percorsi
 ogni fotogramma; GPU: effetti di schermo, ombre, risoluzione, chiamate di disegno) e si correggono
 le cause principali. Obiettivo: 60 fps stabili in qualità Alta su un Mac recente, 30+ su iPhone.
 
+#### Diagnosi e correzioni (passo 1)
+Strumento: aggiungendo **`?prof`** all'indirizzo (es. `…/physics-playground/?prof`) sotto il contatore
+compaiono i millisecondi di ogni parte del fotogramma (CPU: disegno, fisica, nemici, giostre, HUD…),
+il fotogramma più lento (max), le chiamate di disegno e, dove il browser lo permette (Chrome sul
+computer), il tempo della scheda grafica (GPU). Safari non dà il tempo GPU ("GPU n.d.").
+
+Cosa pesava (misure nel browser headless, che non ha una scheda grafica: il disegno lo fa il processore,
+quindi valgono le proporzioni, non i numeri assoluti):
+- **CPU: poco.** 3–6 ms per fotogramma anche con 20 nemici (disegno ~2 ms, fisica ~1 ms, il resto
+  sotto 0,5 ms). Su un M5 è ancora meno: il processore non era il problema.
+- **GPU: quasi tutto, e cresceva con i pixel.** In Alta sul Mac si disegnava a 2× (Retina): su un
+  MacBook Air 13" sono 5,6 milioni di pixel, con MSAA 4× in immagine HDR, bloom e ombre. Divisione del
+  lavoro di disegno: ombre ~33%, effetti di schermo (MSAA, bloom, colori) ~43%, scena ~24%.
+- Le ombre costavano soprattutto perché ogni pixel della mappa leggeva la mappa delle ombre, anche
+  lontano dal giocatore o sulle facce in ombra, dove il risultato non si usa.
+- Il canvas aveva anche un suo antialiasing MSAA, inutile quando l'immagine passa dagli effetti.
+- Scatti: il ricalcolo dei percorsi dei nemici (~2–3 ms in un solo fotogramma, ogni volta che il
+  giocatore cambia "quadretto" della griglia). Il raggio del mirino contro tutti i pezzi dei nemici a
+  ogni fotogramma. Piccoli oggetti creati a ogni fotogramma (bersagli dei nemici).
+
+Cosa è cambiato:
+- Risoluzione sul computer: Alta 1,5× (era 2×) e al massimo 3,4 milioni di pixel; Media 1,25× e
+  2,6 milioni; Bassa 1× e 2,2 milioni. Su schermi grandi la risoluzione scende da sola entro il tetto.
+  Telefoni e tablet invariati.
+- Canvas senza antialiasing proprio (lo fanno gli effetti: MSAA in Alta, FXAA in Media).
+- Ombre: la mappa delle ombre si legge solo entro ~21 m e sulle facce al sole. Le braccia dei nemici
+  non fanno ombra (2 disegni in meno per nemico).
+- Percorsi dei nemici calcolati a pezzi su più fotogrammi (~0,15 ms l'uno invece di ~2,2 ms tutti
+  insieme); nel frattempo i nemici seguono il percorso precedente.
+- Mirino (cosa si può afferrare) controllato 15 volte al secondo; bersagli dei nemici riusati;
+  testo delle giostre riscritto solo quando cambia.
+
+Misure (headless, risoluzione MacBook Air 1470×956 a 2×, qualità Alta):
+
+| | Prima | Dopo |
+|---|---|---|
+| Lavoro di disegno, partenza | 2750 ms | 1250 ms (−55%) |
+| Lavoro di disegno, 20 nemici | 2720 ms | 1530 ms (−44%) |
+| Chiamate di disegno, 20 nemici | 440 | 385 |
+| fps headless (partenza / 20 nemici) | 0,4 / 0,4 | 0,7 / 0,7 |
+| Ricalcolo percorsi | 2,2 ms in un fotogramma | 9 pezzi da 0,15 ms |
+
+Gli fps veri del Mac si leggono solo sul Mac, con il contatore (e `?prof`).
+
 ### Passaggio segreto e zona sicura
 - Nei corridoi gialli delle backrooms c'è un punto di muro **appena più giallo** degli altri,
   con una differenza minima, da notare solo guardando bene. La posizione cambia con il seed

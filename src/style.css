@@ -318,3 +318,5 @@ body.pad #shop,body.pad #ride{left:50%;right:auto;transform:translateX(-50%);max
 #shopItems button.padSel{outline:3px solid #ffd23a;outline-offset:-1px;background:rgba(255,210,58,.28)}
 .setHead{font-weight:800;margin:14px 0 2px;font-size:15px}
 #padNote:empty{display:none}
+/* misure dettagliate (?prof): vanno a capo e stanno sotto la barra in alto */
+#fps.prof{white-space:normal;max-width:min(92vw,560px);text-align:center;font-size:10px;line-height:1.35;top:calc(64px + env(safe-area-inset-top))}

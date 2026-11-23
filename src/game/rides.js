@@ -363,6 +363,7 @@ function info(r) {
   return drv(r).info(r) || 'Ferma';
 }
 
+let shownInfo = '';
 function updateBox() {
   if (!near) { hideBox(); return; }
   const list = buttons();
@@ -373,7 +374,8 @@ function updateBox() {
     $('rideTitle').textContent = `${near.r.def.icon} ${near.r.def.name}`;
     $('rideBtns').innerHTML = list.map(([a, label]) => `<button data-a="${a}">${label}</button>`).join('');
   }
-  $('rideInfo').textContent = info(near.r);
+  const txt = info(near.r);
+  if (txt !== shownInfo) { shownInfo = txt; $('rideInfo').textContent = txt; }
 }
 
 /** Cosa può fare il giocatore qui? */

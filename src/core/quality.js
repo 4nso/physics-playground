@@ -18,10 +18,13 @@ export const LEVEL_NAMES = { low: 'Bassa', medium: 'Media', high: 'Alta' };
  * post = effetti di schermo (bloom, colori, vignettatura, antialiasing: core/post.js),
  * ao = ombre morbide alla base dei muri, shadows = ombre in tempo reale degli oggetti che si muovono.
  */
+// mp = milioni di pixel al massimo. Sul computer (fase 12): un MacBook con schermo Retina a 2× in Alta
+// disegnava 5,6 milioni di pixel con MSAA, ombre e bloom; ora Alta si ferma a 1,5× e a 3,4 milioni
+// (con l'MSAA 4× la differenza quasi non si vede, il lavoro della scheda grafica si dimezza).
 const PRESETS = {
-  low: { pr: 1, dist: 46, post: 'off', ao: false, shadows: false },
-  medium: { pr: isTouch ? 1.25 : 1.5, dist: 58, post: 'medium', ao: true, shadows: false },
-  high: { pr: isTouch ? 1.5 : 2, dist: 70, post: 'high', ao: true, shadows: true },
+  low: { pr: 1, mp: isTouch ? Infinity : 2.2, dist: 46, post: 'off', ao: false, shadows: false },
+  medium: { pr: 1.25, mp: isTouch ? Infinity : 2.6, dist: 58, post: 'medium', ao: true, shadows: false },
+  high: { pr: 1.5, mp: isTouch ? Infinity : 3.4, dist: 70, post: 'high', ao: true, shadows: true },
 };
 
 const AUTO_KEY = 'syf-autoq'; // ultimo livello scelto in automatico (si riparte da lì)
@@ -58,7 +61,7 @@ export function onQuality(fn) {
 
 function applyRes() {
   const p = PRESETS[quality.level];
-  setRenderQuality(Math.max(MIN_PR, p.pr * quality.res), p.dist);
+  setRenderQuality(Math.max(MIN_PR, p.pr * quality.res), p.dist, p.mp * quality.res * quality.res);
 }
 
 function apply(level) {

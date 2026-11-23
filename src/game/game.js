@@ -88,13 +88,16 @@ export function removeMember(id) { team.delete(id); }
 function posOf(m) { return m.local ? player.pos : m; }
 
 /** Bersagli per i nemici e raccoglitori di oggetti (riusati a ogni frame). */
-const targets = [];
+const targets = [], pool = [];
 export function teamTargets() {
   targets.length = 0;
   for (const m of team.values()) {
     const p = posOf(m);
+    const t = pool[targets.length] || (pool[targets.length] = {});
+    t.id = m.id; t.x = p.x; t.y = p.y; t.z = p.z;
     // chi è nella zona sicura è "invisibile" per i nemici: non lo inseguono e non lo colpiscono
-    targets.push({ id: m.id, x: p.x, y: p.y, z: p.z, alive: !m.down && !inSafeZone(p.x, p.z) });
+    t.alive = !m.down && !inSafeZone(p.x, p.z);
+    targets.push(t);
   }
   return targets;
 }

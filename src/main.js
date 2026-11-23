@@ -36,10 +36,12 @@ import { updateWorldMat, tickWater } from './world/worldMaterial.js';
 import { updateDecals } from './world/decals.js';
 import { updateDust } from './world/dust.js';
 import { initMobile } from './ui/mobile.js';
+import { prof, profBegin, mark, profEnd, profText } from './core/prof.js';
 
 const $ = (id) => document.getElementById(id);
 let last = performance.now();
 let shadowFrame = false;
+const aliveTargets = []; // riusato a ogni frame
 renderer.autoClear = false;
 
 // Il grilletto lancia l'oggetto in mano, se ce n'è uno; altrimenti spara.
@@ -120,6 +122,7 @@ function loop(now) {
   const rawDt = Math.max(0, (now - last) / 1000);
   const dt = Math.min(0.05, rawDt);
   last = now;
+  profBegin();
   const playing = game.state === 'playing';
   updateQuality(rawDt, playing && !game.overlay);
   showFps(rawDt);
@@ -127,33 +130,45 @@ function loop(now) {
   const authority = net.mode !== 'client'; // da solo o host: qui si simula tutto
 
   updateRides(gdt, authority, playing && !game.overlay); // prima del giocatore: chi è seduto segue il posto
+  mark('giostre');
   updateGamepad(dt);
   if (playing) {
     updatePlayer(dt);
     updateHeld();
     netBeforePhysics(dt);
+    mark('giocatore');
     stepPhysics(dt);
   }
+  mark('fisica');
   syncObjects();
   updateRope();
   updateCamera(gdt, alpha);
   followSun(player.pos.x, player.pos.z);
+  mark('giocatore');
   if (authority) {
     const targets = teamTargets();
     updateEnemies(gdt, alpha, playing, targets);
-    updatePickups(gdt, playing ? targets.filter((t) => t.alive) : null);
+    mark('nemici');
+    aliveTargets.length = 0;
+    for (const t of targets) if (t.alive) aliveTargets.push(t);
+    updatePickups(gdt, playing ? aliveTargets : null);
     updateGame(gdt);
   } else {
     updatePickups(gdt, null);
   }
+  mark('partita');
   updateWeapons(gdt, player.lookDX, player.lookDY);
+  mark('armi');
   updateShop(dt, playing && !game.overlay, myMoney());
   updateSafeZones(gdt, playing);
   netUpdate(dt);
+  mark('negozio/rete');
   if (game.state !== 'menu') updateMinimap(dt);
-  const canGrab = playing && net.mode !== 'client' && updateCrosshair();
+  mark('minimappa');
+  const canGrab = playing && net.mode !== 'client' && updateCrosshair(dt);
   if (isTouch) { curAction = touchAction(canGrab); hud.setAction(curAction); }
   hud.update(dt);
+  mark('hud');
 
   updateDayNight(dt, game.state === 'menu' ? 0 : game.round);
   updateSky();
@@ -166,8 +181,11 @@ function loop(now) {
     renderer.shadowMap.needsUpdate = shadowFrame;
     if (shadowFrame) updateWorldMat(player.pos.x, player.pos.z);
   }
+  mark('effetti');
   renderer.info.reset();
   renderFrame(scene, weaponScene, camera); // l'arma sopra a tutto, senza entrare nei muri
+  mark('disegno');
+  profEnd(rawDt);
 }
 
 /* ---------- Contatore fps (Impostazioni → Mostra gli fps) ---------- */
@@ -175,9 +193,10 @@ const fpsEl = $('fps');
 let fpsT = 0;
 function showFps(rawDt) {
   fpsT += rawDt;
+  if (prof.on) fpsEl.classList.remove('hidden'), fpsEl.classList.add('prof');
   if (fpsT < 0.5 || fpsEl.classList.contains('hidden')) return;
   fpsT = 0;
-  fpsEl.textContent = `${quality.fps} fps · ${LEVEL_NAMES[quality.level]}${quality.setting === 'auto' ? ' (auto)' : ''}${quality.res < 1 ? ` · ris. ${Math.round(quality.res * 100)}%` : ''}`;
+  fpsEl.innerHTML = `${quality.fps} fps · ${LEVEL_NAMES[quality.level]}${quality.setting === 'auto' ? ' (auto)' : ''}${quality.res < 1 ? ` · ris. ${Math.round(quality.res * 100)}%` : ''}${prof.on ? `<br>${profText()}` : ''}`;
 }
 
 /* ---------- Minimappa ---------- */
@@ -239,7 +258,7 @@ async function start() {
 // Solo in sviluppo (npm run dev): oggetti utili per i test automatici. Non finisce nel sito pubblicato.
 if (import.meta.env.DEV) {
   Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js'), import('./game/game.js'), import('./game/rides.js')]).then(([m, v, g, r]) => {
-    window.__pp = { game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team, map, renderer, nav, rides: r, quality };
+    window.__pp = { game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team, map, renderer, nav, rides: r, quality, prof, scene, spawnEnemy: m.spawnEnemy };
   });
 }
 

@@ -3,8 +3,10 @@ import * as THREE from 'three';
 
 export const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 
+// Niente antialiasing sul canvas: in Media e Alta l'immagine passa dagli effetti di schermo (core/post.js),
+// che hanno il loro (MSAA o FXAA); un canvas con MSAA lì sarebbe solo lavoro sprecato a ogni frame.
 export const renderer = new THREE.WebGLRenderer({
-  antialias: !isTouch || devicePixelRatio < 2,
+  antialias: false,
   powerPreference: 'high-performance',
 });
 // La risoluzione (pixel ratio) la decide la qualità grafica: vedi setRenderQuality() e core/quality.js.
@@ -40,14 +42,25 @@ export function setSkyView(k) {
   camera.updateProjectionMatrix();
 }
 
-/** Qualità grafica: pixelRatio = risoluzione, dist = distanza di vista (m). */
-export function setRenderQuality(pixelRatio, dist) {
-  const pr = Math.min(devicePixelRatio || 1, pixelRatio);
+/**
+ * Qualità grafica: pixelRatio = risoluzione, dist = distanza di vista (m),
+ * maxPixels = tetto ai pixel disegnati (milioni): su schermi grandi la risoluzione scende un po'
+ * invece di far crollare gli fps (il lavoro della scheda grafica cresce con i pixel).
+ */
+let wantPR = 1, maxPixels = Infinity;
+function applyPixelRatio() {
+  const [w, h] = viewSize();
+  const pr = Math.min(devicePixelRatio || 1, wantPR, Math.sqrt(maxPixels * 1e6 / (w * h)));
   if (Math.abs(renderer.getPixelRatio() - pr) > 0.01) {
     renderer.setPixelRatio(pr);
     lastW = 0; // ridimensiona il canvas alla nuova risoluzione
     fitCamera();
   }
+}
+export function setRenderQuality(pixelRatio, dist, megapixels = Infinity) {
+  wantPR = pixelRatio;
+  maxPixels = megapixels;
+  applyPixelRatio();
   viewDist = dist;
   fogNear = Math.round(dist * 0.28);
   setSkyView(skyK);
@@ -159,7 +172,9 @@ function fitCamera() {
   fixHomeScreenGap();
   const [w, h] = viewSize();
   if (w === lastW && h === lastH) return;
+  const resized = lastW !== 0;
   lastW = w; lastH = h;
+  if (resized && maxPixels !== Infinity) applyPixelRatio(); // nuova misura: rifà il conto dei pixel
   const aspect = w / h;
   const deg = THREE.MathUtils.radToDeg;
   const vMax = deg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(HFOV_MAX / 2)) / aspect));

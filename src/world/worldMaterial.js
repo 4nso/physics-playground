@@ -57,11 +57,11 @@ export const worldMat = new THREE.ShaderMaterial({
       vec3 c = vCol;
       #ifdef USE_SHADOWMAP
         // normale della faccia (geometria piatta): le facce già in ombra non si scuriscono di nuovo
+        // la mappa delle ombre si legge solo dove serve (vicino al giocatore, facce al sole):
+        // altrove si salta, ed è la maggior parte dello schermo
         vec3 n = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
-        float facing = clamp(dot(n, sunDir) * 2.0, 0.0, 1.0);
-        float fade = 1.0 - smoothstep(16.0, 21.0, length(vWorld.xz - shadowCenter.xz));
-        float sh = getShadowMask();
-        c *= mix(1.0, mix(shadowDark, 1.0, sh), facing * fade);
+        float k = clamp(dot(n, sunDir) * 2.0, 0.0, 1.0) * (1.0 - smoothstep(16.0, 21.0, length(vWorld.xz - shadowCenter.xz)));
+        if (k > 0.0) c *= mix(1.0, mix(shadowDark, 1.0, getShadowMask()), k);
       #endif
       gl_FragColor = vec4(c, 1.0);
       #include <colorspace_fragment>

@@ -111,6 +111,9 @@ export function buildEnemyModel(variant, faceSet) {
   const legR = mesh(GEO.leg, v.pants, 0, 0, 0, hipR);
   const armL = mesh(GEO.arm, v.shirt, 0, 0, 0, shL);
   const armR = mesh(GEO.arm, v.shirt, 0, 0, 0, shR);
+  // le braccia (tese in avanti, sottili) non fanno ombra: quasi non si vedrebbe e sono 2 disegni in meno
+  // per nemico nella mappa delle ombre (fase 12)
+  armL.castShadow = armR.castShadow = false;
   const torso = mesh(GEO.torso, v.shirt, 0, 1.18, 0);
   // Testa: perno sul collo (così dondola e si schiaccia come un pupazzo), faccia davanti (+z).
   // Ogni nemico ha il suo materiale della faccia (stessa texture), per poterla colorare di rosso.

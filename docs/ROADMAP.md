@@ -356,13 +356,21 @@ menu, partita, negozio, giostra, mirino del cecchino, pausa e impostazioni; ness
 Dettagli in `docs/DESIGN.md`, sezione "Arsenale folle e luna park più comodo".
 Un passo alla volta, pubblicando e fermandosi per la prova.
 
-Passo 1 – Diagnosi e sistemazione delle prestazioni:
-- [ ] Misurare il tempo per fotogramma diviso tra CPU (fisica, nemici, percorsi, giostre, HUD)
+Passo 1 – Diagnosi e sistemazione delle prestazioni (in prova sul Mac):
+- [x] Misurare il tempo per fotogramma diviso tra CPU (fisica, nemici, percorsi, giostre, HUD)
       e GPU (effetti di schermo, ombre, risoluzione, chiamate di disegno) in qualità Alta
-- [ ] Scrivere in DESIGN.md cosa pesava e cosa si è cambiato, con fps prima e dopo
-- [ ] Correggere le cause principali (es. effetti a risoluzione ridotta, meno chiamate di
+- [x] Scrivere in DESIGN.md cosa pesava e cosa si è cambiato, con fps prima e dopo
+- [x] Correggere le cause principali (es. effetti a risoluzione ridotta, meno chiamate di
       disegno, niente oggetti creati a ogni fotogramma, percorsi dei nemici calcolati meno spesso)
 - [ ] Obiettivo: 60 fps stabili in Alta su un Mac recente, 30+ su iPhone in Media
+      (da verificare sul Mac e sull'iPhone veri con il contatore)
+
+Note: la diagnosi e le misure sono in DESIGN.md ("Diagnosi e correzioni (passo 1)"). In breve: il
+processore lavorava poco; pesava la scheda grafica, perché in Alta sul Mac si disegnavano 5,6 milioni
+di pixel (Retina 2×) con MSAA, ombre e bloom. Ora Alta sul computer usa 1,5× (max 3,4 milioni di pixel),
+le ombre si calcolano solo vicino al giocatore, i percorsi dei nemici non creano più scatti.
+Lavoro di disegno in Alta −55% (−44% con 20 nemici). Con `?prof` nell'indirizzo si vedono i
+millisecondi di ogni parte (strumento: `src/core/prof.js`).
 
 Passo 2 – Luna park più comodo ed economia:
 - [ ] Montagne russe: sosta di ~8 s in stazione dopo il primo giro, si può scendere (e salire)
