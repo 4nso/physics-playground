@@ -1,6 +1,7 @@
 // Definizioni delle armi. Tempi in secondi, angoli in radianti.
 // L'ordine conta: in multiplayer le armi viaggiano come numero (indice in questa lista).
 // price = prezzo nel negozio · ammoPrice = ricarica completa delle munizioni di un'arma che hai già.
+// Munizioni di riserva raddoppiate nella fase 12.
 // Le armi con `projectile` sparano un proiettile vero (granata, razzo) invece di un raggio istantaneo.
 export const WEAPONS = [
   {
@@ -20,7 +21,7 @@ export const WEAPONS = [
   {
     id: 'shotgun', name: 'Fucile a pompa', icon: '💥',
     price: 1500, ammoPrice: 500,
-    mag: 6, reserve: 30,
+    mag: 6, reserve: 60,
     rate: 0.85,
     reload: 1.9,
     pellets: 9,
@@ -34,7 +35,7 @@ export const WEAPONS = [
   {
     id: 'smg', name: 'Mitra', icon: '⚡',
     price: 1000, ammoPrice: 400,
-    mag: 30, reserve: 150,
+    mag: 30, reserve: 300,
     rate: 0.085,
     reload: 1.7,
     pellets: 1,
@@ -48,7 +49,7 @@ export const WEAPONS = [
   {
     id: 'rifle', name: "Fucile d'assalto", icon: '🎯',
     price: 3000, ammoPrice: 800,
-    mag: 30, reserve: 150,
+    mag: 30, reserve: 300,
     rate: 0.11,
     reload: 2.0,
     pellets: 1,
@@ -62,7 +63,7 @@ export const WEAPONS = [
   {
     id: 'sniper', name: 'Fucile da cecchino', icon: '🔭',
     price: 4000, ammoPrice: 900,
-    mag: 5, reserve: 25,
+    mag: 5, reserve: 50,
     rate: 1.15,
     reload: 2.6,
     pellets: 1,
@@ -80,7 +81,7 @@ export const WEAPONS = [
   {
     id: 'launcher', name: 'Lanciagranate', icon: '💣',
     price: 6000, ammoPrice: 1200,
-    mag: 6, reserve: 24,
+    mag: 6, reserve: 48,
     rate: 0.7,
     reload: 2.6,
     pellets: 1,
@@ -96,7 +97,7 @@ export const WEAPONS = [
   {
     id: 'bazooka', name: 'Bazooka', icon: '🚀',
     price: 9000, ammoPrice: 1500,
-    mag: 1, reserve: 8,
+    mag: 1, reserve: 16,
     rate: 0.9,
     reload: 2.4,
     pellets: 1,
@@ -132,6 +133,10 @@ export const PAP = {
   mag: [1, 1.5, 2],
   rate: [1, 0.85, 0.72],    // tempo tra i colpi (più basso = spara più veloce)
 };
+/** Cura completa nel negozio: vita al massimo, una volta per round (fase 12). */
+export const HEAL_PRICE = 2000;
+/** Bancarella delle munizioni: apre al round `round`, riempie tutte le armi in mano (fase 12). */
+export const AMMO_STALL = { price: 4500, round: 10 };
 /** Prezzo della cassa misteriosa (fisso). */
 export const BOX_PRICE = 950;
 

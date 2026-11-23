@@ -170,6 +170,19 @@ Il negozio continua a vendere le munizioni della singola arma.
 **Cura completa** nel negozio: riporta la vita al massimo, **2000 punti**, **una volta per round**.
 Il potenziamento "Vita massima +25" resta com'è.
 
+#### Valori attuali (passo 2)
+- Munizioni di riserva raddoppiate in `src/weapons/defs.js` (anche le armi potenziate, che le moltiplicano).
+- **Bancarella delle munizioni**: è la prima bancarella a sinistra del viale del luna park (dove c'era
+  POPCORN). Fino al round 9 ha una saracinesca grigia "CHIUSO · Apre al round 10"; all'inizio del
+  round 10 si arrotola verso l'alto. Ci si avvicina al banco e si compra come la cassa misteriosa
+  (B, pulsante d'azione "📦 Munizioni", tasto B del controller): 4500 punti, tutte le armi in mano al
+  massimo. Se sono già piene non fa pagare. Prezzi in `AMMO_STALL` (defs.js).
+- **Cura completa** nel negozio (💊): 2000 punti, vita al massimo, una volta per round (anche nella pausa
+  tra un round e l'altro conta per il round appena giocato). Se la vita è già piena non si compra.
+- **Montagne russe**: dopo il primo giro il trenino si ferma in stazione per 8 s. Si può scendere e salire;
+  dalla cabina di comando "Avvia" riparte subito. Se a fine sosta non c'è nessuno a bordo, la corsa finisce.
+- In multiplayer decide l'host (round, punti, cura una volta per round per ogni giocatore).
+
 **Prestazioni prima di tutto**: anche su un MacBook Air M5 con qualità Alta il gioco non è fluido.
 Prima delle novità si misura dove si perde tempo (CPU: fisica, nemici, percorsi, oggetti creati a
 ogni fotogramma; GPU: effetti di schermo, ombre, risoluzione, chiamate di disegno) e si correggono

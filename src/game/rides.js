@@ -10,6 +10,7 @@
 //   countdown avvio ritardato: nessuno è seduto, si lascia il tempo di correre a sedersi
 //   running   in corsa
 //   unloading fine corsa: si fa scendere chi è a bordo
+//   pause     sosta in stazione tra un giro e l'altro (montagne russe): si può scendere e salire
 // e un "motore" (DRIVERS) che sa come si muove quel tipo di giostra e dove sono i posti.
 // pos = angolo della ruota (radianti) o metri percorsi dal trenino lungo il binario; vel = sua velocità.
 import { setSkyView, isTouch } from '../core/renderer.js';
@@ -30,7 +31,7 @@ const COUNTDOWN = 6;                        // avvio ritardato quando nessuno è
 const BOARD_DIST = 2.2, CTRL_DIST = 1.9;    // distanze per vedere "Sali" e i comandi
 const HOST_SLACK = 1.6;                     // l'host è più largo: le posizioni dei client arrivano in ritardo
 const SEAT_UP = 0.75;                       // centro della capsula sopra il sedile (seduti)
-const STATES = ['idle', 'countdown', 'running', 'unloading'];
+const STATES = ['idle', 'countdown', 'running', 'unloading', 'pause'];
 const wrapTo = (a, p) => ((a % p) + p) % p;
 const tmp = { x: 0, y: 0, z: 0 };
 const anyone = (r) => r.seats.some(Boolean);
@@ -118,6 +119,7 @@ const C = {
   BRAKE_V: 6,                  // velocità nel tratto di frenata prima della stazione
   STATION_V: 4,
   ACCEL: 10,                   // m/s²
+  PAUSE: 8,                    // sosta in stazione dopo il primo giro (s): si può scendere o salire (fase 12)
 };
 const inRange = (s, a, b) => (a <= b ? s >= a && s <= b : s >= a || s <= b);
 
@@ -125,8 +127,8 @@ const coaster = {
   period: (r) => r.def.track.L,
   snap: 3,
   seat: (r, k, out) => coasterSeat(r.def, r.pos, k, SEAT_UP, out),
-  boardable: (r) => r.state === 'idle' || r.state === 'countdown',
-  canLeave: (r) => (r.state === 'idle' || r.state === 'countdown' ? '' : '⏳ Si scende in stazione, a fine corsa'),
+  boardable: (r) => r.state === 'idle' || r.state === 'countdown' || r.state === 'pause',
+  canLeave: (r) => (r.state === 'idle' || r.state === 'countdown' || r.state === 'pause' ? '' : '⏳ Si scende in stazione, alla prossima sosta'),
   /** Si scende sempre sulla banchina, accanto al proprio posto. */
   exit(r, k, out) {
     coasterSeat(r.def, r.pos, k, SEAT_UP, out);
@@ -134,6 +136,7 @@ const coaster = {
     return out;
   },
   start(r) {
+    if (r.state === 'pause') { r.state = 'running'; r.timer = r.def.track.L; return 'Si riparte!'; }
     r.timer = 0; r.goal = 0; // timer = metri percorsi in questa corsa; goal = dove fermarsi (0 = dopo LAPS giri)
     if (anyone(r)) { r.state = 'running'; return 'Tenetevi forte!'; }
     r.state = 'countdown'; r.timer = COUNTDOWN;
@@ -141,6 +144,7 @@ const coaster = {
   },
   stop(r) {
     if (r.state === 'countdown') { r.state = 'idle'; r.timer = 0; return 'Partenza annullata'; }
+    if (r.state === 'pause') { coaster.arrive(r); return 'Fine corsa'; }
     if (r.state === 'running') {
       // non si frena in aria: si ferma alla prossima stazione
       r.goal = Math.min(r.goal || Infinity, Math.ceil((r.timer + 20) / r.def.track.L) * r.def.track.L);
@@ -163,24 +167,38 @@ const coaster = {
       r.timer -= dt;
       if (r.timer <= 0) { r.state = 'running'; r.timer = 0; }
     }
+    if (r.state === 'pause') {
+      // sosta in stazione (timer = secondi che mancano): poi si riparte, ma solo se c'è qualcuno a bordo
+      r.vel = 0; r.pos = d.stationS;
+      r.timer -= dt;
+      if (r.timer <= 0) { if (anyone(r)) { r.state = 'running'; r.timer = L; } else coaster.arrive(r); }
+      return;
+    }
     if (r.state !== 'running') { r.vel = 0; r.pos = d.stationS; return; }
     const goal = r.goal || C.LAPS * L;
-    const left = goal - r.timer;
+    // dopo il primo giro ci si ferma in stazione per la sosta (se la corsa continua)
+    const stopAt = r.timer < L && goal > L ? L : goal;
+    const left = stopAt - r.timer;
     let want = coaster.target(r);
     if (left < 16) want = Math.min(want, Math.max(0.6, left * 0.9)); // ultima frenata: si ferma in stazione
     r.vel = approach(r.vel, want, C.ACCEL * dt);
     const ds = r.vel * dt;
     if (ds >= left) {
-      // arrivati: tutti giù sulla banchina
-      r.pos = d.stationS; r.vel = 0; r.timer = 0; r.goal = 0;
-      r.state = 'idle';
-      for (let k = 0; k < r.seats.length; k++) r.seats[k] = null;
+      if (stopAt < goal) { r.state = 'pause'; r.pos = d.stationS; r.vel = 0; r.timer = C.PAUSE; return; }
+      coaster.arrive(r);
       return;
     }
     r.timer += ds;
     r.pos = wrapTo(r.pos + ds, L);
   },
+  /** Fine corsa: tutti giù sulla banchina. */
+  arrive(r) {
+    r.pos = r.def.stationS; r.vel = 0; r.timer = 0; r.goal = 0;
+    r.state = 'idle';
+    for (let k = 0; k < r.seats.length; k++) r.seats[k] = null;
+  },
   info(r) {
+    if (r.state === 'pause') return `Sosta: si riparte tra ${Math.max(1, Math.ceil(r.timer))} s · puoi scendere o salire`;
     if (r.state === 'running') return `Giro ${Math.min(C.LAPS, Math.floor(r.timer / r.def.track.L) + 1)}/${C.LAPS} · velocità ${r.level} · ${Math.round(r.vel * 3.6)} km/h`;
     return '';
   },
@@ -253,7 +271,7 @@ export function serverRide(id, ri, a, c) {
   if (Math.hypot(p.x - r.def.ctrl.x, p.z - r.def.ctrl.z) > CTRL_DIST + 0.6 + slack) return '❌ Vai alla cabina di comando';
   const icon = r.def.icon;
   if (a === 'speed') { r.level = (r.level % 3) + 1; return `${icon} Velocità ${r.level}`; }
-  if (a === 'start' && (r.state === 'idle' || r.state === 'unloading')) return `${icon} ${D.start(r)}`;
+  if (a === 'start' && (r.state === 'idle' || r.state === 'unloading' || r.state === 'pause')) return `${icon} ${D.start(r)}`;
   if (a === 'stop') { const t = D.stop(r); return t ? `${icon} ${t}` : ''; }
   return '';
 }

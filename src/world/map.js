@@ -27,6 +27,7 @@ export const map = {
   upgraders: [],    // potenziatori
   safeSigns: [],
   rides: [],        // giostre: { kind, x, y, z, R, n, ctrl, exitZ, plat } (vedi world/wheel.js, game/rides.js)
+  ammoStalls: [],   // bancarelle delle munizioni: { x, z, fx, fz, ux, uz } (world/lunapark.js)
   shops: [],        // negozi: { x, z, y, fx, fz, signX, signY, signZ } (vedi world/shop.js)
 };
 /** Corpo fisso a cui è appesa la palla demolitrice. */
@@ -62,7 +63,7 @@ export function buildWorld(seed) {
   const b = new Builder();
   const ctx = { props: [], wreck: null, spawn: null, shops: [], safeZones: [], boxes: [], upgraders: [], safeSigns: [], signs: [], rides: [] };
   buildZones(b, makeRng(seed), ctx);
-  Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn, shops: ctx.shops, safeZones: ctx.safeZones, boxes: ctx.boxes, upgraders: ctx.upgraders, safeSigns: ctx.safeSigns, secretZ: ctx.secretZ, rides: ctx.rides, fountain: ctx.fountain || null });
+  Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn, shops: ctx.shops, safeZones: ctx.safeZones, boxes: ctx.boxes, upgraders: ctx.upgraders, safeSigns: ctx.safeSigns, secretZ: ctx.secretZ, rides: ctx.rides, fountain: ctx.fountain || null, ammoStalls: ctx.ammoStalls || [] });
 
   // mesh unite: una per blocco da 12×12 m (quelle fuori dalla visuale non si disegnano)
   for (const ch of b.chunks.values()) {

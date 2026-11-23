@@ -100,6 +100,8 @@ function stall(b, ctx, x, z, facing, color, text) {
     text, x: x - f[0] * 0.185, y: 3.1, z: z - f[1] * 0.185, w: 2.3, h: 0.62, rotY: ROT[facing],
     bg: '#fff1c2', fg: '#' + color.toString(16).padStart(6, '0'),
   });
+  // per chi la usa (bancarella delle munizioni): centro dell'apertura, direzione e punto davanti al banco
+  return { x, z, fx: f[0], fz: f[1], ux: x + f[0] * 1.05, uz: z + f[1] * 1.05 };
 }
 
 /** Tavolino con due panche (zona ristoro). */
@@ -219,7 +221,8 @@ export function lunaPark(b, rng, ctx, x0, x1) {
   entranceArch(b, ctx, XC, 27);
 
   // zone ristoro ai lati del viale: bancarelle, tavolini, alberi
-  stall(b, ctx, XC - 4.4, 14, '+x', 0xe0503c, 'POPCORN');
+  // bancarella delle MUNIZIONI (fase 12): chiusa fino al round 10, poi riempie tutte le armi (game/shop.js)
+  ctx.ammoStalls = [stall(b, ctx, XC - 4.4, 14, '+x', 0x5f7a2c, 'MUNIZIONI')];
   stall(b, ctx, XC - 4.4, 22, '+x', 0xff6fb5, 'ZUCCHERO FILATO');
   stall(b, ctx, XC + 4.4, 14, '-x', 0x3d8bff, 'BIBITE');
   stall(b, ctx, XC + 4.4, 22, '-x', 0x2fbf71, 'GELATI');

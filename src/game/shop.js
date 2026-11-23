@@ -5,7 +5,7 @@
 // I punti (la moneta) li decide chi comanda la partita: da solo questo dispositivo, in multiplayer l'host.
 // Il negozio è una zona tranquilla ma NON sicura: i nemici possono arrivare anche qui.
 // Lo stesso pannello serve anche per la cassa misteriosa e il potenziatore della zona sicura
-// (le "postazioni": shop, box, pap).
+// (le "postazioni": shop, box, pap) e per la bancarella delle munizioni (ammo, dal round 10).
 import * as THREE from 'three';
 import { glowMat } from '../core/glow.js';
 import { scene, isTouch } from '../core/renderer.js';
@@ -13,8 +13,8 @@ import { pad } from '../core/gamepad.js';
 import { exitLock, requestLock } from '../core/input.js';
 import { thud } from '../core/audio.js';
 import { player, MAX_HEALTH } from '../player/player.js';
-import { WEAPONS, UPGRADES, BOX_PRICE, PAP } from '../weapons/defs.js';
-import { giveWeapon, refillWeapon, ownsWeapon, slotsFull, currentWeapon, setReloadMul, setTrigger, ownedWeapons, currentWeaponIndex, currentWeaponLevel, setWeaponLevel } from '../weapons/weapons.js';
+import { WEAPONS, UPGRADES, BOX_PRICE, PAP, HEAL_PRICE, AMMO_STALL } from '../weapons/defs.js';
+import { giveWeapon, refillWeapon, ownsWeapon, slotsFull, currentWeapon, setReloadMul, setTrigger, ownedWeapons, currentWeaponIndex, currentWeaponLevel, setWeaponLevel, allAmmoFull, refillOwned } from '../weapons/weapons.js';
 import { boxBusy, boxHooks, upgraderFx } from './safezone.js';
 import { map } from '../world/map.js';
 import { net } from '../net/net.js';
@@ -32,11 +32,14 @@ export const shopNet = { toHost: null };
 // Ordine nel pannello: prima le armi (tranne la pistola, che è gratis all'inizio), poi i potenziamenti.
 const ITEMS = [
   ...WEAPONS.map((w, i) => ({ id: 'w' + i, wi: i })).filter((it) => WEAPONS[it.wi].id !== 'pistol'),
+  { id: 'heal' },
   { id: 'hp', up: 'hp' },
   { id: 'reload', up: 'reload' },
 ];
-const ITEMS_BY = { shop: ITEMS, box: [{ id: 'box' }], pap: [{ id: 'pap' }] };
-const TITLES = { shop: '🛒 Negozio', box: '🎁 Cassa misteriosa', pap: '🔮 Potenziatore' };
+const ITEMS_BY = { shop: ITEMS, box: [{ id: 'box' }], pap: [{ id: 'pap' }], ammo: [{ id: 'ammoall' }] };
+const TITLES = { shop: '🛒 Negozio', box: '🎁 Cassa misteriosa', pap: '🔮 Potenziatore', ammo: '📦 Bancarella munizioni' };
+/** Tipo di acquisto → tipo di postazione dove si fa. */
+const STATION_OF = { box: 'box', pap: 'pap', ammoall: 'ammo' };
 
 /** Postazioni della mappa: { kind, idx, x, z, y } (punto dove si mette il giocatore). */
 function stations() {
@@ -44,13 +47,15 @@ function stations() {
   map.shops.forEach((s, idx) => list.push({ kind: 'shop', idx, x: s.x, z: s.z, y: s.y, r: NEAR }));
   map.boxes.forEach((s, idx) => list.push({ kind: 'box', idx, x: s.ux, z: s.uz, y: 0, r: NEAR_MACHINE }));
   map.upgraders.forEach((s, idx) => list.push({ kind: 'pap', idx, x: s.ux, z: s.uz, y: 0, r: NEAR_MACHINE }));
+  (map.ammoStalls || []).forEach((s, idx) => list.push({ kind: 'ammo', idx, x: s.ux, z: s.uz, y: 0, r: NEAR_MACHINE }));
   return list;
 }
 
 /** Livelli dei potenziamenti di questo giocatore (copia locale, per prezzi e pulsanti). */
-const mine = { hp: 0, reload: 0 };
+const mine = { hp: 0, reload: 0, healRound: -1 };
 export function resetShop() {
   mine.hp = mine.reload = 0;
+  mine.healRound = -1;
   setReloadMul(1);
   closeShopping();
   near = null;
@@ -59,11 +64,24 @@ export function resetShop() {
   buildSigns();
 }
 
+/** Vita massima di questo giocatore. */
+const maxHealth = () => { const m = localMember && localMember(); return (m && m.maxHealth) || MAX_HEALTH; };
+
 /** Cosa succede premendo un oggetto: { kind: 'weapon' | 'ammo' | 'up', price, label } (o null se non si può). */
 function offer(it) {
   if (it.id === 'box') {
     if (near && boxBusy(near.idx)) return { kind: 'box', price: 0, done: true, label: 'Sta girando…' };
     return { kind: 'box', price: BOX_PRICE, label: 'Arma a caso' };
+  }
+  if (it.id === 'ammoall') {
+    if (curRound() < AMMO_STALL.round) return { kind: 'ammoall', price: 0, done: true, lock: true, label: `Apre al round ${AMMO_STALL.round}` };
+    if (allAmmoFull()) return { kind: 'ammoall', price: 0, done: true, label: 'Armi già piene' };
+    return { kind: 'ammoall', price: AMMO_STALL.price, label: 'Tutte le armi al massimo' };
+  }
+  if (it.id === 'heal') {
+    if (mine.healRound === curRound()) return { kind: 'heal', price: 0, done: true, label: 'Già usata in questo round' };
+    if (player.health >= maxHealth()) return { kind: 'heal', price: 0, done: true, label: 'Vita già piena' };
+    return { kind: 'heal', price: HEAL_PRICE, label: 'Una volta per round' };
   }
   if (it.id === 'pap') {
     const w = WEAPONS[currentWeaponIndex()], lvl = currentWeaponLevel();
@@ -93,7 +111,7 @@ function offer(it) {
 export function serverBuy(m, id, kind, extra = {}) {
   if (!m || m.down) return { ok: false, why: 'Sei a terra' };
   const p = m.local ? player.pos : m;
-  const want = kind === 'box' ? 'box' : kind === 'pap' ? 'pap' : 'shop';
+  const want = STATION_OF[kind] || 'shop';
   const st = stations().find((s) => s.kind === want && Math.hypot(p.x - s.x, p.z - s.z) < HOST_NEAR && Math.abs(p.y - 1 - s.y) < 2.5);
   if (!st) return { ok: false, why: 'Sei troppo lontano' };
   if (!m.upg) m.upg = { hp: 0, reload: 0 };
@@ -112,6 +130,13 @@ export function serverBuy(m, id, kind, extra = {}) {
     const lvl = m.wlv[wi] || 0;
     if (lvl >= PAP.prices.length) return { ok: false, why: 'Già al massimo' };
     price = PAP.prices[lvl];
+  } else if (kind === 'ammoall') {
+    if (curRound() < AMMO_STALL.round) return { ok: false, why: `Apre al round ${AMMO_STALL.round}` };
+    price = AMMO_STALL.price;
+  } else if (kind === 'heal') {
+    if (m.healRound === curRound()) return { ok: false, why: 'Cura già usata in questo round' };
+    if (m.health >= (m.maxHealth || MAX_HEALTH)) return { ok: false, why: 'Hai già la vita piena' };
+    price = HEAL_PRICE;
   } else if (kind === 'up') {
     const u = UPGRADES[id];
     if (!u || m.upg[id] >= u.prices.length) return { ok: false, why: 'Già al massimo' };
@@ -128,6 +153,7 @@ export function serverBuy(m, id, kind, extra = {}) {
     level = boxWeapon;
     if (boxHooks.spin) boxHooks.spin(st.idx, boxWeapon, m.id); // tutti vedono la cassa girare
   }
+  if (kind === 'heal') { m.healRound = curRound(); m.health = m.maxHealth || MAX_HEALTH; level = curRound(); }
   if (kind === 'pap') level = m.wlv[extra.wi | 0] = (m.wlv[extra.wi | 0] || 0) + 1;
   if (kind === 'up') {
     level = ++m.upg[id];
@@ -145,6 +171,12 @@ export function applyBuy(id, kind, level, wi) {
     setWeaponLevel(wi, level);
     upgraderFx(near && near.kind === 'pap' ? near.idx : 0);
     hud.flash(`🔮 ${WEAPONS[wi].name} potenziato!<br><small>${level === 1 ? 'Strisce viola: più danno, colpi e cadenza' : 'Livello massimo: viola e arancione!'}</small>`, 2.2);
+  } else if (kind === 'heal') {
+    mine.healRound = level;
+    hud.flash('💊 Vita al massimo!', 1.6);
+  } else if (kind === 'ammoall') {
+    refillOwned();
+    hud.flash('📦 Tutte le armi al massimo!', 1.6);
   } else if (kind === 'up') {
     mine[id] = level;
     if (id === 'reload') setReloadMul(UPGRADES.reload.mul[level]);
@@ -167,8 +199,13 @@ export function buyFailed(why) {
 /** Premuto un oggetto nel pannello. */
 let localMember = null;
 export function setShopMember(fn) { localMember = fn; }
+/** Round in corso (lo passa game/game.js: qui non si importa per evitare un giro di import). */
+let roundFn = null;
+export function setShopRound(fn) { roundFn = fn; }
+const curRound = () => (roundFn ? roundFn() : 0);
 function buy(it) {
   const o = offer(it);
+  if (o && o.lock) { buyFailed(o.label); return; }
   if (!o || o.done) return;
   const key = it.up || it.id;
   const extra = { own: [...ownedWeapons()], wi: currentWeaponIndex() };
@@ -187,7 +224,7 @@ let money = 0;
 let padWas = false;
 let items = ITEMS;
 
-const ITEM_LOOK = { box: ['🎁', 'Cassa misteriosa'], pap: ['🔮', "Potenzia l'arma in mano"] };
+const ITEM_LOOK = { box: ['🎁', 'Cassa misteriosa'], pap: ['🔮', "Potenzia l'arma in mano"], heal: ['💊', 'Cura completa'], ammoall: ['📦', 'Munizioni per tutte le armi'] };
 function buildPanel(kind) {
   panelKind = kind;
   items = ITEMS_BY[kind];
@@ -222,7 +259,7 @@ function refreshPanel() {
     const it = items.find((x) => x.id === b.dataset.i);
     const o = offer(it);
     b.querySelector('.s').textContent = o.label;
-    b.querySelector('.p').textContent = o.done ? '✓' : `★ ${o.price}`;
+    b.querySelector('.p').textContent = o.lock ? '🔒' : o.done ? '✓' : `★ ${o.price}`;
     b.classList.toggle('done', !!o.done);
     b.classList.toggle('cant', !o.done && o.price > money);
   }
@@ -261,6 +298,7 @@ export function shopAction() {
   if (!near || !player.alive) return null;
   if (near.kind === 'box') return { id: 'box', icon: '🎁', label: 'Cassa', kind: 'shop' };
   if (near.kind === 'pap') return { id: 'pap', icon: '🔮', label: 'Potenzia', kind: 'shop' };
+  if (near.kind === 'ammo') return { id: 'ammo', icon: '📦', label: 'Munizioni', kind: 'shop' };
   return touchOpen ? { id: 'shopx', icon: '✕', label: 'Chiudi', kind: 'shop' } : { id: 'shop', icon: '🛒', label: 'Compra', kind: 'shop' };
 }
 /** Premuto il pulsante d'azione vicino a una postazione. */
@@ -342,6 +380,7 @@ const signGeo = new THREE.PlaneGeometry(4.6, 1.0);
 let signs = [], signT = 0;
 function buildSigns() {
   for (const m of signs) scene.remove(m);
+  buildShutters();
   signs = map.shops.map((s) => {
     const m = new THREE.Mesh(signGeo, signMat);
     m.position.set(s.signX + s.fx * 0.04, s.signY, s.signZ + s.fz * 0.04);
@@ -355,6 +394,50 @@ function updateSigns(dt) {
   signT += dt;
   const k = 0.85 + 0.15 * Math.sin(signT * 3);
   signMat.color.setScalar(k);
+  updateShutters(dt);
+}
+
+/* ---------- Saracinesca della bancarella delle munizioni (chiusa fino al round 10) ---------- */
+const shutterTex = (() => {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 288;
+  const g = c.getContext('2d');
+  g.fillStyle = '#9aa2ab'; g.fillRect(0, 0, 512, 288);
+  for (let y = 0; y < 288; y += 18) { g.fillStyle = '#7d858f'; g.fillRect(0, y + 13, 512, 5); } // lamelle
+  g.fillStyle = '#3b4148'; g.fillRect(0, 270, 512, 18);                                          // maniglia in basso
+  g.fillStyle = '#ffd54a'; g.fillRect(56, 78, 400, 132);
+  g.fillStyle = '#2b2f36'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = 'bold 50px system-ui, sans-serif'; g.fillText('CHIUSO', 256, 118);
+  g.font = 'bold 36px system-ui, sans-serif'; g.fillText(`Apre al round ${AMMO_STALL.round}`, 256, 172);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+})();
+const SHUT_W = 2.3, SHUT_H = 1.27, SHUT_TOP = 2.35;
+const shutterGeo = new THREE.PlaneGeometry(SHUT_W, SHUT_H).translate(0, -SHUT_H / 2, 0); // perno in alto
+const shutterMat = new THREE.MeshLambertMaterial({ map: shutterTex });
+let shutters = [], shutOpen = 0;
+function buildShutters() {
+  for (const m of shutters) scene.remove(m);
+  shutOpen = curRound() >= AMMO_STALL.round ? 1 : 0;
+  shutters = (map.ammoStalls || []).map((s) => {
+    const m = new THREE.Mesh(shutterGeo, shutterMat);
+    m.position.set(s.x + s.fx * 0.07, SHUT_TOP, s.z + s.fz * 0.07);
+    m.rotation.y = Math.atan2(s.fx, s.fz);
+    scene.add(m);
+    return m;
+  });
+  updateShutters(0);
+}
+/** La saracinesca si arrotola verso l'alto quando arriva il round 10 (e si riabbassa a partita nuova). */
+function updateShutters(dt) {
+  const want = curRound() >= AMMO_STALL.round ? 1 : 0;
+  if (want === shutOpen && dt) return;
+  shutOpen = want > shutOpen ? Math.min(1, shutOpen + dt / 1.5) : want;
+  for (const m of shutters) {
+    m.scale.y = Math.max(0.001, 1 - shutOpen);
+    m.visible = shutOpen < 1;
+  }
 }
 
 

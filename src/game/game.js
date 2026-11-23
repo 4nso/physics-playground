@@ -14,7 +14,7 @@ import { map, buildWorld } from '../world/map.js';
 import { dropHeld } from '../player/interact.js';
 import { net } from '../net/net.js';
 import { hud } from '../ui/hud.js';
-import { resetShop, setShopMember, closeShopping } from './shop.js';
+import { resetShop, setShopMember, setShopRound, closeShopping } from './shop.js';
 import { setupSafeZones, startBoxSpin, boxHooks } from './safezone.js';
 import { inSafeZone } from '../world/map.js';
 import { faceByName } from '../faces/gallery.js';
@@ -81,6 +81,7 @@ export function setupTeam(members) {
   }
 }
 setShopMember(() => localMember());
+setShopRound(() => game.round);
 /** Punti da spendere del giocatore locale. */
 export function myMoney() { const me = localMember(); return me ? me.money || 0 : 0; }
 export function removeMember(id) { team.delete(id); }

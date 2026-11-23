@@ -372,12 +372,18 @@ le ombre si calcolano solo vicino al giocatore, i percorsi dei nemici non creano
 Lavoro di disegno in Alta −55% (−44% con 20 nemici). Con `?prof` nell'indirizzo si vedono i
 millisecondi di ogni parte (strumento: `src/core/prof.js`).
 
-Passo 2 – Luna park più comodo ed economia:
-- [ ] Montagne russe: sosta di ~8 s in stazione dopo il primo giro, si può scendere (e salire)
-- [ ] Munizioni di riserva raddoppiate
-- [ ] Bancarella MUNIZIONI al posto di POPCORN: chiusa fino al round 10, poi 4500 punti per
+Passo 2 – Luna park più comodo ed economia (in prova):
+- [x] Montagne russe: sosta di ~8 s in stazione dopo il primo giro, si può scendere (e salire)
+- [x] Munizioni di riserva raddoppiate
+- [x] Bancarella MUNIZIONI al posto di POPCORN: chiusa fino al round 10, poi 4500 punti per
       riempire tutte le armi
-- [ ] Cura completa nel negozio: 2000 punti, una volta per round
+- [x] Cura completa nel negozio: 2000 punti, una volta per round
+
+Note: dettagli in DESIGN.md ("Valori attuali (passo 2)"). La bancarella ha una saracinesca con scritto
+"Apre al round 10" che si alza da sola. Verificato in headless da soli: bancarella chiusa e aperta,
+acquisto (punti tolti, armi piene), cura (seconda nello stesso round rifiutata), sosta delle montagne
+russe con il giocatore seduto (riparte) e scendendo durante la sosta. Multiplayer: stessa logica
+dell'host già usata per negozio e cassa, non provato con due dispositivi.
 
 Passo 3 – Nuove armi:
 - [ ] Coltello e spada (corpo a corpo, animazioni, suoni)

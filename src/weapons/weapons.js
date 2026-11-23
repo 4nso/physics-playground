@@ -170,6 +170,14 @@ function finishReload() {
   refreshHud();
 }
 
+/** Le armi in mano hanno già tutte le munizioni al massimo? (bancarella delle munizioni) */
+export function allAmmoFull() {
+  return state.slots.every((wi) => { const w = stats(wi); return state.ammo[wi].mag >= w.mag && state.ammo[wi].reserve >= w.reserve; });
+}
+/** Riempie tutte le armi in mano (bancarella delle munizioni). */
+export function refillOwned() {
+  for (const wi of state.slots) refillWeapon(wi);
+}
 /** Ricarica tutte le armi al massimo (usato quando si ricomincia). */
 export function refillAmmo() {
   WEAPONS.forEach((w0, i) => { const w = stats(i); state.ammo[i].mag = w.mag; state.ammo[i].reserve = w.reserve; });
