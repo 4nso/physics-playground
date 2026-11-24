@@ -20,6 +20,10 @@ import { updateShop, toggleShopping, closeShopping, isShopping, padShopInteract,
 import { updateSafeZones } from './game/safezone.js';
 import { updateExit, exitAction, exitActionButton } from './game/exitgate.js';
 import { updateUnderground } from './world/underground.js';
+import { updateCoffins, coffinAction, coffinActionButton } from './game/coffins.js';
+import { updateCemetery, inCemetery, graveSpawn } from './world/cemetery.js';
+import { zombieView } from './enemies/model.js';
+import { enemyHooks } from './enemies/enemies.js';
 import { updateRides, rideAction, rideNearKind, rideActionButton } from './game/rides.js';
 import { updateEnemies } from './enemies/enemies.js';
 import { initGallery, openGallery } from './faces/gallery.js';
@@ -67,6 +71,7 @@ const actions = {
     const a = curAction;
     if (!a || game.state !== 'playing' || !player.alive) return;
     if (a.id === 'exitOpen') exitAction();
+    else if (a.id === 'raygun') coffinAction();
     else if (a.kind === 'ride') actions.ride(a.id === 'start' || a.id === 'stop' ? 'toggle' : 'seat');
     else if (a.kind === 'shop') touchShopAction();
     else if (a.id === 'throw') throwHeld();
@@ -80,7 +85,7 @@ const actions = {
   // F: giostra (sali/scendi), oppure il cancello EXIT se ci sei davanti
   ride(what) {
     if (game.state !== 'playing') return;
-    if (what === 'seat' && !rideNearKind() && exitAction()) return;
+    if (what === 'seat' && !rideNearKind() && (exitAction() || coffinAction())) return;
     rideAction(what);
   },
   jump,
@@ -101,7 +106,7 @@ function touchAction(canGrab) {
   if (k === 'seat') return rideActionButton();
   if (isHolding()) return ACT_THROW;
   if (k) return rideActionButton();
-  const ex = exitActionButton();
+  const ex = exitActionButton() || coffinActionButton();
   if (ex) return ex;
   const s = shopAction();
   if (s) return s;
@@ -115,7 +120,7 @@ const padHooks = {
   interact() {
     const k = rideNearKind();
     if (k) { actions.ride(k === 'ctrl' ? 'toggle' : 'seat'); return; }
-    if (exitAction()) return;
+    if (exitAction() || coffinAction()) return;
     if (padShopInteract()) return;
     actions.grab();
   },
@@ -179,6 +184,9 @@ function loop(now) {
   updateExit(gdt, authority, playing && game.phase !== 'dead');
   underMe.x = player.pos.x; underMe.y = player.pos.y - 0.85; underMe.z = player.pos.z; underMe.ground = player.grounded;
   updateUnderground(gdt, underMe, playing && player.alive);
+  updateCemetery(dt);
+  updateCoffins(gdt, playing && player.alive);
+  zombieView.on = game.state !== 'menu' && inCemetery(underMe.x, underMe.y, underMe.z); // nel cimitero i nemici sono zombi
   netUpdate(dt);
   mark('negozio/rete');
   if (game.state !== 'menu') updateMinimap(dt);
@@ -261,6 +269,7 @@ async function start() {
   resetPlayer(0);
   buildLevel();
   initWeapons();
+  enemyHooks.graveSpawn = graveSpawn; // nel cimitero una parte dei nemici esce dalle tombe
   setupInput(actions);
   setupGamepad(actions, padHooks);
   onPadMode((on) => { padOn = on; hud.setPadMode(on); });

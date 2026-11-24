@@ -1,7 +1,7 @@
 // Client: copie dei nemici, mosse dalle posizioni che manda l'host (che li simula davvero).
 import { scene, camera } from '../core/renderer.js';
 import { pickables } from '../world/arena.js';
-import { buildEnemyModel, animateModel, flashModel, disposeModel, modelTop, fitHead, VARIANTS } from '../enemies/model.js';
+import { buildEnemyModel, animateModel, flashModel, disposeModel, modelTop, fitHead, VARIANTS, zombieView, setZombie } from '../enemies/model.js';
 import { crumbleModel, updateDebris, clearDebris } from '../enemies/debris.js';
 import { makeBar } from '../enemies/enemies.js';
 
@@ -71,6 +71,7 @@ export function updateProxies(dt) {
     g.position.set(p.x, p.y, p.z);
     g.rotation.y = p.yaw;
     g.scale.setScalar(p.spawnT < 1 ? 0.2 + 0.8 * p.spawnT : 1);
+    if (p.model.zombie !== zombieView.on) setZombie(p.model, zombieView.on); // solo grafica, decide questo dispositivo
     animateModel(p.model, p.phase, p.walk, p.attack, dt, p.hp);
     fitHead(p.model, p.x, p.y, p.z, dt);
     if (p.flash > 0) { p.flash -= dt; if (p.flash <= 0) flashModel(p.model, false); }

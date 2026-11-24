@@ -510,13 +510,31 @@ i nemici arrivano fino al cimitero. Minimappa e mappa grande mostrano tunnel, sa
 l'apertura. Modalità sviluppatore: teletrasporto "🕯️ Sala delle candele" e "⚰️ Cimitero". Verificato in headless:
 nessun errore, un nemico insegue il giocatore dentro il tunnel, ~30 chiamate di disegno nel tunnel e nella sala.
 
-Passo 3 – Il cimitero:
-- [ ] Cimitero grande: lapidi, bare, vialetti, siepi, alberi spogli, cappelle, nebbia
-- [ ] Piazzetta con fontana funeraria
-- [ ] Zombi che escono dalle tombe
-- [ ] Nemici in versione zombi (anche le facce) per chi è nel cimitero, solo grafica e locale
-- [ ] Bare che si rompono sparando (vita in base al danno); 2 bare scelte col seed con la raygun
-- [ ] Prestazioni: 30+ fps su iPhone anche nel cimitero (instancing di lapidi e bare)
+Passo 3 – Il cimitero (in prova su iPad):
+- [x] Cimitero grande: lapidi, bare, vialetti, siepi, alberi spogli, cappelle, nebbia
+- [x] Piazzetta con fontana funeraria
+- [x] Zombi che escono dalle tombe
+- [x] Nemici in versione zombi (anche le facce) per chi è nel cimitero, solo grafica e locale
+- [x] Bare che si rompono sparando (vita in base al danno); 2 bare scelte col seed con la raygun
+- [ ] Prestazioni: 30+ fps su iPhone anche nel cimitero (instancing di lapidi e bare) — da verificare sull'iPhone
+- [ ] Provato su iPad
+
+Note: codice in `src/world/cemetery.js` (mappa, lapidi, nebbia, tombe da cui escono gli zombi),
+`src/game/coffins.js` (bare e raygun) e `src/enemies/model.js` (versione zombi). Cimitero 70×72 m: vialetto
+nord-sud dalla cripta ed est-ovest, due vialetti secondari per verso, piazzetta al centro con la fontana (vasca
+ottagonale scura, acqua scura, colonna e angelo con l'aureola che guarda la cripta, panchine); ~210 tombe a file
+con lapide (4 forme, alcune storte, in 4 InstancedMesh), terra smossa, cordoli, lumini rossi e fiori; 5 fosse aperte
+con mucchio di terra e pala; 4 cappelle di famiglia con nome, croce e bara dentro; 12 alberi spogli, siepi lungo il
+vialetto est-ovest, 8 lampioni; nebbia bassa (due veli che scorrono, si scuriscono di notte). Zombi dalle tombe: se
+un giocatore è nel cimitero, ~60% dei nemici nasce da una tomba a 9-32 m da lui (meglio se non in vista), esce dalla
+terra in 1,6 s tremando, con le zolle che saltano. Versione zombi: pelle verde, vestiti strappati (texture
+disegnate), faccia pallida e verdastra con le occhiaie e qualche crepa, testa piegata, una gamba trascinata;
+la decide ogni giocatore per sé. Bare: 10 (4 nelle cappelle, 3 accanto alle fosse, 2 su catafalchi in piazzetta,
+1 vicino alla cripta), vita 400 (pistola ~16 colpi, pompa ~3, esplosione subito); il coperchio vola via e restano
+le schegge; 2 bare (dal seed) hanno la raygun che fluttua con l'alone verde: "🛸 Prendi raygun" (F, B, pulsante
+d'azione), una per giocatore. In multiplayer decide l'host (stato nell'istantanea, messaggi 'coffin' e 'grant').
+Modalità sviluppatore (Mondo): "Rompi tutte le bare", "Vai a una bara con la raygun". Misure headless: 33-60
+chiamate di disegno nel cimitero con la visuale lunga; host + client con server PeerJS locale: nessun errore.
 
 Idea in forse (non fare ora): torcia sulle armi negli ultimi 5 round con notte più scura.
 

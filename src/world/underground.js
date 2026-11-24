@@ -247,7 +247,7 @@ function stairsAndCrypt(b, ctx) {
   }
 }
 
-/** Il recinto del cimitero (prato, muri, vialetto dalla cripta). Il resto arriva nel passo 3. */
+/** Il recinto del cimitero (prato e muri). Tombe, cappelle, fontana e il resto sono in world/cemetery.js. */
 function cemeteryYard(b) {
   const { x0, x1, z0, z1 } = CEM, H = 4, T = 0.5, WALL = 0x4a4742;
   for (const r of minus([x0, z0, x1, z1], [CRYPT.x0, CRYPT.z0, CRYPT.x1, CRYPT.z1])) {
@@ -260,8 +260,6 @@ function cemeteryYard(b) {
   // punte di ferro sopra i muri
   for (let x = x0; x <= x1; x += 1.5) for (const z of [z0 - T / 2, z1 + T / 2]) b.box(x - 0.04, H, z - 0.04, x + 0.04, H + 0.6, z + 0.04, METAL, { collide: false, ao: false });
   for (let z = z0; z <= z1; z += 1.5) for (const x of [x0 - T / 2, x1 + T / 2]) b.box(x - 0.04, H, z - 0.04, x + 0.04, H + 0.6, z + 0.04, METAL, { collide: false, ao: false });
-  // vialetto di ghiaia dalla cripta verso sud
-  b.box(8.6, 0, CRYPT.z1 + 0.8, 11.4, 0.025, 150, 0x8a8274, { collide: false, ao: false, skip: SKIP.BOTTOM });
 }
 
 /* ============================ Parti che si muovono ============================ */

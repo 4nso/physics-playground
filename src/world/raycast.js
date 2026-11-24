@@ -10,7 +10,7 @@ const ray = new RAPIER.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 });
 const ONLY_STATIC = RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC | RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC;
 
 /** Risultato riusato: { point, normal, distance, object (mesh o null), surface } */
-const out = { point: new THREE.Vector3(), normal: new THREE.Vector3(), distance: 0, object: null, surface: 'stone', face: true, hidden: false };
+const out = { point: new THREE.Vector3(), normal: new THREE.Vector3(), distance: 0, object: null, surface: 'stone', face: true, hidden: false, instanceId: -1 };
 
 /**
  * Lancia un raggio da `origin` lungo `dir` (unitaria) fino a `far`.
@@ -33,6 +33,7 @@ export function castWorld(origin, dir, far, ignore = null) {
     else out.normal.copy(dir).negate();
     out.distance = h.distance;
     out.object = h.object;
+    out.instanceId = h.instanceId ?? -1; // InstancedMesh (bare del cimitero)
     out.surface = null;
     return out;
   }

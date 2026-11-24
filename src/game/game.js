@@ -23,6 +23,8 @@ import { placePosters } from '../world/posters.js';
 import { resetRides } from './rides.js';
 import { dev, devLog } from '../core/devmode.js';
 import { resetExit, exitHooks, bossDied } from './exitgate.js';
+import { resetCoffins, hitCoffin, blastCoffins } from './coffins.js';
+import { projHooks } from '../weapons/projectiles.js';
 
 const $ = (id) => document.getElementById(id);
 const BREAK_TIME = 12;
@@ -215,6 +217,9 @@ weaponHooks.onEnemyHit = (killed, head, shooterId) => {
   else if (gameNet.sendTo) gameNet.sendTo(shooterId, { t: 'hit', k: killed ? 1 : 0, h: head ? 1 : 0 });
 };
 weaponHooks.isAuthority = () => net.mode !== 'client';
+// bare del cimitero: colpi ed esplosioni (solo chi comanda; vedi game/coffins.js)
+weaponHooks.onCoffinHit = (i, damage, dir, by) => hitCoffin(i, damage, dir, by);
+projHooks.onBlast = (x, y, z, R) => blastCoffins(x, y, z, R);
 // host: livello del potenziatore dell'arma di un altro giocatore (per i danni dei suoi colpi)
 weaponHooks.levelOf = (id, wi) => { const m = team.get(id); return m && m.wlv ? m.wlv[wi] || 0 : 0; };
 // cassa misteriosa pagata: tutti vedono l'animazione, l'arma va a chi ha pagato
@@ -383,6 +388,7 @@ export function startGame(faceSets, members, seed) {
   setupSafeZones();
   resetRides();
   resetExit();
+  resetCoffins();
   Object.assign(game, { state: 'playing', phase: 'break', overlay: false, round: 0, score: 0, kills: 0, timer: 3, killedBy: '', devUsed: false });
   game.friendKills.clear();
   game.killedByCount.clear();

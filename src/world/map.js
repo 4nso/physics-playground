@@ -12,6 +12,7 @@ import { buildRideVisuals, clearRideVisuals } from './rideVisuals.js';
 import { worldMat, aoMat, waterMat } from './worldMaterial.js';
 import { clearDecals } from './decals.js';
 import { buildUnderVisuals, clearUnderVisuals, underZoneAt, EXTRA, GATE_Z } from './underground.js';
+import { buildCemVisuals, clearCemVisuals } from './cemetery.js';
 
 /** Stato della mappa attuale. */
 export const map = {
@@ -59,6 +60,7 @@ function clearWorld() {
   clearDecals();
   clearRideVisuals();
   clearUnderVisuals();
+  clearCemVisuals();
 }
 
 /** Costruisce (o ricostruisce) il mondo per questo seed. */
@@ -67,7 +69,7 @@ export function buildWorld(seed) {
   const b = new Builder();
   const ctx = { props: [], wreck: null, spawn: null, shops: [], safeZones: [], boxes: [], upgraders: [], safeSigns: [], signs: [], rides: [] };
   buildZones(b, makeRng(seed), ctx);
-  Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn, shops: ctx.shops, safeZones: ctx.safeZones, boxes: ctx.boxes, upgraders: ctx.upgraders, safeSigns: ctx.safeSigns, secretZ: ctx.secretZ, rides: ctx.rides, fountain: ctx.fountain || null, ammoStalls: ctx.ammoStalls || [] });
+  Object.assign(map, { seed, props: ctx.props, wreck: ctx.wreck, spawn: ctx.spawn, shops: ctx.shops, safeZones: ctx.safeZones, boxes: ctx.boxes, upgraders: ctx.upgraders, safeSigns: ctx.safeSigns, secretZ: ctx.secretZ, rides: ctx.rides, cem: ctx.cem || null, fountain: ctx.fountain || null, ammoStalls: ctx.ammoStalls || [] });
 
   // mesh unite: una per blocco da 12×12 m (quelle fuori dalla visuale non si disegnano)
   for (const ch of b.chunks.values()) {
@@ -114,6 +116,7 @@ export function buildWorld(seed) {
   buildSigns(ctx.signs); // scritte delle insegne (luna park)
   buildRideVisuals(ctx.rides); // parti mobili delle giostre (la logica è in game/rides.js)
   buildUnderVisuals(ctx.under); // lampade e candele dietro il cancello EXIT
+  buildCemVisuals(ctx.cem);     // lapidi (instancing) e nebbia bassa del cimitero
 
   // fisica: un solo corpo fisso con tutti i collider
   staticBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());

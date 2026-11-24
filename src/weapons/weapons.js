@@ -45,7 +45,7 @@ const stats = (wi) => weaponStats(wi, state.levels[wi]);
  *  onProjectile(pid, origin, dir, weaponIndex) · isAuthority() → true se questo dispositivo decide i danni
  *  levelOf(shooterId, weaponIndex) → livello di potenziamento dell'arma di un altro giocatore (host)
  */
-export const weaponHooks = { onEnemyHit: null, onShot: null, onProjectile: null, isAuthority: null, levelOf: null };
+export const weaponHooks = { onEnemyHit: null, onShot: null, onProjectile: null, isAuthority: null, levelOf: null, onCoffinHit: null };
 /** Mesh da ignorare negli spari (ad esempio l'oggetto che teniamo in mano). */
 export const shotFilter = { ignore: null };
 projHooks.onHit = (killed, owner) => { if (weaponHooks.onEnemyHit) weaponHooks.onEnemyHit(killed, false, owner); };
@@ -311,6 +311,8 @@ function castPellet(o, d, w, authority, shooterId, hitSet = null) {
       if (weaponHooks.onEnemyHit) weaponHooks.onEnemyHit(killed, head, shooterId);
     }
   } else impact(hit.point, normal, ud.surface || (obj && obj.surface) || 'stone', n + 1);
+  // bara del cimitero: la vita la decide chi comanda (game/coffins.js)
+  if (ud.coffin && authority && weaponHooks.onCoffinHit) weaponHooks.onCoffinHit(hit.instanceId, w.damage, d, shooterId);
   if (obj && authority) {
     impulse.x = d.x * w.impulse; impulse.y = d.y * w.impulse; impulse.z = d.z * w.impulse;
     at.x = hit.point.x; at.y = hit.point.y; at.z = hit.point.z;

@@ -111,10 +111,14 @@ export function buildEnemyModel(variant, faceSet) {
   const legR = mesh(GEO.leg, v.pants, 0, 0, 0, hipR);
   const armL = mesh(GEO.arm, v.shirt, 0, 0, 0, shL);
   const armR = mesh(GEO.arm, v.shirt, 0, 0, 0, shR);
+  // ruolo di ogni pezzo per la versione zombi (vedi setZombie)
+  legL.userData.role = legR.userData.role = 'pants';
+  armL.userData.role = armR.userData.role = 'arm';
   // le braccia (tese in avanti, sottili) non fanno ombra: quasi non si vedrebbe e sono 2 disegni in meno
   // per nemico nella mappa delle ombre (fase 12)
   armL.castShadow = armR.castShadow = false;
   const torso = mesh(GEO.torso, v.shirt, 0, 1.18, 0);
+  torso.userData.role = 'shirt';
   // Testa: perno sul collo (così dondola e si schiaccia come un pupazzo), faccia davanti (+z).
   // Ogni nemico ha il suo materiale della faccia (stessa texture), per poterla colorare di rosso.
   const neck = pivot(0, NECK_Y);
@@ -152,7 +156,7 @@ export function buildEnemyModel(variant, faceSet) {
   }
 
   return {
-    group, inner, v, holder, hs, fitT: 0,
+    group, inner, v, holder, hs, fitT: 0, faceSet, zombie: false,
     parts, head, faceMat, tag, tagDist2,
     pivots: { hipL, hipR, shL, shR, neck },
     squash: 0, t: Math.random() * 10,
@@ -205,12 +209,20 @@ export function animateModel(m, phase, walk, attack, dt = 0, hp = 1) {
   m.inner.rotation.y = sp * 0.12 * walk;               // il busto gira con il passo
   m.inner.rotation.z = cp * 0.06 * walk;               // e ondeggia da un piede all'altro
   m.inner.position.y = Math.abs(cp) * 0.06 * walk;
+  if (m.zombie) {
+    // zombi: barcolla di più, una gamba trascinata, un braccio più basso, testa piegata
+    m.inner.rotation.z += Math.sin(phase * 0.5) * 0.12 * walk + 0.05;
+    m.inner.rotation.x += 0.08;
+    m.pivots.hipR.rotation.x *= 0.55;
+    m.pivots.shL.rotation.x += 0.35 + Math.sin(phase * 0.7) * 0.15;
+  }
 
   // testa che dondola come un pupazzo a molla
   m.t += dt;
   const neck = m.pivots.neck;
   neck.rotation.z = Math.sin(phase) * 0.13 * walk + Math.sin(m.t * 2.3) * 0.03;
   neck.rotation.x = Math.abs(Math.cos(phase)) * 0.08 * walk - (attack > 0 ? Math.sin(attack * Math.PI) * 0.35 : 0);
+  if (m.zombie) { neck.rotation.z += 0.28; neck.rotation.x += 0.12; }
   // colpita: si schiaccia e torna su con un piccolo rimbalzo; attacco: si allunga
   if (m.squash > 0) m.squash = Math.max(0, m.squash - dt * 4.5);
   const q = m.squash, bounce = q > 0 ? Math.sin(q * Math.PI * 2.2) * q : 0;
@@ -239,4 +251,122 @@ export function flashModel(m, on) {
 /** Libera il materiale della faccia di questo modello (la texture è condivisa e resta). */
 export function disposeModel(m) {
   if (m.faceMat) { m.faceMat.dispose(); m.faceMat = null; }
+}
+
+/* ---------- Versione zombi (cimitero, fase 15) ----------
+ * Solo grafica e solo su questo dispositivo: chi è nel cimitero vede i nemici come zombi (pelle verdastra,
+ * vestiti strappati, faccia pallida e verdastra con le occhiaie, camminata più barcollante). Nessun messaggio
+ * di rete: in multiplayer ognuno decide per sé. */
+export const zombieView = { on: false };
+const SKIN = new THREE.MeshLambertMaterial({ color: 0x86a86e, flatShading: true });
+const zCloth = new Map();   // materiale normale (camicia/pantaloni) → versione strappata
+const zSide = new WeakMap(); // materiale dei lati della testa → versione verdastra
+const zFace = new WeakMap(); // texture della faccia → versione zombi
+
+/** Stoffa strappata: il colore del vestito, più scuro e sporco, con strappi da cui si vede la pelle verde. */
+function tornMaterial(base, tears) {
+  let m = zCloth.get(base);
+  if (m) return m;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const col = base.color.clone().lerp(new THREE.Color(0x4a3a28), 0.35).multiplyScalar(0.75);
+  g.fillStyle = '#' + col.getHexString();
+  g.fillRect(0, 0, 64, 64);
+  for (let i = 0; i < 6; i++) { // macchie
+    g.fillStyle = `rgba(40,28,18,${0.25 + Math.random() * 0.3})`;
+    g.beginPath(); g.ellipse(Math.random() * 64, Math.random() * 64, 4 + Math.random() * 9, 3 + Math.random() * 6, Math.random() * 3, 0, Math.PI * 2); g.fill();
+  }
+  g.fillStyle = '#6f945c';
+  for (let i = 0; i < tears; i++) { // strappi seghettati
+    const x = Math.random() * 64, y = Math.random() * 64, r = 5 + Math.random() * 8;
+    g.beginPath();
+    for (let k = 0; k < 9; k++) {
+      const a = (k / 9) * Math.PI * 2, rr = r * (k % 2 ? 0.45 : 1) * (0.7 + Math.random() * 0.5);
+      g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.7);
+    }
+    g.fill();
+  }
+  // orlo in basso sfilacciato
+  g.beginPath(); g.moveTo(0, 64);
+  for (let x = 0; x <= 64; x += 4) g.lineTo(x, 58 - Math.random() * 7);
+  g.lineTo(64, 64); g.fill();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  m = new THREE.MeshLambertMaterial({ map: t, flatShading: true });
+  zCloth.set(base, m);
+  return m;
+}
+
+/** Lati e cima della testa: lo stesso colore, ma pallido e verdastro. */
+function greenSide(mat) {
+  let m = zSide.get(mat);
+  if (!m) {
+    m = mat.clone();
+    m.color = mat.color.clone().lerp(new THREE.Color(0x8fae7a), 0.6);
+    zSide.set(mat, m);
+  }
+  return m;
+}
+
+/** La foto con il filtro zombi: pallida e verdastra, occhiaie scure, qualche crepa. Si calcola una volta per volto. */
+function zombieFace(map) {
+  let t = zFace.get(map);
+  if (t) return t;
+  const src = map.image, W = src.width, H = src.height;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.drawImage(src, 0, 0);
+  const img = g.getImageData(0, 0, W, H), d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const l = d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11;
+    const r = l * 0.65 + d[i] * 0.35, gg = l * 0.65 + d[i + 1] * 0.35, b = l * 0.65 + d[i + 2] * 0.35;
+    d[i] = Math.min(255, r * 0.84 + 22);
+    d[i + 1] = Math.min(255, gg * 0.96 + 34);
+    d[i + 2] = Math.min(255, b * 0.78 + 16);
+  }
+  g.putImageData(img, 0, 0);
+  g.globalCompositeOperation = 'multiply';
+  for (const ex of [0.36, 0.64]) {
+    const x = ex * W, y = 0.43 * H, r = 0.12 * W;
+    const gr = g.createRadialGradient(x, y + r * 0.15, r * 0.15, x, y + r * 0.15, r);
+    gr.addColorStop(0, 'rgba(70,35,80,0.95)'); gr.addColorStop(0.6, 'rgba(110,70,110,0.6)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr;
+    g.fillRect(x - r, y - r, r * 2, r * 2.3);
+  }
+  g.globalCompositeOperation = 'source-over';
+  g.strokeStyle = 'rgba(60,40,40,0.55)';
+  g.lineWidth = W / 180;
+  for (let k = 0; k < 3; k++) { // crepe
+    let x = W * (0.2 + Math.random() * 0.6), y = H * (0.15 + Math.random() * 0.25);
+    g.beginPath(); g.moveTo(x, y);
+    for (let s = 0; s < 5; s++) { x += (Math.random() - 0.5) * W * 0.06; y += H * 0.03; g.lineTo(x, y); }
+    g.stroke();
+  }
+  t = new THREE.CanvasTexture(c);
+  t.colorSpace = map.colorSpace;
+  t.anisotropy = map.anisotropy;
+  zFace.set(map, t);
+  return t;
+}
+
+/** Mette o toglie la versione zombi di un modello (i materiali sono condivisi: costa pochissimo). */
+export function setZombie(m, on) {
+  m.zombie = on;
+  for (const p of m.parts) {
+    const role = p.userData.role;
+    if (!role) continue;
+    if (!p.userData.normalMat) p.userData.normalMat = p.userData.baseMat;
+    const n = p.userData.normalMat;
+    const z = role === 'arm' ? SKIN : tornMaterial(n, role === 'shirt' ? 5 : 3);
+    const flashing = p.material !== p.userData.baseMat;
+    p.userData.baseMat = on ? z : n;
+    if (!flashing) p.material = p.userData.baseMat;
+  }
+  const fs = m.faceSet;
+  if (fs && m.head) {
+    m.head.material = on ? [m.faceMat, greenSide(fs.side), greenSide(fs.top)] : [m.faceMat, fs.side, fs.top];
+    if (m.faceMat && fs.front.map && fs.front.map.image) m.faceMat.map = on ? zombieFace(fs.front.map) : fs.front.map;
+  }
 }

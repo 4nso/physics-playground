@@ -4,7 +4,8 @@ import { scene, camera } from '../core/renderer.js';
 import { world, RAPIER, GROUPS, onBeforeStep, contactHandlers, prevSpeed } from '../core/physics.js';
 import { pickables } from '../world/arena.js';
 import { updateFields, nodeAt, steer, findSpawn } from '../world/nav.js';
-import { VARIANTS, modelTop, fitHead, buildEnemyModel, animateModel, flashModel, disposeModel } from './model.js';
+import { VARIANTS, modelTop, fitHead, buildEnemyModel, animateModel, flashModel, disposeModel, zombieView, setZombie } from './model.js';
+import { impact } from '../weapons/effects.js';
 import { crumbleModel, updateDebris, clearDebris } from './debris.js';
 import { speedFor } from '../game/difficulty.js';
 import { pickFaceIndex } from '../faces/gallery.js';
@@ -14,7 +15,10 @@ export const enemies = [];
 /** Ultimi punti di comparsa (per la modalità sviluppatore: scheda Mondo). */
 export const recentSpawns = [];
 /** Avvisi verso il gioco: onKill(enemy, headshot, dir, force), onPlayerHit(damage, x, z, targetId, enemy) */
-export const enemyHooks = { onKill: null, onPlayerHit: null };
+export const enemyHooks = { onKill: null, onPlayerHit: null, graveSpawn: null };
+/** Uscita dalla tomba (cimitero): secondi in cui lo zombi emerge dalla terra, fermo. */
+const RISE = 1.6;
+const UP = new THREE.Vector3(0, 1, 0), dirtP = new THREE.Vector3();
 
 let faceSets = [];
 let nextId = 0;
@@ -57,7 +61,8 @@ export function spawnEnemy(variant, opts, at = null) {
   const faceIdx = pickFaceIndex(faceSets, variant); // il volto può essere scelto per tipo di nemico (galleria)
   const model = buildEnemyModel(variant, faceSets[faceIdx]);
   const half = 0.45 * v.scale, radius = 0.33 * v.scale, centerY = half + radius;
-  const sp = at || spawnPoint();
+  // nel cimitero una parte dei nemici esce dalle tombe (vedi world/cemetery.js → graveSpawn)
+  const sp = at || (enemyHooks.graveSpawn && enemyHooks.graveSpawn(lastTargets)) || spawnPoint();
   recentSpawns.push({ x: sp.x, y: sp.y, z: sp.z });
   if (recentSpawns.length > 30) recentSpawns.shift();
   const body = world.createRigidBody(
@@ -88,7 +93,9 @@ export function spawnEnemy(variant, opts, at = null) {
     prev: { x: sp.x, y: sp.y + centerY, z: sp.z },
     bar: makeBar(),
     dead: false,
+    rise: sp.grave ? RISE : 0,   // esce dalla tomba: fermo e un po' sotto terra per qualche istante
   };
+  if (e.rise) { e.stun = RISE; e.spawnT = 1; }
   for (const p of model.parts) { p.userData.enemy = e; pickables.push(p); }
   model.group.position.set(sp.x, sp.y, sp.z);
   model.group.scale.setScalar(0.01);
@@ -302,6 +309,17 @@ export function updateEnemies(dt, alpha, active, targets) {
     );
     g.rotation.y = e.yaw;
     g.scale.setScalar(e.spawnT < 1 ? 0.2 + 0.8 * e.spawnT : 1);
+    if (e.rise > 0) {
+      // esce dalla terra: parte sotto il prato, trema e sale; intorno saltano zolle
+      e.rise = Math.max(0, e.rise - dt);
+      const k = e.rise / RISE;
+      g.position.y -= k * k * 1.9 * e.v.scale;
+      g.rotation.z = Math.sin(e.rise * 30) * 0.06 * k;
+      e.dirtT = (e.dirtT || 0) - dt;
+      if (e.dirtT <= 0 && k > 0.15) { e.dirtT = 0.12; impact(dirtP.set(t.x + (Math.random() - 0.5) * 0.8, t.y - e.centerY + 0.05, t.z + (Math.random() - 0.5) * 0.8), UP, 'dirt', 5); }
+      if (e.rise === 0) g.rotation.z = 0;
+    }
+    if (e.model.zombie !== zombieView.on) setZombie(e.model, zombieView.on);
     e.walk = walk;
     animateModel(e.model, e.phase, walk, e.attackT, dt, e.health / e.maxHealth);
     fitHead(e.model, g.position.x, g.position.y, g.position.z, dt);

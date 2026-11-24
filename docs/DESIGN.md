@@ -589,6 +589,9 @@ Una zona nuova che si sblocca a metà partita, con il percorso cancello → tunn
   cimitero li vede zombi, chi è al luna park li vede normali. Nessun messaggio di rete in più
 - I nemici sanno raggiungere il giocatore anche lì (percorso attraverso tunnel, sala e cripta)
 
+- Misure scelte (passo 3): ~60% dei nemici esce da una tomba quando un giocatore è nel cimitero, a 9-32 m da lui;
+  l'uscita dura 1,6 s
+
 **Le bare con la raygun**
 - Nel cimitero ci sono diverse bare chiuse. **Solo 2** contengono una **raygun**; quali, cambia
   da partita a partita (scelto con il seed, uguale per tutti in multiplayer)
@@ -599,6 +602,7 @@ Una zona nuova che si sblocca a metà partita, con il percorso cancello → tunn
   verde: si prende con il pulsante d'azione ("Prendi raygun"), come un acquisto gratuito
 - Ogni raygun si può prendere una volta sola: così possono averla al massimo 2 giocatori
 - Le bare rotte non si ricompongono durante la partita
+- Misure scelte (passo 3): 10 bare con vita 400 (pistola ~16 colpi, fucile a pompa ~3, esplosione: subito)
 
 **La notte che arriva prima** (cambia la curva di "Grafica")
 - Al **round 10** è già **crepuscolo avanzato**: cielo blu scuro, stelle, lampioni, neon e candele

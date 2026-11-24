@@ -19,7 +19,7 @@ import { boomSound, bounceSound } from './sounds.js';
  *  onHit(killed, shooterId)        un nemico colpito da un'esplosione (per il segno sul mirino)
  *  onBoom(pid, x, y, z, wi)        esplosione decisa qui (l'host la manda ai client)
  */
-export const projHooks = { onHit: null, onBoom: null };
+export const projHooks = { onHit: null, onBoom: null, onBlast: null };
 
 /* ---------- Modelli dei proiettili (riusati) ---------- */
 const grenadeGeo = new THREE.IcosahedronGeometry(0.09, 0);
@@ -131,6 +131,7 @@ const dirV = new THREE.Vector3(), tmp = new THREE.Vector3();
 const imp = { x: 0, y: 0, z: 0 };
 function blastDamage(x, y, z, w, owner) {
   const R = w.projectile.radius;
+  if (projHooks.onBlast) projHooks.onBlast(x, y, z, R); // le bare vicine si aprono subito
   for (const e of [...enemies]) {
     if (e.dead) continue;
     const t = e.body.translation();

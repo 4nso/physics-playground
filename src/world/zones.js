@@ -9,6 +9,7 @@ import { lunaPark } from './lunapark.js';
 import { crate, ball } from './toys.js';
 import { buildSecretPassage, buildSafeRoom } from './safezone.js';
 import { buildUnderground } from './underground.js';
+import { buildCemetery } from './cemetery.js';
 
 export const Z0 = -36, Z1 = 36;          // la mappa va da z = -36 a 36
 export const ZONES = [
@@ -280,6 +281,7 @@ export function buildZones(b, rng, ctx) {
   }
   exitGateFrame(b);
   buildUnderground(b, ctx);
+  buildCemetery(b, rng, ctx);
   wallLine(b, 'x', -45, Z0, Z1, OUTER_H, [], OUT, CONC);
   // muro est delle backrooms: c'è il buco del passaggio segreto (coperto dal pannello finto)
   const SD = [1.8, 2.6];

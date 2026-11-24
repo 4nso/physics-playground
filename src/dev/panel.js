@@ -30,6 +30,7 @@ import { game, team, localMember, devGoToRound, announce } from '../game/game.js
 import { resetHealLimit } from '../game/shop.js';
 import { exit, devGiveKey, devOpenGate, dropKey } from '../game/exitgate.js';
 import { GATE } from '../world/zones.js';
+import { devBreakAll, rayCoffins, coffinCount } from '../game/coffins.js';
 import { WEAPONS } from '../weapons/defs.js';
 import { giveWeapon, setWeaponLevel, currentWeaponIndex, weaponLevel, refillOwned } from '../weapons/weapons.js';
 import { startMatch } from '../net/sync.js';
@@ -346,6 +347,8 @@ function tabWorld() {
     row(`🚪 Cancello EXIT (${keyState})`, btn('exitKey', undefined, `🗝️ Dai la chiave a ${who(m)}`) + btn('exitDrop', undefined, '🗝️ Fai cadere la chiave qui')
       + btn('exitOpen', undefined, '🔓 Apri il cancello EXIT', exit.open) + btn('tp', 'exit', '📍 Vai al cancello'),
       'La chiave cade dal boss del round 10. Il cancello resta aperto fino alla fine della partita. Dietro: tunnel, sala delle candele, cripta e cimitero (teletrasporto anche col cancello chiuso).'),
+    row(`⚰️ Bare del cimitero (${coffinCount()})`, btn('coffinsBreak', undefined, '💥 Rompi tutte le bare') + btn('tp', 'raycoffin', '🛸 Vai a una bara con la raygun'),
+      'Le bare si rompono sparandoci (pistola ~16 colpi, pompa ~3, esplosione subito). 2 hanno la raygun, scelte con il seed.'),
     row('Mostra sulla mappa', t('secret', '🟩 Muro segreto') + t('spawns', '🟥 Punti di comparsa') + t('paths', '🟨 Percorsi dei nemici') + t('colliders', '📦 Collisioni'),
       'Si vedono anche attraverso i muri. Comparsa: dove sono nati gli ultimi 30 nemici. Collisioni: entro 22 m da te.'),
     rideRows || row('Giostre', '', 'Nessuna giostra in questa mappa'),
@@ -444,6 +447,7 @@ function run(a, v) {
     case 'exitKey': if (needGame() && m) devGiveKey(m.id); break;
     case 'exitDrop': if (needGame()) dropKey(player.pos.x + Math.sin(player.yaw) * -1.5, player.pos.y - 0.85, player.pos.z + Math.cos(player.yaw) * -1.5, 'dev'); break;
     case 'exitOpen': if (needGame()) devOpenGate(); break;
+    case 'coffinsBreak': if (needGame()) devBreakAll(); break;
     case 'ride': {
       const [ri, act, lvl] = String(v).split(':');
       const msg = devRide(+ri, act, +lvl);
@@ -582,6 +586,10 @@ function teleport(id, m) {
   else if (id === 'exit') { p = groundAt(GATE.x, GATE.z - 4.5); yaw = Math.PI; }
   else if (id === 'sala') { p = groundAt(10, 86, -8); yaw = Math.PI; }
   else if (id === 'cimitero') { p = groundAt(10, 132, 0); yaw = Math.PI; }
+  else if (id === 'raycoffin') {
+    const c = rayCoffins()[ui.rayK = ((ui.rayK ?? -1) + 1) % 2];
+    if (c) { p = groundAt(c.x + (c.along === 'x' ? 0 : 1.6), c.z + (c.along === 'x' ? 1.6 : 0), c.y); yaw = Math.atan2(p.x - c.x, p.z - c.z); }
+  }
   if (!p) { hud.flash('🛠 Non c\'è in questa mappa', 1.4); return; }
   if (isRemote(m)) toClient(m, { c: 'tp', x: p.x, y: p.y, z: p.z, yaw });
   else teleportPlayer(p.x, p.y, p.z, yaw);

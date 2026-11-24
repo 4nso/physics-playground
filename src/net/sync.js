@@ -16,6 +16,7 @@ import { loadFaceMaterials, faceBuffers, facesFromBuffers, appendFaces, playerFa
 import { initMyFace, showMyFace, myFacePayload } from '../faces/myface.js';
 import { pickupSnapshot, applyPickupSnapshot } from '../game/pickups.js';
 import { exitNet, serverOpen, exitSnapshot, applyExitSnapshot } from '../game/exitgate.js';
+import { coffinNet, serverTake, coffinSnapshot, applyCoffinSnapshot, setGrantHook, gotRaygun } from '../game/coffins.js';
 import { game, team, gameNet, startGame, gameOver, toMenu, applyPick, syncLocalMember, removeMember, announce, noteFriendKill, noteKilledBy } from '../game/game.js';
 import { net, on, createRoom, joinRoom, broadcast, sendTo, sendHost, leaveRoom, setAccepting } from './net.js';
 import { setAvatar, removeAvatar, clearAvatars, updateAvatars, slotName, SLOT_COLORS, setPlayerFace, clearPlayerFaces, playerName } from './avatars.js';
@@ -380,6 +381,16 @@ on('exit', (msg, id) => {
   if (why) sendTo(id, { t: 'msg', text: why, s: 1.6 });
 });
 
+/* ---------- Bare del cimitero: il client chiede la raygun, decide l'host ---------- */
+coffinNet.toHost = (msg) => sendHost(msg);
+setGrantHook((id) => sendTo(id, { t: 'grant' }));
+on('coffin', (msg, id) => {
+  if (net.mode !== 'host' || game.state !== 'playing' || msg.a !== 'take') return;
+  const why = serverTake(id, msg.i | 0);
+  if (why) sendTo(id, { t: 'msg', text: why, s: 1.6 });
+});
+on('grant', () => { if (net.mode === 'client' && game.state === 'playing') gotRaygun(); });
+
 /* ---------- Host: nemici uccisi ---------- */
 const origKill = enemyHooks.onKill;
 enemyHooks.onKill = (e, head, dir, force) => {
@@ -441,6 +452,7 @@ on('s', (msg) => {
   applyPickupSnapshot(msg.pk);
   applyRideSnapshot(msg.rd);
   applyExitSnapshot(msg.ex);
+  applyCoffinSnapshot(msg.cf);
 });
 
 /* ---------- Ogni frame ---------- */
@@ -481,7 +493,7 @@ function snapshot() {
   return {
     t: 's',
     g: [game.round, Math.max(0, PHASES.indexOf(game.phase)), Math.round(game.timer * 10), game.score, enemies.length + game.toSpawn, game.kills, game.devUsed ? 1 : 0],
-    pl, en, ob, pk: pickupSnapshot(), rd: rideSnapshot(), ex: exitSnapshot(),
+    pl, en, ob, pk: pickupSnapshot(), rd: rideSnapshot(), ex: exitSnapshot(), cf: coffinSnapshot(),
   };
 }
 

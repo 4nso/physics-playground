@@ -17,7 +17,7 @@ function shadeOf(n) {
 
 const tmpC = new THREE.Color();
 const v = new THREE.Vector3(), n = new THREE.Vector3();
-const mat4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s1 = new THREE.Vector3(1, 1, 1);
+const mat4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s1 = new THREE.Vector3(1, 1, 1), eul = new THREE.Euler();
 
 // Facce di una scatola unitaria (da -1 a 1): normale e 4 angoli in senso antiorario.
 const FACES = [
@@ -140,10 +140,15 @@ export class Builder {
     }
   }
 
-  /** Geometria decorativa qualsiasi di Three.js (coni, sfere...), senza collider. */
+  /**
+   * Geometria decorativa qualsiasi di Three.js (coni, sfere...), senza collider.
+   * o = { rotY, rot: [x, y, z] (angoli, al posto di rotY), scale, glow }
+   */
   geo(geometry, x, y, z, color, o = {}) {
     const g = geometry.index ? geometry.toNonIndexed() : geometry.clone();
-    mat4.compose(v.set(x, y, z), q.setFromAxisAngle(n.set(0, 1, 0), o.rotY || 0), o.scale || s1);
+    if (o.rot) q.setFromEuler(eul.set(o.rot[0], o.rot[1], o.rot[2]));
+    else q.setFromAxisAngle(n.set(0, 1, 0), o.rotY || 0);
+    mat4.compose(v.set(x, y, z), q, o.scale || s1);
     g.applyMatrix4(mat4);
     this._autoChunk(x, z, false);
     const p = g.attributes.position.array;
