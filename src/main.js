@@ -19,6 +19,7 @@ import { initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, 
 import { updateShop, toggleShopping, closeShopping, isShopping, padShopInteract, padShopping, padShopMove, padShopBuy, shopAction, touchShopAction } from './game/shop.js';
 import { updateSafeZones } from './game/safezone.js';
 import { updateExit, exitAction, exitActionButton } from './game/exitgate.js';
+import { updateUnderground } from './world/underground.js';
 import { updateRides, rideAction, rideNearKind, rideActionButton } from './game/rides.js';
 import { updateEnemies } from './enemies/enemies.js';
 import { initGallery, openGallery } from './faces/gallery.js';
@@ -45,6 +46,7 @@ const $ = (id) => document.getElementById(id);
 let last = performance.now();
 let shadowFrame = false;
 const aliveTargets = []; // riusato a ogni frame
+const underMe = { x: 0, y: 0, z: 0, ground: false }; // per i suoni sotto terra
 renderer.autoClear = false;
 
 // Il grilletto lancia l'oggetto in mano, se ce n'è uno; altrimenti spara.
@@ -175,6 +177,8 @@ function loop(now) {
   updateShop(dt, playing && !game.overlay, myMoney());
   updateSafeZones(gdt, playing);
   updateExit(gdt, authority, playing && game.phase !== 'dead');
+  underMe.x = player.pos.x; underMe.y = player.pos.y - 0.85; underMe.z = player.pos.z; underMe.ground = player.grounded;
+  updateUnderground(gdt, underMe, playing && player.alive);
   netUpdate(dt);
   mark('negozio/rete');
   if (game.state !== 'menu') updateMinimap(dt);

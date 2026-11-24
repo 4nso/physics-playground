@@ -345,7 +345,7 @@ function tabWorld() {
     targetRow(),
     row(`🚪 Cancello EXIT (${keyState})`, btn('exitKey', undefined, `🗝️ Dai la chiave a ${who(m)}`) + btn('exitDrop', undefined, '🗝️ Fai cadere la chiave qui')
       + btn('exitOpen', undefined, '🔓 Apri il cancello EXIT', exit.open) + btn('tp', 'exit', '📍 Vai al cancello'),
-      'La chiave cade dal boss del round 10. Il cancello resta aperto fino alla fine della partita.'),
+      'La chiave cade dal boss del round 10. Il cancello resta aperto fino alla fine della partita. Dietro: tunnel, sala delle candele, cripta e cimitero (teletrasporto anche col cancello chiuso).'),
     row('Mostra sulla mappa', t('secret', '🟩 Muro segreto') + t('spawns', '🟥 Punti di comparsa') + t('paths', '🟨 Percorsi dei nemici') + t('colliders', '📦 Collisioni'),
       'Si vedono anche attraverso i muri. Comparsa: dove sono nati gli ultimi 30 nemici. Collisioni: entro 22 m da te.'),
     rideRows || row('Giostre', '', 'Nessuna giostra in questa mappa'),
@@ -551,7 +551,7 @@ function spawnHere(look) {
 /* ---------- Teletrasporto ---------- */
 const DESTS = [
   ['shop', '🛒 Negozio'], ['stall', '📦 Bancarella'], ['safe', '🛡️ Zona sicura'], ['box', '🎁 Cassa'], ['pap', '🔮 Potenziatore'],
-  ['exit', '🚪 Cancello EXIT'], ['wheel', '🎡 Ruota'], ['coaster', '🎢 Montagne russe'], ['backrooms', '🟨 Backrooms'], ['parking', '🅿️ Parcheggio'], ['spawn', '🚩 Partenza'],
+  ['exit', '🚪 Cancello EXIT'], ['sala', '🕯️ Sala delle candele'], ['cimitero', '⚰️ Cimitero'], ['wheel', '🎡 Ruota'], ['coaster', '🎢 Montagne russe'], ['backrooms', '🟨 Backrooms'], ['parking', '🅿️ Parcheggio'], ['spawn', '🚩 Partenza'],
 ];
 /** Il punto calpestabile più vicino a (x, z), all'altezza più simile a yHint. */
 function groundAt(x, z, yHint = 0) {
@@ -580,6 +580,8 @@ function teleport(id, m) {
   else if (id === 'parking') p = zoneCenter('parcheggio');
   else if (id === 'spawn') { p = map.spawn; yaw = map.spawn.yaw || 0; }
   else if (id === 'exit') { p = groundAt(GATE.x, GATE.z - 4.5); yaw = Math.PI; }
+  else if (id === 'sala') { p = groundAt(10, 86, -8); yaw = Math.PI; }
+  else if (id === 'cimitero') { p = groundAt(10, 132, 0); yaw = Math.PI; }
   if (!p) { hud.flash('🛠 Non c\'è in questa mappa', 1.4); return; }
   if (isRemote(m)) toClient(m, { c: 'tp', x: p.x, y: p.y, z: p.z, yaw });
   else teleportPlayer(p.x, p.y, p.z, yaw);

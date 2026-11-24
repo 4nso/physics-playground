@@ -119,6 +119,27 @@ export class Builder {
     this.shapes.push({ k: 1, x0, z0, x1, z1, axis, h0, h1, t: t / Math.cos(ang) });
   }
 
+  /**
+   * Muro dritto in diagonale da (ax, az) a (bx, bz), da y0 a y1, spesso `thick` (centrato sulla linea).
+   * Collider ruotato; per la navigazione la linea è approssimata con piccoli quadrati allineati agli assi.
+   * Serve per le stanze rotonde (sala delle candele). o = { surface, skip, glow, ao, collide }
+   */
+  wallSeg(ax, az, bx, bz, y0, y1, thick, color, o = {}) {
+    const len = Math.hypot(bx - ax, bz - az), ang = Math.atan2(bz - az, bx - ax);
+    const cx = (ax + bx) / 2, cz = (az + bz) / 2, cy = (y0 + y1) / 2;
+    const rq = new THREE.Quaternion().setFromAxisAngle(v.set(0, 1, 0), -ang);
+    this._autoChunk(cx, cz, false);
+    mat4.compose(v.set(cx, cy, cz), rq, n.set(len / 2, (y1 - y0) / 2, thick / 2));
+    this._box(mat4, null, color, { ao: false, ...o }, y0);
+    if (o.collide === false) return;
+    this.colliders.push({ hx: len / 2, hy: (y1 - y0) / 2, hz: thick / 2, x: cx, y: cy, z: cz, q: rq, surface: o.surface || 'stone' });
+    const steps = Math.max(1, Math.ceil(len / 0.4)), r = Math.max(0.2, thick / 2);
+    for (let i = 0; i <= steps; i++) {
+      const x = ax + ((bx - ax) * i) / steps, z = az + ((bz - az) * i) / steps;
+      this.shapes.push({ k: 0, x0: x - r, y0, z0: z - r, x1: x + r, y1, z1: z + r });
+    }
+  }
+
   /** Geometria decorativa qualsiasi di Three.js (coni, sfere...), senza collider. */
   geo(geometry, x, y, z, color, o = {}) {
     const g = geometry.index ? geometry.toNonIndexed() : geometry.clone();

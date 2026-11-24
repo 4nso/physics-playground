@@ -21,7 +21,11 @@ export const nav = {
   colStart: null,              // nodi della colonna c: da colStart[c] a colStart[c+1]
   nbr: null, cost: null,       // 8 vicini per nodo (-1 = nessuno)
   aliveList: null,
+  extra: null,                 // 1 se il nodo è dietro il cancello EXIT (tunnel, sala, cripta, cimitero)
+  gateOpen: true,              // cancello aperto: i collegamenti attraverso il varco ci sono
 };
+/** Linea del cancello EXIT (z) e collegamenti che la attraversano: [indice in nbr, nodo] (vedi setNavGate). */
+let gateZ = Infinity, gateLinks = [];
 
 let shapes = [], buckets = null, bCols = 0, bRows = 0;
 
@@ -106,8 +110,9 @@ export function lineClear(ax, ay, az, bx, by, bz) { return !segBlocked(ax, ay, a
  * shapeList = forme del Builder; area = { minX, minZ, maxX, maxZ };
  * start = punto sicuramente raggiungibile (la partenza dei giocatori).
  */
-export function buildNav(shapeList, area, start) {
+export function buildNav(shapeList, area, start, gateLine = Infinity) {
   shapes = shapeList;
+  gateZ = gateLine;
   nav.minX = area.minX; nav.minZ = area.minZ;
   nav.cols = Math.round(area.maxX - area.minX); nav.rows = Math.round(area.maxZ - area.minZ);
   bCols = Math.ceil(nav.cols / BUCKET); bRows = Math.ceil(nav.rows / BUCKET);
@@ -190,6 +195,18 @@ export function buildNav(shapeList, area, start) {
     }
   }
 
+  // 2b. nodi dietro il cancello EXIT e collegamenti attraverso il varco (si tolgono col cancello chiuso)
+  nav.extra = new Uint8Array(N);
+  gateLinks = [];
+  for (let a = 0; a < N; a++) {
+    if (nav.z[a] > gateZ) nav.extra[a] = 1;
+    for (let d = 0; d < 8; d++) {
+      const b = nav.nbr[a * 8 + d];
+      if (b >= 0 && (nav.z[a] < gateZ) !== (nav.z[b] < gateZ)) gateLinks.push([a * 8 + d, b]);
+    }
+  }
+  nav.gateOpen = true;
+
   // 3. solo la zona collegata alla partenza (i tetti irraggiungibili e simili non contano)
   nav.alive = new Uint8Array(N);
   nav.ready = true;
@@ -211,6 +228,19 @@ export function buildNav(shapeList, area, start) {
   fields.length = 0;
   job = null;
 }
+
+/**
+ * Cancello EXIT aperto o chiuso: col cancello chiuso i nemici non passano dal varco
+ * e non compaiono dietro (tunnel, sala, cripta, cimitero).
+ */
+export function setNavGate(open) {
+  if (!nav.ready || nav.gateOpen === open) return;
+  nav.gateOpen = open;
+  for (const [i, b] of gateLinks) nav.nbr[i] = open ? b : -1;
+  if (job) job = null;
+  for (const f of fields) f.src = -1; // i percorsi si ricalcolano subito
+}
+const hiddenNode = (a) => !nav.gateOpen && nav.extra[a];
 
 /**
  * Nodo sotto i piedi in (x, feetY, z), o -1. Cerca anche nelle colonne vicine
@@ -399,7 +429,7 @@ export function findSpawn(targets, minD = 18, maxD = 55) {
   let fallback = null, fd = -1;
   for (let k = 0; k < 80; k++) {
     const a = L[(Math.random() * L.length) | 0];
-    if (nav.near[a]) continue;
+    if (nav.near[a] || hiddenNode(a)) continue;
     const d = fields.length ? pathDist(a) : 30;
     if (d === Infinity) continue;
     let visible = false, close = false;
@@ -423,10 +453,11 @@ export function randomNodeNear(minD, maxD) {
   const L = nav.aliveList;
   for (let k = 0; k < 120; k++) {
     const a = L[(Math.random() * L.length) | 0];
-    if (nav.near[a]) continue;
+    if (nav.near[a] || hiddenNode(a)) continue;
     const d = fields.length ? pathDist(a) : minD;
     if (d >= minD && d <= maxD) return { x: nav.x[a], y: nav.y[a], z: nav.z[a] };
   }
-  const a = L[(Math.random() * L.length) | 0];
+  let a = L[(Math.random() * L.length) | 0];
+  for (let k = 0; k < 20 && hiddenNode(a); k++) a = L[(Math.random() * L.length) | 0];
   return { x: nav.x[a], y: nav.y[a], z: nav.z[a] };
 }

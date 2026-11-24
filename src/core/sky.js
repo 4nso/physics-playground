@@ -67,14 +67,19 @@ scene.add(sky);
 export function setSkyDome(on) { sky.visible = on; }
 
 /** A ogni frame: il sole del cielo nella direzione della luce. */
+const UNDER_FOG = new THREE.Color(0x0d0b0a);
+let lastUnder = 0;
 export function updateSky() {
   uniforms.sunDir.value.copy(sun.position).sub(sun.target.position).normalize();
   uniforms.stars.value = skyState.stars;
+  // sotto terra (tunnel, sala delle candele) la nebbia è buia, non del colore del cielo
+  const u = skyState.under || 0;
+  if (u !== lastUnder) { lastUnder = u; applySkyColors(); }
 }
 
 /** Dopo aver cambiato skyColors: anche la nebbia e lo sfondo prendono il colore dell'orizzonte. */
 export function applySkyColors() {
-  scene.fog.color.copy(skyColors.horizon);
+  scene.fog.color.copy(skyColors.horizon).lerp(UNDER_FOG, skyState.under || 0);
   scene.background.copy(skyColors.horizon);
 }
 applySkyColors();

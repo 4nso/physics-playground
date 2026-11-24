@@ -36,6 +36,10 @@ export const worldMat = new THREE.ShaderMaterial({
       // Parcheggio (x < -15) e backrooms (x > 33) sono al chiuso con le loro lampade: la notte pesa meno.
       float indoor = step(worldPosition.x, -15.0) + step(33.0, worldPosition.x);
       vec3 tint = mix(dayTint, vec3(0.78, 0.8, 0.88), 0.6 * indoor);
+      // sotto terra (tunnel, sala delle candele, scalinata: dietro il cancello EXIT e sotto il livello del prato)
+      // la luce è quella delle lampade e delle candele, uguale di giorno e di notte
+      float under = step(36.3, worldPosition.z) * step(worldPosition.y, -0.35);
+      tint = mix(tint, vec3(1.0), under);
       vCol = color * mix(tint, vec3(1.0 + glow * glowBoost), min(1.0, glow * 4.0));
       vWorld = worldPosition.xyz;
       #include <shadowmap_vertex>

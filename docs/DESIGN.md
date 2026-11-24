@@ -547,8 +547,7 @@ Una zona nuova che si sblocca a metà partita, con il percorso cancello → tunn
 - Sul muro esterno del luna park, lato bancarelle e arco d'ingresso, rivolto verso le bancarelle:
   cancello di metallo a doppia anta, grande ma non enorme (~4 m di altezza), con sopra l'insegna
   **EXIT** rossa al neon (bagliore, ronzio, leggero sfarfallio)
-- In fondo al viale, dopo l'arco d'ingresso (x = 10, muro sud). Dietro, finché non c'è il tunnel (passo 2),
-  una nicchia buia sbarrata da assi
+- In fondo al viale, dopo l'arco d'ingresso (x = 10, muro sud). Dietro parte il tunnel
 - Chiuso con un lucchetto. Avvicinandosi: "Serve una chiave"
 
 **La chiave**
@@ -572,6 +571,9 @@ Una zona nuova che si sblocca a metà partita, con il percorso cancello → tunn
 
 **La cripta**
 - Si sbuca da un monumento funebre con il cancelletto, dentro il cimitero (e da lì si può tornare indietro)
+- Misure scelte (passo 2): tunnel largo 6 m, 8 m di discesa in ~42 m; sala di raggio 10 m a 8 m sotto terra con
+  la porta sigillata a ovest e la scalinata a sud; cripta lunga ~15 m sul lato nord del cimitero; cimitero di
+  70×72 m (x -25…45, z 108…180). Sotto terra la luce è la stessa di giorno e di notte
 
 **Il cimitero**
 - Zona nuova **fuori dalla mappa attuale**: la mappa si allarga, la minimappa la mostra

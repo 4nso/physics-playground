@@ -8,6 +8,7 @@ import { SKIP } from './builder.js';
 import { lunaPark } from './lunapark.js';
 import { crate, ball } from './toys.js';
 import { buildSecretPassage, buildSafeRoom } from './safezone.js';
+import { buildUnderground } from './underground.js';
 
 export const Z0 = -36, Z1 = 36;          // la mappa va da z = -36 a 36
 export const ZONES = [
@@ -231,13 +232,13 @@ function backrooms(b, rng, ctx, doors) {
 
 /* ============================ CANCELLO EXIT ============================ */
 /**
- * Parte ferma del cancello EXIT: pilastri di pietra, architrave, pannello scuro dell'insegna e,
- * dietro, una nicchia buia (per ora sbarrata da assi: il tunnel arriva nel passo 2 della fase 15).
+ * Parte ferma del cancello EXIT: pilastri di pietra, architrave, pannello scuro dell'insegna.
+ * Dietro parte il tunnel verso la sala delle candele, la cripta e il cimitero (world/underground.js).
  * Le ante (con il collider), il lucchetto e l'insegna accesa sono in game/exitgate.js.
  */
 function exitGateFrame(b) {
   const { x, z, w, h } = GATE, X0 = x - w / 2, X1 = x + w / 2, P = 0.6, D = 0.45;
-  const STONE = 0x6f6a63, DARK = 0x2a2724, CAP = 0x8a847a;
+  const STONE = 0x6f6a63, CAP = 0x8a847a;
   // pilastri e architrave (riempiono il buco del muro intorno al varco)
   for (const [a, c] of [[X0 - P, X0], [X1, X1 + P]]) {
     b.box(a, 0, z - D, c, h + 0.6, z + D, STONE, { skip: SKIP.BOTTOM });
@@ -249,15 +250,7 @@ function exitGateFrame(b) {
   b.box(x - 1.45, h + 0.95, z - 0.27, x + 1.45, h + 2.05, z - 0.15, 0x1b1b1f, { collide: false });
   // soglia di pietra
   b.box(X0, 0, z - D, X1, 0.035, z + D, CAP, { collide: false, skip: SKIP.BOTTOM, ao: false });
-  // nicchia dietro il cancello: pavimento, pareti, soffitto, fondo buio con le assi inchiodate
-  const ZB = z + 4.6, NAV = { nav: false };
-  b.box(X0 - P, -0.3, z + D, X1 + P, 0, ZB + 0.3, 0x3b3631, { ...NAV, skip: SKIP.BOTTOM });
-  for (const [a, c] of [[X0 - P, X0 - 0.3], [X1 + 0.3, X1 + P]]) b.box(a, 0, z + D, c, h + 0.9, ZB + 0.3, DARK, { ...NAV, skip: SKIP.BOTTOM });
-  b.box(X0 - P, h + 0.6, z + D, X1 + P, h + 0.9, ZB + 0.3, DARK, NAV);
-  b.box(X0 - 0.3, 0, ZB, X1 + 0.3, h + 0.6, ZB + 0.3, 0x0d0c0b, { ...NAV, skip: SKIP.BOTTOM });
-  for (const [y, tilt] of [[0.9, 0.25], [1.8, -0.2], [2.7, 0.3]]) {
-    b.box(X0 - 0.2, y - 0.12 + tilt * 0.1, ZB - 0.08, X1 + 0.2, y + 0.12 + tilt * 0.1, ZB, 0x5a4026, { ...NAV, collide: false });
-  }
+  // dietro il cancello parte il tunnel (world/underground.js)
 }
 
 /** Costruisce tutta la mappa. ctx = { props, wreck, spawn }. */
@@ -286,6 +279,7 @@ export function buildZones(b, rng, ctx) {
     wallLine(b, 'z', Z1, zn.x0, zn.x1, OUTER_H, gate, inside[zn.id], OUT);
   }
   exitGateFrame(b);
+  buildUnderground(b, ctx);
   wallLine(b, 'x', -45, Z0, Z1, OUTER_H, [], OUT, CONC);
   // muro est delle backrooms: c'è il buco del passaggio segreto (coperto dal pannello finto)
   const SD = [1.8, 2.6];

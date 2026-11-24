@@ -9,23 +9,43 @@ import { map, zoneAt } from '../world/map.js';
 import { GATE } from '../world/zones.js';
 import { exit } from '../game/exitgate.js';
 import { SLOT_COLORS, playerName } from '../net/avatars.js';
+import { TUN, ROOM, STAIRS, CRYPT, CEM } from '../world/underground.js';
 
 const RANGE = 26;    // metri visibili dal centro al bordo
 const $ = (id) => document.getElementById(id);
 
-let plan = null, planSeed = -1, ctx = null, cv = null, timer = 0;
-let bigPlan = null, bigSeed = -1;
+let plan = null, planKey = '', ctx = null, cv = null, timer = 0;
+let bigPlan = null, bigKey = '';
+
+/** Area disegnata: la mappa di sempre, più tunnel e cimitero quando il cancello EXIT è aperto. */
+function planBounds() {
+  const b = map.bounds;
+  return exit.open && map.extra ? { minX: b.minX, maxX: b.maxX, minZ: b.minZ, maxZ: map.extra.maxZ } : b;
+}
+const keyNow = () => `${map.seed}:${exit.open ? 1 : 0}`;
 
 /** Pianta della mappa a PX pixel per metro (la minimappa ne usa 3, la mappa grande di più). */
 function drawPlan(PX = 3) {
-  const b = map.bounds, W = (b.maxX - b.minX) * PX, H = (b.maxZ - b.minZ) * PX;
+  const b = planBounds(), W = (b.maxX - b.minX) * PX, H = (b.maxZ - b.minZ) * PX;
   const plan = document.createElement('canvas');
   plan.width = W; plan.height = H;
   const g = plan.getContext('2d');
   const X = (x) => (x - b.minX) * PX, Z = (z) => (z - b.minZ) * PX;
+  const zH = (map.bounds.maxZ - map.bounds.minZ) * PX;
   for (const zn of map.zones) {
     g.fillStyle = zn.color;
-    g.fillRect(X(zn.x0), 0, (zn.x1 - zn.x0) * PX, H);
+    g.fillRect(X(zn.x0), 0, (zn.x1 - zn.x0) * PX, zH);
+  }
+  if (b !== map.bounds) {
+    // dietro il cancello: prato scuro, cimitero, e il percorso sotto terra (tunnel, sala, scalinata)
+    g.fillStyle = '#39402f'; g.fillRect(0, zH, W, H - zH);
+    g.fillStyle = '#56704a'; g.fillRect(X(CEM.x0), Z(CEM.z0), (CEM.x1 - CEM.x0) * PX, (CEM.z1 - CEM.z0) * PX);
+    g.fillStyle = '#6b5e4e';
+    g.fillRect(X(TUN.x0), Z(TUN.z0), (TUN.x1 - TUN.x0) * PX, (ROOM.z - TUN.z0) * PX);
+    g.beginPath(); g.arc(X(ROOM.x), Z(ROOM.z), ROOM.r * PX, 0, Math.PI * 2); g.fill();
+    g.fillRect(X(STAIRS.x0), Z(STAIRS.z0), (STAIRS.x1 - STAIRS.x0) * PX, (CRYPT.z1 - STAIRS.z0) * PX);
+    g.fillStyle = '#26221c';
+    for (const [x0, z0, x1, z1] of map.extraWalls || []) g.fillRect(X(x0), Z(z0), Math.max(1.5, (x1 - x0) * PX), Math.max(1.5, (z1 - z0) * PX));
   }
   g.fillStyle = 'rgba(255,255,255,.55)';
   for (const [x0, z0, x1, z1] of map.ramps || []) g.fillRect(X(x0), Z(z0), (x1 - x0) * PX, (z1 - z0) * PX);
@@ -88,8 +108,8 @@ export const bigmap = {
     bigT -= dt;
     if (bigT > 0) return;
     bigT = 1 / 10;
-    if (bigSeed !== map.seed || !bigPlan) { bigPlan = drawPlan(8); bigSeed = map.seed; }
-    const b = map.bounds, MW = b.maxX - b.minX, MH = b.maxZ - b.minZ;
+    if (bigKey !== keyNow() || !bigPlan) { bigPlan = drawPlan(8); bigKey = keyNow(); }
+    const b = planBounds(), MW = b.maxX - b.minX, MH = b.maxZ - b.minZ;
     // dimensione: la più grande che sta nello schermo con le proporzioni della mappa
     const availW = innerWidth * 0.94, availH = innerHeight * 0.8;
     const scale = Math.min(availW / MW, availH / MH);
@@ -120,6 +140,13 @@ export const bigmap = {
     const zs = Math.max(11, Math.min(22, k * 2.6));
     for (const zn of map.zones) label(zn.name, X((zn.x0 + zn.x1) / 2), Z(b.minZ) + zs * 1.2, zs);
     label('EXIT', X(GATE.x), Z(GATE.z) - zs * 0.9, zs * 0.75, exit.open ? '#7dffa6' : '#ff6b5e');
+    if (exit.open) {
+      const zs2 = zs * 0.8;
+      label('Tunnel', X(TUN.x1) + zs2 * 2.6, Z((TUN.z0 + ROOM.z) / 2), zs2, '#e8d8c0');
+      label('Sala delle candele', X(ROOM.x + ROOM.r) + zs2 * 5.5, Z(ROOM.z), zs2, '#ffcf8a');
+      label('Cripta', X(CRYPT.x1) + zs2 * 2.4, Z((CRYPT.z0 + CRYPT.z1) / 2), zs2, '#e8e2d8');
+      label('Cimitero', X((CEM.x0 + CEM.x1) / 2), Z((CEM.z0 + CEM.z1) / 2) + zs, zs);
+    }
     // giocatori: compagni con il loro colore, io in bianco (sopra a tutti)
     const s = Math.max(7, Math.min(13, k * 0.9));
     for (const m of mates) {
@@ -147,8 +174,8 @@ export const minimap = {
     if (!size) return;
     const dpr = Math.min(2, devicePixelRatio || 1), S = Math.round(size * dpr);
     if (cv.width !== S) { cv.width = cv.height = S; }
-    if (planSeed !== map.seed || !plan) { plan = drawPlan(3); planSeed = map.seed; }
-    const k = S / 2 / RANGE, b = map.bounds;
+    if (planKey !== keyNow() || !plan) { plan = drawPlan(3); planKey = keyNow(); }
+    const k = S / 2 / RANGE, b = planBounds();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, S, S);
     ctx.save();
@@ -192,7 +219,7 @@ export const minimap = {
     ctx.fillText('N', Math.sin(me.yaw) * r, -Math.cos(me.yaw) * r);
     ctx.restore();
     // nome della zona (e piano del parcheggio) in basso
-    const zn = zoneAt(me.x);
+    const zn = zoneAt(me.x, me.z, me.y);
     if (zn) {
       let label = zn.name;
       if (zn.id === 'parcheggio') label = `Piano ${me.y < 2.6 ? 0 : me.y < 6.1 ? 1 : 2}`;

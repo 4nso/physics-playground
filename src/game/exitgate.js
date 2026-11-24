@@ -12,6 +12,7 @@ import { audioCtx, thud } from '../core/audio.js';
 import { glowMat } from '../core/glow.js';
 import { pad } from '../core/gamepad.js';
 import { GATE } from '../world/zones.js';
+import { setNavGate } from '../world/nav.js';
 import { player } from '../player/player.js';
 import { hud } from '../ui/hud.js';
 import { devLog } from '../core/devmode.js';
@@ -246,6 +247,7 @@ export function resetExit() {
   lock.visible = true;
   keyObj.visible = false;
   addCollider();
+  setNavGate(false);
   hud.setKey(false);
   lastNear = false;
 }
@@ -382,7 +384,7 @@ export function updateExit(dt, authority, playing) {
   // apertura animata
   const want = exit.open ? 1 : 0;
   if (openK !== want) {
-    if (want === 1 && openK === 0) { removeCollider(); creak(); lock.visible = false; }
+    if (want === 1 && openK === 0) { removeCollider(); setNavGate(true); creak(); lock.visible = false; }
     openK = want ? Math.min(1, openK + dt / OPEN_TIME) : 0;
     poseLeaves(openK);
     if (openK === 1) thud(0.3, 70);

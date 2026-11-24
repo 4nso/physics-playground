@@ -489,11 +489,26 @@ controller (ha preso il posto delle statistiche, che ora sono scritte sotto la m
 (1180×820, 844×390 touch e host + client con server PeerJS locale: il client raccoglie la chiave, tocca
 "Apri" e il cancello si apre per tutti): nessun errore in console.
 
-Passo 2 – Tunnel, sala delle candele e cripta:
-- [ ] Tunnel buio in discesa (~40-50 m) con lampade che sfarfallano
-- [ ] Sala circolare con candele in cerchio, porta sigillata (futura) e porta con scalinata
-- [ ] Uscita da una cripta con cancelletto dentro il cimitero
-- [ ] Navigazione dei nemici attraverso tunnel, sala e cripta
+Passo 2 – Tunnel, sala delle candele e cripta (in prova su iPad):
+- [x] Tunnel buio in discesa (~40-50 m) con lampade che sfarfallano
+- [x] Sala circolare con candele in cerchio, porta sigillata (futura) e porta con scalinata
+- [x] Uscita da una cripta con cancelletto dentro il cimitero
+- [x] Navigazione dei nemici attraverso tunnel, sala e cripta
+- [ ] Provato su iPad
+
+Note (codice in `src/world/underground.js`): tutto è a sud del muro del luna park. Tunnel largo 6 m, piano
+per 3 m e poi in discesa di 8 m fino a z = 81 (~42 m), travi di legno ogni 6 m, 6 lampade alle pareti (alcune
+"malate" sfarfallano spesso), gocce e passi con l'eco (suoni generati), nebbia buia sotto terra. Sala rotonda di
+raggio 10 m a 8 m sotto terra, 25 candele con fiammelle che tremolano (un InstancedMesh) e luce calda dipinta
+sul muro, 4 colonne per ripararsi, cerchi incisi sul pavimento; a ovest la porta sigillata (catene, lucchetto,
+simbolo rosso che brilla appena), a sud la scalinata che risale (8 m in 16,5 m) fino alla cripta: un monumento di
+pietra con tetto a gradoni, croce, scritta "CRIPTA" e cancelletto di ferro aperto. Fuori c'è il recinto del cimitero
+(70×72 m, muri con punte di ferro, vialetto): per ora è vuoto, si riempie nel passo 3. Sotto terra la luce non
+cambia tra giorno e notte. Navigazione: la griglia ora copre anche l'area nuova (~21 000 nodi, ~6 800 dietro il
+cancello); col cancello chiuso i collegamenti nel varco sono tagliati e lì dietro non nasce nessun nemico, aperto
+i nemici arrivano fino al cimitero. Minimappa e mappa grande mostrano tunnel, sala, cripta e cimitero solo dopo
+l'apertura. Modalità sviluppatore: teletrasporto "🕯️ Sala delle candele" e "⚰️ Cimitero". Verificato in headless:
+nessun errore, un nemico insegue il giocatore dentro il tunnel, ~30 chiamate di disegno nel tunnel e nella sala.
 
 Passo 3 – Il cimitero:
 - [ ] Cimitero grande: lapidi, bare, vialetti, siepi, alberi spogli, cappelle, nebbia

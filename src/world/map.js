@@ -11,6 +11,7 @@ import { buildSigns, clearSigns } from './signs.js';
 import { buildRideVisuals, clearRideVisuals } from './rideVisuals.js';
 import { worldMat, aoMat, waterMat } from './worldMaterial.js';
 import { clearDecals } from './decals.js';
+import { buildUnderVisuals, clearUnderVisuals, underZoneAt, EXTRA, GATE_Z } from './underground.js';
 
 /** Stato della mappa attuale. */
 export const map = {
@@ -21,6 +22,8 @@ export const map = {
   spawn: { x: 0, y: 0, z: 0, yaw: 0 },
   bounds: { minX: ZONES[0].x0, minZ: Z0, maxX: ZONES[ZONES.length - 1].x1, maxZ: Z1 },
   walls: [],         // rettangoli per la minimappa [x0, z0, x1, z1]
+  extraWalls: [],    // lo stesso per l'area dietro il cancello EXIT (tunnel, sala, cripta, cimitero)
+  extra: EXTRA,      // rettangolo dell'area dietro il cancello EXIT
   ramps: [],
   safeZones: [],    // zone sicure { x0, z0, x1, z1, door } (vedi world/safezone.js)
   boxes: [],        // casse misteriose
@@ -55,6 +58,7 @@ function clearWorld() {
   clearSigns();
   clearDecals();
   clearRideVisuals();
+  clearUnderVisuals();
 }
 
 /** Costruisce (o ricostruisce) il mondo per questo seed. */
@@ -109,6 +113,7 @@ export function buildWorld(seed) {
 
   buildSigns(ctx.signs); // scritte delle insegne (luna park)
   buildRideVisuals(ctx.rides); // parti mobili delle giostre (la logica è in game/rides.js)
+  buildUnderVisuals(ctx.under); // lampade e candele dietro il cancello EXIT
 
   // fisica: un solo corpo fisso con tutti i collider
   staticBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
@@ -124,12 +129,17 @@ export function buildWorld(seed) {
   if (w) wreckAnchor = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(w.ax, w.ay, w.az));
 
   // minimappa: tutto ciò che è alto e poggia a terra (muri, pilastri) e le rampe
-  map.walls = b.shapes.filter((s) => s.k === 0 && s.y0 < 0.5 && s.y1 > 1.2 && s.y1 - s.y0 < 20).map((s) => [s.x0, s.z0, s.x1, s.z1]);
-  map.ramps = b.shapes.filter((s) => s.k === 1 && Math.abs(s.h1 - s.h0) > 2).map((s) => [s.x0, s.z0, s.x1, s.z1]);
+  const extra = (s) => s.z0 > GATE_Z + 0.1; // dietro il cancello EXIT: si mostra solo quando è aperto
+  map.walls = b.shapes.filter((s) => s.k === 0 && !extra(s) && s.y0 < 0.5 && s.y1 > 1.2 && s.y1 - s.y0 < 20).map((s) => [s.x0, s.z0, s.x1, s.z1]);
+  map.ramps = b.shapes.filter((s) => s.k === 1 && !extra(s) && Math.abs(s.h1 - s.h0) > 2).map((s) => [s.x0, s.z0, s.x1, s.z1]);
+  // area nuova: muri (anche sotto terra) e scale
+  map.extraWalls = b.shapes.filter((s) => s.k === 0 && extra(s) && s.y1 - s.y0 > 1.2 && s.y1 - s.y0 < 20).map((s) => [s.x0, s.z0, s.x1, s.z1]);
 
   // navigazione dei nemici
   const t0 = performance.now();
-  buildNav(b.shapes, map.bounds, { x: map.spawn.x, y: map.spawn.y + 0.05, z: map.spawn.z });
+  // la navigazione copre anche l'area dietro il cancello EXIT (col cancello chiuso il varco è tagliato)
+  const nb = map.bounds;
+  buildNav(b.shapes, { minX: nb.minX, minZ: nb.minZ, maxX: nb.maxX, maxZ: EXTRA.maxZ }, { x: map.spawn.x, y: map.spawn.y + 0.05, z: map.spawn.z }, GATE_Z);
   map.navMs = Math.round(performance.now() - t0);
   map.triangles = built.filter((m) => m !== aoMesh).reduce((s, m) => s + m.geometry.attributes.position.count / 3, 0);
   map.chunks = built.length;
@@ -142,7 +152,8 @@ export function inSafeZone(x, z) {
   return false;
 }
 
-/** Zona in un punto (per la minimappa e i messaggi). */
-export function zoneAt(x) {
-  return ZONES.find((z) => x >= z.x0 && x < z.x1) || null;
+/** Zona in un punto (per la minimappa e i messaggi). Con z (e y = piedi) riconosce anche tunnel, sala, cripta, cimitero. */
+export function zoneAt(x, z = 0, y = 0) {
+  if (z > GATE_Z) { const u = underZoneAt(x, y, z); if (u) return u; }
+  return ZONES.find((zn) => x >= zn.x0 && x < zn.x1) || null;
 }

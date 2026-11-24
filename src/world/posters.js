@@ -98,7 +98,7 @@ function hangPosters(faceSets) {
   let n = 0;
   for (let tries = 0; tries < 900 && placed.length < PER_ZONE * map.zones.length; tries++) {
     const a = L[rng.int(L.length)];
-    if (!nav.near[a]) continue;
+    if (!nav.near[a] || (nav.extra && nav.extra[a])) continue; // niente manifesti dietro il cancello EXIT
     const zone = zoneAt(nav.x[a]);
     if (!zone || (perZone.get(zone.id) || 0) >= PER_ZONE) continue;
     if (placed.some((p) => Math.hypot(p.x - nav.x[a], p.z - nav.z[a]) < MIN_GAP)) continue;
