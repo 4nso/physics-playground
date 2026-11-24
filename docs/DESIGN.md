@@ -538,6 +538,77 @@ più strutturata: un **luna park**. Restano gli elementi giocosi di oggi, ma si 
 - Misure headless 844×390: ~60 chiamate di disegno a fotogramma in piazza, ~85 dalla cima della
   ruota con la vista lunga, ~20-25 sopra il parcheggio e in stazione
 
+### Il cimitero dietro l'EXIT (fase 15)
+
+Una zona nuova che si sblocca a metà partita, con il percorso cancello → tunnel → sala delle candele
+→ cripta → cimitero.
+
+**Il cancello EXIT**
+- Sul muro esterno del luna park, lato bancarelle e arco d'ingresso, rivolto verso le bancarelle:
+  cancello di metallo a doppia anta, grande ma non enorme (~4 m di altezza), con sopra l'insegna
+  **EXIT** rossa al neon (bagliore, ronzio, leggero sfarfallio)
+- Chiuso con un lucchetto. Avvicinandosi: "Serve una chiave"
+
+**La chiave**
+- Quando muore il **boss del round 10**, lascia cadere una **chiave luminosa** (luce e suono)
+- Va **raccolta** da un giocatore e **portata al cancello** (nell'HUD di chi la porta si vede
+  l'icona 🗝️; se muore, la chiave cade dov'è). Al cancello il pulsante d'azione dice "Apri"
+- Il cancello si apre con un'animazione, e tutti vedono il messaggio "Il cancello EXIT è aperto".
+  Resta aperto fino alla fine della partita. In multiplayer chiave e cancello li decide l'host
+- La modalità sviluppatore ha "Dai la chiave" e "Apri il cancello EXIT"
+
+**Il tunnel**
+- Buio, lungo ~40-50 m, scende in pendenza; poche lampade che sfarfallano, gocce d'acqua,
+  eco dei passi. Abbastanza largo per combattere
+
+**La sala delle candele**
+- Grossa stanza circolare sotterranea, con **candele appese in cerchio sulle pareti** (luce calda
+  tremolante, finta con colori ed emissivi per non pesare)
+- Due porte:
+  - una **sigillata** (catene, simbolo inciso): per ora non si apre, servirà per una zona futura
+  - una **aperta**, con una **scalinata** che sale
+
+**La cripta**
+- Si sbuca da un monumento funebre con il cancelletto, dentro il cimitero (e da lì si può tornare indietro)
+
+**Il cimitero**
+- Zona nuova **fuori dalla mappa attuale**: la mappa si allarga, la minimappa la mostra
+  solo dopo che il cancello è aperto
+- Grande, con file di lapidi, **bare**, vialetti, siepi, alberi spogli, cappelle di famiglia,
+  fosse aperte, nebbia bassa: tanti punti dove girare e scappare
+- **Piazzetta centrale** con una fontana in stile funerario (pietra scura, angelo, acqua scura)
+- **Zombi dalle tombe**: nel cimitero una parte dei nemici nasce dalle tombe (la terra si smuove e
+  lo zombi esce con una piccola animazione); nascono lontano dal giocatore, mai davanti ai piedi
+- **I nemici diventano zombi** per chi si trova nel cimitero: pelle verdastra, vestiti strappati,
+  camminata più barcollante, e la faccia della foto con un filtro "zombi" (pallida e verdastra,
+  occhiaie scure). È solo grafica e la decide ogni giocatore per sé: in multiplayer chi è nel
+  cimitero li vede zombi, chi è al luna park li vede normali. Nessun messaggio di rete in più
+- I nemici sanno raggiungere il giocatore anche lì (percorso attraverso tunnel, sala e cripta)
+
+**Le bare con la raygun**
+- Nel cimitero ci sono diverse bare chiuse. **Solo 2** contengono una **raygun**; quali, cambia
+  da partita a partita (scelto con il seed, uguale per tutti in multiplayer)
+- Le bare si **rompono sparandoci**: hanno una "vita" e si rompono prima o dopo a seconda del danno
+  dell'arma (es. pochi colpi di fucile a pompa, molti di pistola; un'esplosione le apre subito).
+  Quando si rompono, il coperchio vola via (spinta fisica) e restano i pezzi
+- Le bare vuote si aprono e basta; quelle con l'arma mostrano la raygun che fluttua con una luce
+  verde: si prende con il pulsante d'azione ("Prendi raygun"), come un acquisto gratuito
+- Ogni raygun si può prendere una volta sola: così possono averla al massimo 2 giocatori
+- Le bare rotte non si ricompongono durante la partita
+
+**La notte che arriva prima** (cambia la curva di "Grafica")
+- Al **round 10** è già **crepuscolo avanzato**: cielo blu scuro, stelle, lampioni, neon e candele
+  accesi. È un effetto estetico: si deve continuare a vedere bene
+- Dal 10 al 25 scurisce gradualmente fino alla notte piena
+- *In forse, da non fare ora*: torcia sulle armi negli ultimi 5 round, con notte più scura
+
+### Mappa grande
+- Toccando o cliccando la **minimappa** si apre la **mappa grande** a tutto schermo: tutta la mappa
+  vista dall'alto, ferma (il nord in alto), con la posizione e la direzione dei giocatori e i nomi
+  delle zone. Toccandola di nuovo si chiude. Sul controller il tasto Visualizza (⧉) la apre e chiude
+- Serve solo a guardare: niente pulsanti, niente segnalini, il gioco non si ferma
+- Mostra solo le zone già scoperte (il cimitero dopo l'apertura del cancello). Non mostra il muro segreto
+
 ## Grafica (fase 10)
 
 Restiamo **low-poly**, ma più curato e d'atmosfera, senza perdere i 30 fps su iPhone.

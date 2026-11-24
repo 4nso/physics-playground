@@ -461,6 +461,33 @@ memoria. Multiplayer: in Giocatore e Armi compare "Applica a" con i giocatori de
 giocatore scelto: l'host decide e manda il comando al suo dispositivo. Verificato in headless (anche host
 + client con server PeerJS locale): nessun errore in console.
 
+## Fase 15 – Il cimitero dietro l'EXIT e la mappa grande
+Dettagli in `docs/DESIGN.md`, sezioni "Il cimitero dietro l'EXIT (fase 15)" e "Mappa grande".
+Un passo alla volta, pubblicando e fermandosi per la prova.
+
+Passo 1 – Cancello, chiave e notte anticipata:
+- [ ] Cancello EXIT con insegna rossa al neon sul muro del luna park (lato bancarelle)
+- [ ] Il boss del round 10 lascia cadere la chiave; si raccoglie e si porta al cancello ("Apri")
+- [ ] Multiplayer: chiave e cancello decisi dall'host; comandi nella modalità sviluppatore
+- [ ] Nuova curva giorno/notte: crepuscolo avanzato al round 10, notte piena al 25, si vede sempre bene
+- [ ] Mappa grande: tocca/clicca la minimappa (o ⧉ sul controller) per aprirla e chiuderla
+
+Passo 2 – Tunnel, sala delle candele e cripta:
+- [ ] Tunnel buio in discesa (~40-50 m) con lampade che sfarfallano
+- [ ] Sala circolare con candele in cerchio, porta sigillata (futura) e porta con scalinata
+- [ ] Uscita da una cripta con cancelletto dentro il cimitero
+- [ ] Navigazione dei nemici attraverso tunnel, sala e cripta
+
+Passo 3 – Il cimitero:
+- [ ] Cimitero grande: lapidi, bare, vialetti, siepi, alberi spogli, cappelle, nebbia
+- [ ] Piazzetta con fontana funeraria
+- [ ] Zombi che escono dalle tombe
+- [ ] Nemici in versione zombi (anche le facce) per chi è nel cimitero, solo grafica e locale
+- [ ] Bare che si rompono sparando (vita in base al danno); 2 bare scelte col seed con la raygun
+- [ ] Prestazioni: 30+ fps su iPhone anche nel cimitero (instancing di lapidi e bare)
+
+Idea in forse (non fare ora): torcia sulle armi negli ultimi 5 round con notte più scura.
+
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano
 d'ingresso in salita dalla strada, piano terra a livello strada, poi secondo, terzo e quarto piano.
