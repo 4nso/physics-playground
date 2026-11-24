@@ -22,6 +22,7 @@ import { drawPoster } from '../faces/poster.js';
 import { placePosters } from '../world/posters.js';
 import { resetRides } from './rides.js';
 import { dev, devLog } from '../core/devmode.js';
+import { resetExit, exitHooks, bossDied } from './exitgate.js';
 
 const $ = (id) => document.getElementById(id);
 const BREAK_TIME = 12;
@@ -111,6 +112,13 @@ export function announce(text, seconds = 2.4) {
   if (net.mode === 'host' && gameNet.toAll) gameNet.toAll({ t: 'msg', text, s: seconds });
 }
 
+// cancello EXIT e chiave (game/exitgate.js): decide chi comanda, i messaggi arrivano anche ai client
+exitHooks.team = () => team;
+exitHooks.myId = () => net.myId;
+exitHooks.announce = announce;
+exitHooks.tell = (id, text, s) => { if (gameNet.sendTo) gameNet.sendTo(id, { t: 'msg', text, s }); };
+exitHooks.authority = () => net.mode !== 'client';
+
 /* ---------- Record (salvato nel browser) ---------- */
 function loadRecord() {
   try { return JSON.parse(localStorage.getItem(RECORD_KEY)) || { score: 0, round: 0 }; } catch (e) { return { score: 0, round: 0 }; }
@@ -171,6 +179,7 @@ function endRound() {
 /* ---------- Avvisi da nemici, armi e oggetti ---------- */
 enemyHooks.onKill = (e, head) => {
   game.kills++;
+  if (e.variant === 'boss') bossDied(e, game.round); // round 10: cade la chiave del cancello EXIT
   const pts = Math.round(e.v.points * (head ? 1.5 : 1));
   game.score += pts;
   // i punti da spendere vanno a chi l'ha colpito per ultimo ('local' o nessuno = questo dispositivo)
@@ -373,6 +382,7 @@ export function startGame(faceSets, members, seed) {
   resetShop();
   setupSafeZones();
   resetRides();
+  resetExit();
   Object.assign(game, { state: 'playing', phase: 'break', overlay: false, round: 0, score: 0, kills: 0, timer: 3, killedBy: '', devUsed: false });
   game.friendKills.clear();
   game.killedByCount.clear();

@@ -16,6 +16,12 @@ export const ZONES = [
   { id: 'backrooms', name: 'Backrooms', x0: 33, x1: 63, color: '#d9c35a' },
 ];
 export const OUTER_H = 11;               // muro di confine: abbastanza alto da non scavalcarlo
+/**
+ * Cancello EXIT (fase 15): nel muro sud del luna park, in fondo al viale, rivolto verso le bancarelle.
+ * x = centro, z = muro, w = luce del varco, h = altezza delle ante. Le ante, il lucchetto e l'insegna
+ * al neon si muovono e stanno in game/exitgate.js; qui c'è solo la parte ferma (pilastri, architrave, nicchia).
+ */
+export const GATE = { x: 10, z: Z1, w: 4, h: 4 };
 
 const BRICK = 0xb4664a, CONC = 0x9a9da2, PAPER = 0xdcc65c, FACADE = 0xc8b98e;
 const cone = new THREE.ConeGeometry(1, 1, 7);
@@ -223,6 +229,37 @@ function backrooms(b, rng, ctx, doors) {
   ctx.secretZ = Z0 + (3 + rng.int(NZ - 6)) * S + S / 2;
 }
 
+/* ============================ CANCELLO EXIT ============================ */
+/**
+ * Parte ferma del cancello EXIT: pilastri di pietra, architrave, pannello scuro dell'insegna e,
+ * dietro, una nicchia buia (per ora sbarrata da assi: il tunnel arriva nel passo 2 della fase 15).
+ * Le ante (con il collider), il lucchetto e l'insegna accesa sono in game/exitgate.js.
+ */
+function exitGateFrame(b) {
+  const { x, z, w, h } = GATE, X0 = x - w / 2, X1 = x + w / 2, P = 0.6, D = 0.45;
+  const STONE = 0x6f6a63, DARK = 0x2a2724, CAP = 0x8a847a;
+  // pilastri e architrave (riempiono il buco del muro intorno al varco)
+  for (const [a, c] of [[X0 - P, X0], [X1, X1 + P]]) {
+    b.box(a, 0, z - D, c, h + 0.6, z + D, STONE, { skip: SKIP.BOTTOM });
+    b.box(a - 0.08, h + 0.6, z - D - 0.08, c + 0.08, h + 0.85, z + D + 0.08, CAP);
+    b.box(a - 0.06, 0, z - D - 0.06, c + 0.06, 0.4, z + D + 0.06, CAP, { collide: false, skip: SKIP.BOTTOM });
+  }
+  b.box(X0, h, z - D, X1, h + 0.6, z + D, STONE);
+  // pannello scuro su cui sta l'insegna EXIT (lato luna park, sopra l'architrave)
+  b.box(x - 1.45, h + 0.95, z - 0.27, x + 1.45, h + 2.05, z - 0.15, 0x1b1b1f, { collide: false });
+  // soglia di pietra
+  b.box(X0, 0, z - D, X1, 0.035, z + D, CAP, { collide: false, skip: SKIP.BOTTOM, ao: false });
+  // nicchia dietro il cancello: pavimento, pareti, soffitto, fondo buio con le assi inchiodate
+  const ZB = z + 4.6, NAV = { nav: false };
+  b.box(X0 - P, -0.3, z + D, X1 + P, 0, ZB + 0.3, 0x3b3631, { ...NAV, skip: SKIP.BOTTOM });
+  for (const [a, c] of [[X0 - P, X0 - 0.3], [X1 + 0.3, X1 + P]]) b.box(a, 0, z + D, c, h + 0.9, ZB + 0.3, DARK, { ...NAV, skip: SKIP.BOTTOM });
+  b.box(X0 - P, h + 0.6, z + D, X1 + P, h + 0.9, ZB + 0.3, DARK, NAV);
+  b.box(X0 - 0.3, 0, ZB, X1 + 0.3, h + 0.6, ZB + 0.3, 0x0d0c0b, { ...NAV, skip: SKIP.BOTTOM });
+  for (const [y, tilt] of [[0.9, 0.25], [1.8, -0.2], [2.7, 0.3]]) {
+    b.box(X0 - 0.2, y - 0.12 + tilt * 0.1, ZB - 0.08, X1 + 0.2, y + 0.12 + tilt * 0.1, ZB, 0x5a4026, { ...NAV, collide: false });
+  }
+}
+
 /** Costruisce tutta la mappa. ctx = { props, wreck, spawn }. */
 export function buildZones(b, rng, ctx) {
   parking(b, rng, ctx);
@@ -245,8 +282,10 @@ export function buildZones(b, rng, ctx) {
   const OUT = 0x6d6a66, inside = { parcheggio: CONC, parco: BRICK, backrooms: PAPER };
   for (const zn of ZONES) {
     wallLine(b, 'z', Z0, zn.x0, zn.x1, OUTER_H, [], OUT, inside[zn.id]);
-    wallLine(b, 'z', Z1, zn.x0, zn.x1, OUTER_H, [], inside[zn.id], OUT);
+    const gate = zn === PARK ? [[GATE.x, GATE.w + 1.2, GATE.h + 0.6]] : [];
+    wallLine(b, 'z', Z1, zn.x0, zn.x1, OUTER_H, gate, inside[zn.id], OUT);
   }
+  exitGateFrame(b);
   wallLine(b, 'x', -45, Z0, Z1, OUTER_H, [], OUT, CONC);
   // muro est delle backrooms: c'è il buco del passaggio segreto (coperto dal pannello finto)
   const SD = [1.8, 2.6];

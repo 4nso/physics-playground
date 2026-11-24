@@ -8,7 +8,7 @@ import { initAudio } from './core/audio.js';
 import { buildWorld, map } from './world/map.js';
 import { nav } from './world/nav.js';
 import { randomSeed } from './world/rng.js';
-import { minimap } from './ui/minimap.js';
+import { minimap, bigmap } from './ui/minimap.js';
 import { enemies } from './enemies/enemies.js';
 import { forEachProxy } from './net/proxies.js';
 import { syncObjects, updateRope } from './world/objects.js';
@@ -18,6 +18,7 @@ import { weaponScene } from './weapons/viewmodel.js';
 import { initWeapons, updateWeapons, setTrigger, tapFire, reload, selectWeapon, nextWeapon, toggleZoom, isZoomed, aimButton, aimReleaseAll } from './weapons/weapons.js';
 import { updateShop, toggleShopping, closeShopping, isShopping, padShopInteract, padShopping, padShopMove, padShopBuy, shopAction, touchShopAction } from './game/shop.js';
 import { updateSafeZones } from './game/safezone.js';
+import { updateExit, exitAction, exitActionButton } from './game/exitgate.js';
 import { updateRides, rideAction, rideNearKind, rideActionButton } from './game/rides.js';
 import { updateEnemies } from './enemies/enemies.js';
 import { initGallery, openGallery } from './faces/gallery.js';
@@ -63,7 +64,8 @@ const actions = {
   act() {
     const a = curAction;
     if (!a || game.state !== 'playing' || !player.alive) return;
-    if (a.kind === 'ride') actions.ride(a.id === 'start' || a.id === 'stop' ? 'toggle' : 'seat');
+    if (a.id === 'exitOpen') exitAction();
+    else if (a.kind === 'ride') actions.ride(a.id === 'start' || a.id === 'stop' ? 'toggle' : 'seat');
     else if (a.kind === 'shop') touchShopAction();
     else if (a.id === 'throw') throwHeld();
     else actions.grab();
@@ -73,9 +75,15 @@ const actions = {
   aimRelease: aimReleaseAll,
   zoom() { if (player.alive) toggleZoom(); },
   shop: toggleShopping,
-  ride(what) { if (game.state === 'playing') rideAction(what); },
+  // F: giostra (sali/scendi), oppure il cancello EXIT se ci sei davanti
+  ride(what) {
+    if (game.state !== 'playing') return;
+    if (what === 'seat' && !rideNearKind() && exitAction()) return;
+    rideAction(what);
+  },
   jump,
-  pause() { if (closeShopping()) { requestLock(); return; } pauseGame(); },
+  pause() { if (closeShopping()) { requestLock(); return; } bigmap.close(); pauseGame(); },
+  map() { if (game.state === 'playing' && !game.overlay) bigmap.toggle(); },
   // il mouse liberato per comprare non mette in pausa
   lockLost() { if (game.state === 'playing' && game.phase !== 'dead' && !isShopping() && !dev.panelOpen) pauseGame(); },
 };
@@ -91,6 +99,8 @@ function touchAction(canGrab) {
   if (k === 'seat') return rideActionButton();
   if (isHolding()) return ACT_THROW;
   if (k) return rideActionButton();
+  const ex = exitActionButton();
+  if (ex) return ex;
   const s = shopAction();
   if (s) return s;
   return canGrab && net.mode !== 'client' ? ACT_GRAB : null;
@@ -103,6 +113,7 @@ const padHooks = {
   interact() {
     const k = rideNearKind();
     if (k) { actions.ride(k === 'ctrl' ? 'toggle' : 'seat'); return; }
+    if (exitAction()) return;
     if (padShopInteract()) return;
     actions.grab();
   },
@@ -112,12 +123,8 @@ const padHooks = {
   rideSpeed() { if (rideNearKind() === 'ctrl') actions.ride('speed'); },
   zoomed: isZoomed,
   eachEnemy: (fn) => eachEnemy(fn),
-  // ⧉: statistiche della partita
-  stats() {
-    let top = null;
-    for (const [n, k] of game.friendKills) if (!top || k > top[1]) top = [n, k];
-    hud.flash(`Round ${Math.max(1, game.round)} · ★ ${myMoney()} punti<br><small>${game.kills} nemici eliminati${top ? ` · il più eliminato: <b>${esc(top[0])}</b> ×${top[1]}` : ''} · mappa n. ${map.seed}</small>`, 3);
-  },
+  // ⧉: mappa grande (sotto ci sono le statistiche della partita)
+  stats() { if (game.state === 'playing') bigmap.toggle(); },
 };
 
 function loop(now) {
@@ -167,6 +174,7 @@ function loop(now) {
   mark('armi');
   updateShop(dt, playing && !game.overlay, myMoney());
   updateSafeZones(gdt, playing);
+  updateExit(gdt, authority, playing && game.phase !== 'dead');
   netUpdate(dt);
   mark('negozio/rete');
   if (game.state !== 'menu') updateMinimap(dt);
@@ -216,8 +224,20 @@ const eachEnemy = (fn) => {
 function updateMinimap(dt) {
   mates.length = 0;
   for (const m of team.values()) if (!m.local) mates.push(m);
-  minimap.update(dt, { x: player.pos.x, y: player.pos.y - 0.85, z: player.pos.z, yaw: player.yaw }, mates, eachEnemy);
+  const me = { x: player.pos.x, y: player.pos.y - 0.85, z: player.pos.z, yaw: player.yaw };
+  minimap.update(dt, me, mates, eachEnemy);
+  if (game.state !== 'playing' || game.overlay) bigmap.close();
+  else if (bigmap.open) bigmap.update(dt, me, mates, bigmapNote());
 }
+/** Riga sotto la mappa grande: statistiche della partita e come chiuderla. */
+function bigmapNote() {
+  let top = null;
+  for (const [n, k] of game.friendKills) if (!top || k > top[1]) top = [n, k];
+  const how = isTouch && !padOn ? 'tocca la mappa per chiuderla' : padOn ? '⧉ per chiuderla' : 'M per chiuderla';
+  return `Round ${Math.max(1, game.round)} · ★ ${myMoney()} punti · ${game.kills} nemici eliminati${top ? ` · il più eliminato: <b>${esc(top[0])}</b> ×${top[1]}` : ''}`
+    + `<br><small>Mappa n. ${map.seed} · ${how}</small>`;
+}
+let padOn = false;
 
 async function start() {
   hud.init();
@@ -239,7 +259,14 @@ async function start() {
   initWeapons();
   setupInput(actions);
   setupGamepad(actions, padHooks);
-  onPadMode((on) => hud.setPadMode(on));
+  onPadMode((on) => { padOn = on; hud.setPadMode(on); });
+  // mappa grande: si apre toccando (o cliccando) la minimappa, si chiude toccandola
+  for (const id of ['minimap', 'bigmapCv']) {
+    $(id).addEventListener('pointerdown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (game.state === 'playing' && !game.overlay) bigmap.toggle();
+    });
+  }
   requestAnimationFrame(loop);
 
   const play = () => { initAudio(); requestLock(); last = performance.now(); startMatch(); };

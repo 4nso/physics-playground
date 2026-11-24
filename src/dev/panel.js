@@ -28,6 +28,8 @@ import { enemies, spawnEnemy, removeAllEnemies } from '../enemies/enemies.js';
 import { roundConfig, MAX_ROUNDS } from '../game/difficulty.js';
 import { game, team, localMember, devGoToRound, announce } from '../game/game.js';
 import { resetHealLimit } from '../game/shop.js';
+import { exit, devGiveKey, devOpenGate, dropKey } from '../game/exitgate.js';
+import { GATE } from '../world/zones.js';
 import { WEAPONS } from '../weapons/defs.js';
 import { giveWeapon, setWeaponLevel, currentWeaponIndex, weaponLevel, refillOwned } from '../weapons/weapons.js';
 import { startMatch } from '../net/sync.js';
@@ -273,7 +275,7 @@ function tabGame() {
       + '<i class="dvBr"></i>' + [1, 3, 5, 10, 20].map((n) => btn('spawnN', n, `×${n}`, ui.spawnN === n)).join('')
       + '<i class="dvBr"></i>' + btn('spawn', 'front', '➕ Davanti a me', false, 'primary') + btn('spawn', 'look', '🎯 Dove guardo', false, 'primary')),
     row('Velocità del tempo', TIMES.map((t) => btn('time', t, `×${String(t).replace('.', ',')}`, dev.timeScale === t)).join('')),
-    row(`Ora del giorno ${day === null ? '(segue i round)' : day < 0.25 ? '(giorno)' : day < 0.6 ? '(tramonto)' : '(notte)'}`,
+    row(`Ora del giorno ${day === null ? '(segue i round)' : day < 0.25 ? '(giorno)' : day < 0.45 ? '(pomeriggio)' : day < 0.7 ? '(tramonto)' : day < 0.9 ? '(crepuscolo)' : '(notte)'}`,
       `<input id="dvDay" type="range" min="0" max="1" step="0.05" value="${day === null ? 0 : day}">` + btn('dayAuto', undefined, 'Automatica', day === null)),
     row(`Mappa (ora n. ${map.seed})`, btn('newMap', 'random', '🎲 Nuova mappa casuale') + btn('newMap', 'ask', '🔢 Scegli il seed…') + btn('newMap', 'same', '↺ Stessa mappa'), 'Ricomincia la partita (in multiplayer per tutti)'),
     row('Scorciatoie nell\'indirizzo', '', '<code>?dev</code> modalità sviluppatore · <code>?dev&amp;round=10</code> parti dal round 10 · <code>?seed=123</code> mappa · <code>?ora=0.8</code> ora del giorno · <code>?prof</code> tempi per parte · <code>?peer=host:porta</code> server di prova'),
@@ -336,7 +338,14 @@ function tabWorld() {
     btn('ride', `${i}:start`, '▶️ Avvia') + btn('ride', `${i}:stop`, '⏹️ Ferma')
     + [1, 2, 3].map((l) => btn('ride', `${i}:level:${l}`, `⚡${l}`, r.level === l)).join('')
     + (r.def.kind === 'coaster' ? btn('ride', `${i}:pause`, '⏸ Salta alla sosta') : ''))).join('');
+  const m = target();
+  const keyState = exit.open ? 'aperto' : exit.key === 'carried' ? `chiave a ${exit.holder === (localMember() || {}).id ? 'te' : esc(playerName(exit.holder, (team.get(exit.holder) || {}).slot || 0))}`
+    : exit.key === 'ground' ? 'chiave a terra' : 'chiuso, chiave non ancora caduta';
   return [
+    targetRow(),
+    row(`🚪 Cancello EXIT (${keyState})`, btn('exitKey', undefined, `🗝️ Dai la chiave a ${who(m)}`) + btn('exitDrop', undefined, '🗝️ Fai cadere la chiave qui')
+      + btn('exitOpen', undefined, '🔓 Apri il cancello EXIT', exit.open) + btn('tp', 'exit', '📍 Vai al cancello'),
+      'La chiave cade dal boss del round 10. Il cancello resta aperto fino alla fine della partita.'),
     row('Mostra sulla mappa', t('secret', '🟩 Muro segreto') + t('spawns', '🟥 Punti di comparsa') + t('paths', '🟨 Percorsi dei nemici') + t('colliders', '📦 Collisioni'),
       'Si vedono anche attraverso i muri. Comparsa: dove sono nati gli ultimi 30 nemici. Collisioni: entro 22 m da te.'),
     rideRows || row('Giostre', '', 'Nessuna giostra in questa mappa'),
@@ -432,6 +441,9 @@ function run(a, v) {
     case 'healReset': resetHealLimit(m); hud.flash('💊 La cura si può riusare', 1.2); break;
     /* Mondo e giostre */
     case 'ov': overlay[v] = !overlay[v]; break;
+    case 'exitKey': if (needGame() && m) devGiveKey(m.id); break;
+    case 'exitDrop': if (needGame()) dropKey(player.pos.x + Math.sin(player.yaw) * -1.5, player.pos.y - 0.85, player.pos.z + Math.cos(player.yaw) * -1.5, 'dev'); break;
+    case 'exitOpen': if (needGame()) devOpenGate(); break;
     case 'ride': {
       const [ri, act, lvl] = String(v).split(':');
       const msg = devRide(+ri, act, +lvl);
@@ -539,7 +551,7 @@ function spawnHere(look) {
 /* ---------- Teletrasporto ---------- */
 const DESTS = [
   ['shop', '🛒 Negozio'], ['stall', '📦 Bancarella'], ['safe', '🛡️ Zona sicura'], ['box', '🎁 Cassa'], ['pap', '🔮 Potenziatore'],
-  ['wheel', '🎡 Ruota'], ['coaster', '🎢 Montagne russe'], ['backrooms', '🟨 Backrooms'], ['parking', '🅿️ Parcheggio'], ['spawn', '🚩 Partenza'],
+  ['exit', '🚪 Cancello EXIT'], ['wheel', '🎡 Ruota'], ['coaster', '🎢 Montagne russe'], ['backrooms', '🟨 Backrooms'], ['parking', '🅿️ Parcheggio'], ['spawn', '🚩 Partenza'],
 ];
 /** Il punto calpestabile più vicino a (x, z), all'altezza più simile a yHint. */
 function groundAt(x, z, yHint = 0) {
@@ -567,6 +579,7 @@ function teleport(id, m) {
   else if (id === 'backrooms') p = zoneCenter('backrooms');
   else if (id === 'parking') p = zoneCenter('parcheggio');
   else if (id === 'spawn') { p = map.spawn; yaw = map.spawn.yaw || 0; }
+  else if (id === 'exit') { p = groundAt(GATE.x, GATE.z - 4.5); yaw = Math.PI; }
   if (!p) { hud.flash('🛠 Non c\'è in questa mappa', 1.4); return; }
   if (isRemote(m)) toClient(m, { c: 'tp', x: p.x, y: p.y, z: p.z, yaw });
   else teleportPlayer(p.x, p.y, p.z, yaw);

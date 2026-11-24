@@ -20,9 +20,11 @@
   <div class="pill" id="pEnemies">👾 0</div>
   <div class="pill" id="pScore">★ 0</div>
   <div class="pill hidden" id="pBreak"></div>
+  <div class="pill hidden" id="pKey" title="Hai la chiave del cancello EXIT">🗝️</div>
   <div class="pill hidden" id="pDev" title="L'host sta usando la modalità sviluppatore">🛠 DEV</div>
 </div>
-<canvas id="minimap" aria-hidden="true"></canvas>
+<canvas id="minimap" title="Mappa grande (M)" aria-label="Apri la mappa grande"></canvas>
+<div id="bigmap" class="hidden"><canvas id="bigmapCv"></canvas><p id="bigmapNote"></p></div>
 <div id="health"><span>❤</span><div id="hBar"><i></i></div><b id="hNum">100</b></div>
 <div id="hurt"></div>
 <div id="revive" class="hidden"><span id="rText"></span><div id="rBar"><i></i></div></div>
@@ -51,7 +53,7 @@
   <button id="bZoom" style="display:none"><span>🔭</span>Mirino</button>
 </div>
 <div id="top"><button id="bPause" title="Pausa" aria-label="Pausa">⏸</button></div>
-<div id="keys">WASD muovi · Mouse mira · Clic spara · 1/2/3 o rotella arma · R ricarica · E afferra · Q mirino · B negozio · F sali/scendi · Spazio salta · Esc pausa</div>
+<div id="keys">WASD muovi · Mouse mira · Clic spara · 1/2/3 o rotella arma · R ricarica · E afferra · Q mirino · B negozio · F sali/scendi/apri · M mappa · Spazio salta · Esc pausa</div>
 
 <!-- Menu principale -->
 <div id="start" class="screen"><div class="card">

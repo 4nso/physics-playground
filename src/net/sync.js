@@ -15,6 +15,7 @@ import { rideNet, serverRide, rideSnapshot, applyRideSnapshot } from '../game/ri
 import { loadFaceMaterials, faceBuffers, facesFromBuffers, appendFaces, playerFaceSet } from '../faces/gallery.js';
 import { initMyFace, showMyFace, myFacePayload } from '../faces/myface.js';
 import { pickupSnapshot, applyPickupSnapshot } from '../game/pickups.js';
+import { exitNet, serverOpen, exitSnapshot, applyExitSnapshot } from '../game/exitgate.js';
 import { game, team, gameNet, startGame, gameOver, toMenu, applyPick, syncLocalMember, removeMember, announce, noteFriendKill, noteKilledBy } from '../game/game.js';
 import { net, on, createRoom, joinRoom, broadcast, sendTo, sendHost, leaveRoom, setAccepting } from './net.js';
 import { setAvatar, removeAvatar, clearAvatars, updateAvatars, slotName, SLOT_COLORS, setPlayerFace, clearPlayerFaces, playerName } from './avatars.js';
@@ -371,6 +372,14 @@ on('ride', (msg, id) => {
   if (text) sendTo(id, { t: 'msg', text, s: 1.8 });
 });
 
+/* ---------- Cancello EXIT: chiede il client, decide l'host ---------- */
+exitNet.toHost = (msg) => sendHost(msg);
+on('exit', (msg, id) => {
+  if (net.mode !== 'host' || game.state !== 'playing' || msg.a !== 'open') return;
+  const why = serverOpen(id);
+  if (why) sendTo(id, { t: 'msg', text: why, s: 1.6 });
+});
+
 /* ---------- Host: nemici uccisi ---------- */
 const origKill = enemyHooks.onKill;
 enemyHooks.onKill = (e, head, dir, force) => {
@@ -422,7 +431,7 @@ on('s', (msg) => {
     m.health = hp; m.down = !!down; m.reviveT = revive / 100;
     m.money = money || 0; m.maxHealth = maxHp || 100;
     if (!m.local) {
-      m.x = x / 100; m.y = y / 100; m.z = z / 100;
+      m.x = x / 100; m.y = y / 100; m.z = z / 100; m.yaw = yaw / 100;
       setAvatar(id, { slot, x: m.x, y: m.y, z: m.z, yaw: yaw / 100, pitch: pitch / 100, speed: speed / 10, down: m.down, weapon: w });
     }
   }
@@ -431,6 +440,7 @@ on('s', (msg) => {
   for (const o of msg.ob) applyObjectState(o[0], o[1] / 100, o[2] / 100, o[3] / 100, o[4] / 1000, o[5] / 1000, o[6] / 1000, o[7] / 1000);
   applyPickupSnapshot(msg.pk);
   applyRideSnapshot(msg.rd);
+  applyExitSnapshot(msg.ex);
 });
 
 /* ---------- Ogni frame ---------- */
@@ -471,7 +481,7 @@ function snapshot() {
   return {
     t: 's',
     g: [game.round, Math.max(0, PHASES.indexOf(game.phase)), Math.round(game.timer * 10), game.score, enemies.length + game.toSpawn, game.kills, game.devUsed ? 1 : 0],
-    pl, en, ob, pk: pickupSnapshot(), rd: rideSnapshot(),
+    pl, en, ob, pk: pickupSnapshot(), rd: rideSnapshot(), ex: exitSnapshot(),
   };
 }
 

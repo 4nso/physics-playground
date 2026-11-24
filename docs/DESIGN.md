@@ -547,6 +547,8 @@ Una zona nuova che si sblocca a metà partita, con il percorso cancello → tunn
 - Sul muro esterno del luna park, lato bancarelle e arco d'ingresso, rivolto verso le bancarelle:
   cancello di metallo a doppia anta, grande ma non enorme (~4 m di altezza), con sopra l'insegna
   **EXIT** rossa al neon (bagliore, ronzio, leggero sfarfallio)
+- In fondo al viale, dopo l'arco d'ingresso (x = 10, muro sud). Dietro, finché non c'è il tunnel (passo 2),
+  una nicchia buia sbarrata da assi
 - Chiuso con un lucchetto. Avvicinandosi: "Serve una chiave"
 
 **La chiave**
@@ -606,6 +608,7 @@ Una zona nuova che si sblocca a metà partita, con il percorso cancello → tunn
 - Toccando o cliccando la **minimappa** si apre la **mappa grande** a tutto schermo: tutta la mappa
   vista dall'alto, ferma (il nord in alto), con la posizione e la direzione dei giocatori e i nomi
   delle zone. Toccandola di nuovo si chiude. Sul controller il tasto Visualizza (⧉) la apre e chiude
+  (le statistiche della partita che prima mostrava ⧉ sono scritte sotto la mappa); sulla tastiera M
 - Serve solo a guardare: niente pulsanti, niente segnalini, il gioco non si ferma
 - Mostra solo le zone già scoperte (il cimitero dopo l'apertura del cancello). Non mostra il muro segreto
 
@@ -618,7 +621,7 @@ Restiamo **low-poly**, ma più curato e d'atmosfera, senza perdere i 30 fps su i
   occlusion dipinta nei vertici), ombre in tempo reale solo vicino al giocatore e solo in qualità Alta
 - **Effetti di schermo**: bagliore (bloom) su neon, insegne, esplosioni e luci del luna park;
   correzione colore e leggera vignettatura; antialiasing
-- **Atmosfera che cambia con i round**: si parte di giorno e si arriva al round 25 di notte,
+- **Atmosfera che cambia con i round** (curva cambiata nella fase 15: crepuscolo avanzato già al round 10): si parte di giorno e si arriva al round 25 di notte,
   con il luna park tutto illuminato
 - **Dettagli vivi**: acqua animata in piscina, polvere nell'aria delle backrooms, fumo e
   detriti nelle esplosioni, fori dei proiettili e bruciature sui muri (che spariscono dopo un po')

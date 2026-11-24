@@ -48,11 +48,11 @@ function layoutButtons(scale = btnScale) {
   document.documentElement.style.setProperty('--bs', scale);
 }
 
-const HOWTO_TOUCH = "<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Spara</b>: tienilo premuto e trascina il dito per mirare</li><li>Tocca le <b>icone delle armi</b> in alto a destra per cambiarla · <b>⟳</b> ricarica</li><li>Spingi il joystick <b>oltre il bordo</b> per correre</li><li>Mira alla <b>testa</b>: danno doppio!</li><li>Il <b>pulsante d'azione</b> sopra Spara compare solo quando serve: <b>🛒 Compra</b> al negozio, <b>Sali/Scendi</b> sulle giostre, <b>✋ Afferra</b> e <b>Lancia</b> le casse</li><li>Cecchino: <b>🔭 Mirino</b> per lo zoom</li>";
-const HOWTO_DESK = "<li><b>WASD</b> muovi · <b>Mouse</b> mira · <b>Shift</b> corri · <b>Spazio</b> salta</li><li><b>Clic</b> spara · <b>1/2/3</b> o <b>rotella</b> cambia arma · <b>R</b> ricarica</li><li><b>E</b>: afferra una cassa, poi <b>clic</b> per lanciarla sui nemici</li><li>Mira alla <b>testa</b>: danno doppio! · <b>Esc</b> pausa</li><li>Con i punti compra armi e potenziamenti al <b>🛒 negozio</b> davanti alla partenza: avvicinati al banco e premi <b>B</b></li><li><b>Tasto destro</b>: mira con le tacche (più preciso, ma cammini più piano) · cecchino: tasto destro o <b>Q</b> per il mirino</li>";
-const HOWTO_PAD = "<li><b>Levetta sinistra</b> muovi (premila per correre) · <b>levetta destra</b> guarda</li><li><b>RT</b> spara · <b>LT</b> mirino · <b>A</b> salta · <b>X</b> ricarica</li><li><b>Y</b>, <b>LB</b>/<b>RB</b> o la <b>croce</b> cambiano arma</li><li><b>B</b>: compra al 🛒 negozio, afferra una cassa (poi <b>RT</b> per lanciarla), sali sulle giostre</li><li>Mira alla <b>testa</b>: danno doppio! · <b>≡</b> pausa · <b>⧉</b> statistiche</li>";
-const KEYS_DESK = 'WASD muovi · Mouse guarda · Clic spara · Tasto destro mira · 1/2/3 o rotella arma · R ricarica · E afferra · Q mirino · B negozio · F sali/scendi · Spazio salta · Esc pausa';
-const KEYS_PAD = 'RT spara · LT mirino · A salta · X ricarica · Y arma · B interagisci · L3 corri · ≡ pausa';
+const HOWTO_TOUCH = "<li><b>Pollice sinistro</b>: muoviti · <b>trascina a destra</b>: guarda</li><li><b>Spara</b>: tienilo premuto e trascina il dito per mirare</li><li>Tocca le <b>icone delle armi</b> in alto a destra per cambiarla · <b>⟳</b> ricarica</li><li>Spingi il joystick <b>oltre il bordo</b> per correre</li><li>Mira alla <b>testa</b>: danno doppio!</li><li>Il <b>pulsante d'azione</b> sopra Spara compare solo quando serve: <b>🛒 Compra</b> al negozio, <b>Sali/Scendi</b> sulle giostre, <b>✋ Afferra</b> e <b>Lancia</b> le casse</li><li>Cecchino: <b>🔭 Mirino</b> per lo zoom</li><li>Tocca la <b>minimappa</b> per vedere la mappa grande</li>";
+const HOWTO_DESK = "<li><b>WASD</b> muovi · <b>Mouse</b> mira · <b>Shift</b> corri · <b>Spazio</b> salta</li><li><b>Clic</b> spara · <b>1/2/3</b> o <b>rotella</b> cambia arma · <b>R</b> ricarica</li><li><b>E</b>: afferra una cassa, poi <b>clic</b> per lanciarla sui nemici</li><li>Mira alla <b>testa</b>: danno doppio! · <b>Esc</b> pausa</li><li>Con i punti compra armi e potenziamenti al <b>🛒 negozio</b> davanti alla partenza: avvicinati al banco e premi <b>B</b></li><li><b>Tasto destro</b>: mira con le tacche (più preciso, ma cammini più piano) · cecchino: tasto destro o <b>Q</b> per il mirino</li><li><b>M</b> (o clic sulla minimappa): mappa grande · <b>F</b>: sali sulle giostre, apri il cancello</li>";
+const HOWTO_PAD = "<li><b>Levetta sinistra</b> muovi (premila per correre) · <b>levetta destra</b> guarda</li><li><b>RT</b> spara · <b>LT</b> mirino · <b>A</b> salta · <b>X</b> ricarica</li><li><b>Y</b>, <b>LB</b>/<b>RB</b> o la <b>croce</b> cambiano arma</li><li><b>B</b>: compra al 🛒 negozio, afferra una cassa (poi <b>RT</b> per lanciarla), sali sulle giostre</li><li>Mira alla <b>testa</b>: danno doppio! · <b>≡</b> pausa · <b>⧉</b> mappa grande</li>";
+const KEYS_DESK = 'WASD muovi · Mouse guarda · Clic spara · Tasto destro mira · 1/2/3 o rotella arma · R ricarica · E afferra · Q mirino · B negozio · F sali/scendi/apri · M mappa · Spazio salta · Esc pausa';
+const KEYS_PAD = 'RT spara · LT mirino · A salta · X ricarica · Y arma · B interagisci · L3 corri · ⧉ mappa · ≡ pausa';
 
 export const hud = {
   /** Controller in uso (true) o touch/mouse (false): istruzioni e suggerimenti con i tasti giusti. */
@@ -118,6 +118,12 @@ export const hud = {
     if (last.dev === on) return;
     last.dev = on;
     $('pDev').classList.toggle('hidden', !on);
+  },
+  /** Icona 🗝️: questo giocatore porta la chiave del cancello EXIT. */
+  setKey(on) {
+    if (last.key === on) return;
+    last.key = on;
+    $('pKey').classList.toggle('hidden', !on);
   },
   setEnemies(n) { setText('pEnemies', `👾 ${n}`); },
   /** Punti da spendere (la moneta del negozio). */

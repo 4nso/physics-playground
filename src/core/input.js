@@ -104,6 +104,7 @@ export function setupInput(actions) {
     if (e.code === 'KeyF') actions.ride('seat');
     if (e.code === 'KeyG') actions.ride('toggle');
     if (e.code === 'KeyV') actions.ride('speed');
+    if (e.code === 'KeyM') actions.map();
     if (e.code === 'KeyP' || e.code === 'Escape') actions.pause();
     if (e.code === 'Digit1') actions.weapon(0);
     if (e.code === 'Digit2') actions.weapon(1);

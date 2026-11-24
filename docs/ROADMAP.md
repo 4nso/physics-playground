@@ -465,12 +465,29 @@ giocatore scelto: l'host decide e manda il comando al suo dispositivo. Verificat
 Dettagli in `docs/DESIGN.md`, sezioni "Il cimitero dietro l'EXIT (fase 15)" e "Mappa grande".
 Un passo alla volta, pubblicando e fermandosi per la prova.
 
-Passo 1 – Cancello, chiave e notte anticipata:
-- [ ] Cancello EXIT con insegna rossa al neon sul muro del luna park (lato bancarelle)
-- [ ] Il boss del round 10 lascia cadere la chiave; si raccoglie e si porta al cancello ("Apri")
-- [ ] Multiplayer: chiave e cancello decisi dall'host; comandi nella modalità sviluppatore
-- [ ] Nuova curva giorno/notte: crepuscolo avanzato al round 10, notte piena al 25, si vede sempre bene
-- [ ] Mappa grande: tocca/clicca la minimappa (o ⧉ sul controller) per aprirla e chiuderla
+Passo 1 – Cancello, chiave e notte anticipata (in prova su iPad):
+- [x] Cancello EXIT con insegna rossa al neon sul muro del luna park (lato bancarelle)
+- [x] Il boss del round 10 lascia cadere la chiave; si raccoglie e si porta al cancello ("Apri")
+- [x] Multiplayer: chiave e cancello decisi dall'host; comandi nella modalità sviluppatore
+- [x] Nuova curva giorno/notte: crepuscolo avanzato al round 10, notte piena al 25, si vede sempre bene
+- [x] Mappa grande: tocca/clicca la minimappa (o ⧉ sul controller) per aprirla e chiuderla
+- [ ] Provato su iPad
+
+Note: il cancello è in fondo al viale, dopo l'arco d'ingresso, nel muro sud (x = 10): pilastri di pietra,
+due ante a sbarre (un solo InstancedMesh), lucchetto con catena, insegna EXIT al neon che ogni tanto
+sfarfalla e ronza (suono generato, si sente entro ~16 m). Dietro c'è per ora una nicchia buia sbarrata da
+assi: il tunnel arriva nel passo 2. La chiave (dorata, con una colonna di luce) cade dove muore il primo boss
+del round 10; si raccoglie passandoci sopra, nell'HUD compare 🗝️; se chi la porta va a terra o esce dalla
+partita la chiave cade lì. Al cancello: pulsante d'azione "🗝️ Apri" (touch), F (tastiera), B (controller);
+senza chiave "🔒 Serve una chiave". Le ante si aprono verso la nicchia in ~2,4 s con un cigolio; il cancello
+resta aperto fino alla fine della partita. Sulla minimappa il varco è una sbarra rossa (verde se aperto).
+Modalità sviluppatore, scheda Mondo: "Dai la chiave" (anche a un giocatore scelto), "Fai cadere la chiave
+qui", "Apri il cancello EXIT" e il teletrasporto "🚪 Cancello EXIT" (anche in Giocatore). Giorno/notte:
+round 1 giorno, ~4 pomeriggio, ~7 tramonto, 10 crepuscolo avanzato (cielo blu scuro, stelle, luci accese),
+poi scurisce fino alla notte del 25. Mappa grande: tocco/clic sulla minimappa, M sulla tastiera, ⧉ sul
+controller (ha preso il posto delle statistiche, che ora sono scritte sotto la mappa). Verificato in headless
+(1180×820, 844×390 touch e host + client con server PeerJS locale: il client raccoglie la chiave, tocca
+"Apri" e il cancello si apre per tutti): nessun errore in console.
 
 Passo 2 – Tunnel, sala delle candele e cripta:
 - [ ] Tunnel buio in discesa (~40-50 m) con lampade che sfarfallano

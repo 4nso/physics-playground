@@ -68,7 +68,11 @@ body.touch #joy{display:block}
 #health span{color:#ff6b5a}
 #hBar{width:120px;height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden}
 #hBar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff5a4e,#ffb627);transition:width .15s}
-#minimap{position:fixed;top:calc(84px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));width:130px;height:130px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.55),0 3px 12px rgba(0,0,0,.3);pointer-events:none;z-index:5}
+#minimap{position:fixed;top:calc(84px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));width:130px;height:130px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.55),0 3px 12px rgba(0,0,0,.3);pointer-events:auto;cursor:pointer;touch-action:none;z-index:5}
+#bigmap{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(8,12,20,.5);z-index:7;pointer-events:none}
+#bigmapCv{pointer-events:auto;border-radius:12px;box-shadow:0 0 0 2px rgba(255,255,255,.6),0 6px 24px rgba(0,0,0,.45);touch-action:none;cursor:pointer}
+#bigmapNote{margin:0;color:#fff;font-weight:700;font-size:13px;text-align:center;text-shadow:0 1px 3px #000;pointer-events:none}
+#bigmapNote small{font-weight:600;opacity:.8}
 #hurt{position:fixed;inset:0;bottom:calc(0px - var(--extra));pointer-events:none;z-index:4;opacity:0;background:radial-gradient(ellipse at center,rgba(255,0,0,0) 45%,rgba(220,20,20,.65) 100%)}
 #cross.hit i{background:#fff;box-shadow:0 0 4px #fff}
 #cross.kill i{background:#ff5a4e}
