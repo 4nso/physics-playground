@@ -72,39 +72,92 @@ function car(b, rng, x, z, y) {
 /** Rettangolo [x0,z0,x1,z1] meno un buco: restituisce fino a 4 rettangoli che non si sovrappongono. */
 function rectMinus(r, h) {
   if (!h) return [r];
+  // solo la parte del buco che sta dentro il rettangolo
+  const c = [Math.max(r[0], h[0]), Math.max(r[1], h[1]), Math.min(r[2], h[2]), Math.min(r[3], h[3])];
+  if (c[2] - c[0] <= 0.01 || c[3] - c[1] <= 0.01) return [r];
   return [
-    [r[0], r[1], h[0], r[3]],
-    [h[2], r[1], r[2], r[3]],
-    [h[0], r[1], h[2], h[1]],
-    [h[0], h[3], h[2], r[3]],
+    [r[0], r[1], c[0], r[3]],
+    [c[2], r[1], r[2], r[3]],
+    [c[0], r[1], c[2], c[1]],
+    [c[0], c[3], c[2], r[3]],
   ].filter((q) => q[2] - q[0] > 0.01 && q[3] - q[1] > 0.01);
 }
+/** Rettangolo meno più buchi. */
+function rectMinusAll(r, holes) {
+  let out = [r];
+  for (const h of holes) out = out.flatMap((q) => rectMinus(q, h));
+  return out;
+}
 
-export const PARK_GATES = [-24, 0, 24];   // varchi a piano terra tra parcheggio e parco (z)
+// varchi a piano terra tra parcheggio e parco (z): fase 16, da 3 a 5 (niente "imbuti")
+export const PARK_GATES = [-24, -12, 0, 12, 24];
+
+/*
+ * Accessi ai piani (fase 16: almeno 3 per piano, niente punti a imbuto). Coordinate del parcheggio:
+ * u = x - (-45) da 0 a 30, v = z - (-36) da 0 a 72; [u0, v0, u1, v1, altezza a v0, altezza a v1].
+ *  - due rampe delle auto per ogni salto di piano, ai due lati del corsello centrale e alle due estremità;
+ *  - due vani scala pedonali negli angoli opposti (nord-ovest e sud-est), con due rampe di scale ciascuno
+ *    (terra → 1 e 1 → 2). Li usano anche gli zombi (sono rampe per la navigazione).
+ */
+const PLV = [0, 3.5, 7];
+const CAR_RAMPS = [
+  [13, 20, 17, 29, 0, PLV[1]],          // terra → 1, si sale andando verso sud
+  [18.5, 43, 22.5, 52, PLV[1], 0],      // terra → 1, la seconda: si sale andando verso nord
+  [13, 43, 17, 52, PLV[2], PLV[1]],     // 1 → 2, verso nord
+  [18.5, 20, 22.5, 29, PLV[1], PLV[2]], // 1 → 2, la seconda: verso sud
+];
+/** Scale di un vano nell'angolo nord-ovest; quello a sud-est è lo stesso ruotato di mezzo giro. */
+const STAIRS_NW = [
+  [0.4, 1.5, 2.6, 8.5, 0, PLV[1]],      // terra → 1 (verso sud)
+  [3, 1.5, 5.2, 8.5, PLV[2], PLV[1]],   // 1 → 2 (verso nord)
+];
+const turn = ([u0, v0, u1, v1, a, b]) => [30 - u1, 72 - v1, 30 - u0, 72 - v0, b, a];
+const STAIRS = [...STAIRS_NW, ...STAIRS_NW.map(turn)];
+const ACCESSES = [...CAR_RAMPS, ...STAIRS];
+/** Buchi nella soletta del piano L: dove arriva una rampa (o una scala) dal piano di sotto. */
+const holesOf = (L) => ACCESSES.filter((r) => Math.max(r[4], r[5]) === PLV[L]).map((r) => r.slice(0, 4));
+/** (u, v) è su (o vicino a) una rampa o una scala? Lì niente auto, casse, coni, neon. */
+const nearAccess = (u, v, m = 1) => ACCESSES.some(([u0, v0, u1, v1]) => u > u0 - m && u < u1 + m && v > v0 - m && v < v1 + m);
+/** Ai piedi di rampe e scale: punti da cui far arrivare i nemici quando qualcuno sta ai piani alti. */
+export const PARK_ACCESS_FEET = ACCESSES.map(([u0, v0, u1, v1, a, b]) => {
+  const low = Math.min(a, b), atV0 = a < b;
+  return { x: -45 + (u0 + u1) / 2, y: low, z: -36 + (atV0 ? v0 - 1.5 : v1 + 1.5) };
+});
 
 function parking(b, rng, ctx) {
   const X0 = -45, U = (u) => X0 + u, V = (v) => Z0 + v;
-  const LV = [0, 3.5, 7], T = 0.3;
+  const LV = PLV, T = 0.3;
   const BAND = [0xf2c14e, 0x3e7fd1, 0xd94f45]; // colore del piano: giallo, blu, rosso
   b.box(U(0), -0.3, V(0), U(30), 0, V(72), 0x4a4e55, { skip: SKIP.BOTTOM });
-  // solette dei piani 1 e 2 con il buco per la rampa
-  const holes = [null, [13, 20, 17, 29], [13, 43, 17, 52]];
+  // solette dei piani 1 e 2 con i buchi per rampe e scale
   for (let L = 1; L <= 2; L++) {
-    for (const r of rectMinus([0.15, 0.15, 29.85, 71.85], holes[L])) {
+    for (const r of rectMinusAll([0.15, 0.15, 29.85, 71.85], holesOf(L))) {
       b.box(U(r[0]), LV[L] - T, V(r[1]), U(r[2]), LV[L], V(r[3]), 0x8a8d93);
     }
   }
-  // rampe: terra → piano 1 (va verso sud), piano 1 → piano 2 (torna verso nord)
-  b.ramp(U(13), V(20), U(17), V(29), 'z', 0, LV[1], 0x7f8288);
-  b.ramp(U(13), V(43), U(17), V(52), 'z', LV[2], LV[1], 0x7f8288);
-  for (const [x, h0, h1] of [[13, 0, 1], [17, 0, 1]]) {
-    // cordoli colorati ai lati della prima rampa (solo decorazione)
-    b.box(U(x) - 0.08, h0, V(19.9), U(x) + 0.08, h1 * 0.25, V(20.6), 0xf2c14e, { collide: false });
+  // rampe delle auto e scale pedonali
+  for (const [u0, v0, u1, v1, a, c] of CAR_RAMPS) b.ramp(U(u0), V(v0), U(u1), V(v1), 'z', a, c, 0x7f8288);
+  for (const [u0, v0, u1, v1, a, c] of STAIRS) b.ramp(U(u0), V(v0), U(u1), V(v1), 'z', a, c, 0xa3a6ab, { steps: true });
+  for (const [x, h0, h1] of [[13, 0, 1], [17, 0, 1], [18.5, 0, 1], [22.5, 0, 1]]) {
+    // cordoli colorati ai lati delle rampe che partono da terra (solo decorazione)
+    const v = x < 18 ? 19.9 : 51.4;
+    b.box(U(x) - 0.08, h0, V(v), U(x) + 0.08, h1 * 0.25, V(v + 0.7), 0xf2c14e, { collide: false });
   }
-  // ringhiere intorno ai buchi delle rampe (si entra solo dal lato giusto)
-  const rail = (x0, z0, x1, z1, y) => b.box(U(x0), y, V(z0), U(x1), y + 1.1, V(z1), 0xf2c14e, { surface: 'metal', skip: SKIP.BOTTOM });
-  rail(12.8, 19.8, 13, 29, LV[1]); rail(17, 19.8, 17.2, 29, LV[1]); rail(13, 19.8, 17, 20, LV[1]);
-  rail(12.8, 43, 13, 52.2, LV[2]); rail(17, 43, 17.2, 52.2, LV[2]); rail(13, 52, 17, 52.2, LV[2]);
+  // ringhiere intorno ai buchi (si entra solo dal lato giusto: quello in cima alla rampa)
+  const rail = (x0, z0, x1, z1, y, c = 0xf2c14e) => b.box(U(x0), y, V(z0), U(x1), y + 1.1, V(z1), c, { surface: 'metal', skip: SKIP.BOTTOM });
+  for (const [u0, v0, u1, v1, a, c] of ACCESSES) {
+    const top = Math.max(a, c), openAtV1 = c > a, col = STAIRS.some((s) => s[0] === u0 && s[1] === v0) ? 0x3e7fd1 : 0xf2c14e;
+    const va = openAtV1 ? v0 - 0.2 : v0, vb = openAtV1 ? v1 : v1 + 0.2;
+    if (u0 > 0.5) rail(u0 - 0.2, va, u0, vb, top, col);
+    if (u1 < 29.5) rail(u1, va, u1 + 0.2, vb, top, col);
+    if (openAtV1) { if (v0 > 0.5) rail(u0, v0 - 0.2, u1, v0, top, col); } else if (v1 < 71.5) rail(u0, v1, u1, v1 + 0.2, top, col);
+  }
+  // cartelli "SCALE" blu ai piedi dei vani scala
+  for (const [u0, v0, u1, v1, a, c] of STAIRS) {
+    if (Math.min(a, c) !== 0) continue;
+    const vv = a < c ? v0 : v1, s = a < c ? -1 : 1;
+    b.box(U((u0 + u1) / 2) - 0.5, 2.3, V(vv) + s * 0.05 - 0.03, U((u0 + u1) / 2) + 0.5, 2.9, V(vv) + s * 0.05 + 0.03, 0x3e7fd1, { collide: false, glow: 0.5 });
+  }
   // pilastri con una fascia del colore del piano, neon sotto le solette
   for (let L = 0; L < 2; L++) {
     for (const pu of [6, 12, 18, 24]) for (let pv = 6; pv <= 66; pv += 6) {
@@ -113,6 +166,7 @@ function parking(b, rng, ctx) {
       b.box(x - 0.32, LV[L] + 1.2, z - 0.32, x + 0.32, LV[L] + 1.7, z + 0.32, BAND[L], { collide: false, ao: false });
     }
     for (const pu of [9, 21]) for (let pv = 3; pv < 72; pv += 6) {
+      if (holesOf(L + 1).some(([u0, v0, u1, v1]) => pu > u0 && pu < u1 && pv + 1 > v0 && pv - 1 < v1)) continue;
       b.box(U(pu) - 0.12, LV[L + 1] - T - 0.06, V(pv) - 1, U(pu) + 0.12, LV[L + 1] - T - 0.01, V(pv) + 1, 0xf4fbff, { collide: false, glow: true });
     }
   }
@@ -127,7 +181,7 @@ function parking(b, rng, ctx) {
     }
   }
   // lampioni sul tetto
-  for (const [pu, pv] of [[9, 12], [21, 30], [9, 48], [21, 64]]) {
+  for (const [pu, pv] of [[9, 12], [21, 34], [9, 48], [21, 64]]) {
     b.box(U(pu) - 0.08, LV[2], V(pv) - 0.08, U(pu) + 0.08, LV[2] + 3.4, V(pv) + 0.08, 0x3b4250, { surface: 'metal' });
     b.box(U(pu) - 0.3, LV[2] + 3.4, V(pv) - 0.3, U(pu) + 0.3, LV[2] + 3.65, V(pv) + 0.3, 0xfff4c8, { collide: false, glow: true });
   }
@@ -140,6 +194,7 @@ function parking(b, rng, ctx) {
         const vc = v + 1.3;
         if (vc > 70.5) continue;
         if (L === 0 && u0 > 20 && PARK_GATES.some((g) => Math.abs(V(vc) - g) < 3.6)) continue;
+        if (nearAccess((u0 + u1) / 2, vc, 0.3)) continue; // vani scala negli angoli
         if (rng.chance(L === 2 ? 0.35 : 0.5)) car(b, rng, U((u0 + u1) / 2), V(vc), y);
       }
     }
@@ -151,11 +206,12 @@ function parking(b, rng, ctx) {
     // casse e coni nelle corsie
     for (let k = 0; k < 3; k++) {
       const u = rng.pick([8, 10, 20, 22]), v = rng.range(4, 68);
-      if (L > 0 && v > 18 && v < 54 && u > 11 && u < 19) continue;
+      if (nearAccess(u, v)) continue;
       ctx.props.push({ kind: 'crate', x: U(u), y: y + 0.52, z: V(v), size: 1 });
     }
     for (let k = 0; k < 4; k++) {
-      const x = U(rng.pick([7, 11, 19, 23])), z = V(rng.range(3, 69));
+      const u = rng.pick([7, 11, 19, 23]), v = rng.range(3, 69), x = U(u), z = V(v);
+      if (nearAccess(u, v, 0.5)) continue;
       b.geo(cone, x, y + 0.36, z, 0xff7a2f, { scale: sc.set(0.25, 0.7, 0.25) });
     }
   }

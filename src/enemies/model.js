@@ -1,5 +1,6 @@
 // Modello low-poly del nemico (blocchi) con animazione di camminata e attacco.
 import * as THREE from 'three';
+import { addLowFog } from '../world/lowfog.js';
 import { camera } from '../core/renderer.js';
 import { world, RAPIER } from '../core/physics.js';
 
@@ -258,7 +259,7 @@ export function disposeModel(m) {
  * vestiti strappati, faccia pallida e verdastra con le occhiaie, camminata più barcollante). Nessun messaggio
  * di rete: in multiplayer ognuno decide per sé. */
 export const zombieView = { on: false };
-const SKIN = new THREE.MeshLambertMaterial({ color: 0x86a86e, flatShading: true });
+const SKIN = addLowFog(new THREE.MeshLambertMaterial({ color: 0x86a86e, flatShading: true }));
 const zCloth = new Map();   // materiale normale (camicia/pantaloni) → versione strappata
 const zSide = new WeakMap(); // materiale dei lati della testa → versione verdastra
 const zFace = new WeakMap(); // texture della faccia → versione zombi
@@ -293,7 +294,7 @@ function tornMaterial(base, tears) {
   g.lineTo(64, 64); g.fill();
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
-  m = new THREE.MeshLambertMaterial({ map: t, flatShading: true });
+  m = addLowFog(new THREE.MeshLambertMaterial({ map: t, flatShading: true }));
   zCloth.set(base, m);
   return m;
 }

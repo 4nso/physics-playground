@@ -7,7 +7,7 @@
 //   - 4 cappelle di famiglia, alberi spogli, siepi lungo il vialetto est-ovest, lampioni
 //   - 10 bare chiuse (in cappelle, accanto alle fosse, sulla piazzetta): la logica è in game/coffins.js
 // Tutto dipende dal seed (stessa mappa per tutti in multiplayer).
-// Prestazioni: le lapidi sono 4 InstancedMesh (una per forma), la nebbia bassa due piani trasparenti;
+// Prestazioni: le lapidi sono 4 InstancedMesh (una per forma), la nebbia bassa è nei materiali (world/lowfog.js);
 // il resto finisce nella geometria unita della mappa.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -15,6 +15,8 @@ import { SKIP } from './builder.js';
 import { CEM, CRYPT } from './underground.js';
 import { scene, camera } from '../core/renderer.js';
 import { nav, nodeAt, lineClear } from './nav.js';
+import { addLowFog, updateLowFog } from './lowfog.js';
+import { worldMat } from './worldMaterial.js';
 
 export const PLAZA = { x: 10, z: 146, r: 7 };
 const PATH = 0x7a7367, PAVE = 0x8d877c, PAVE_D = 0x5d5850, STONE = 0x7c7a74, DARK = 0x34363a;
@@ -260,30 +262,12 @@ function stoneGeometries() {
     mergeGeometries([nb(new THREE.BoxGeometry(0.6, 0.3, 0.6), 0, 0.15, 0), nb(new THREE.CylinderGeometry(0.1, 0.22, 1.45, 4), 0, 1.02, 0, 0, Math.PI / 4)]),
   ];
 }
-let stoneMeshes = [], fog = [], fogTex = null;
-const stoneMat = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true });
-
-function fogTexture() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
-  const g = c.getContext('2d');
-  for (let i = 0; i < 70; i++) {
-    const x = Math.random() * 128, y = Math.random() * 128, r = 10 + Math.random() * 26;
-    for (const [ox, oy] of [[0, 0], [128, 0], [-128, 0], [0, 128], [0, -128]]) {
-      const gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
-      gr.addColorStop(0, 'rgba(255,255,255,0.16)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-      g.fillStyle = gr; g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
-    }
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(5, 5);
-  return t;
-}
+let stoneMeshes = [];
+const stoneMat = addLowFog(new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }));
 
 export function clearCemVisuals() {
-  for (const m of [...stoneMeshes, ...fog]) { scene.remove(m); if (m.isInstancedMesh) m.dispose(); }
-  stoneMeshes = []; fog = [];
+  for (const m of stoneMeshes) { scene.remove(m); m.dispose(); }
+  stoneMeshes = [];
   graves = [];
 }
 
@@ -309,32 +293,13 @@ export function buildCemVisuals(cem) {
     scene.add(im);
     stoneMeshes.push(im);
   }
-  // nebbia bassa: due veli trasparenti sopra il prato, che scorrono piano
-  fogTex = fogTex || fogTexture();
-  for (const [y, op, sp] of [[0.3, 0.5, 1], [0.85, 0.3, -0.7]]) {
-    const t = fogTex.clone();
-    t.needsUpdate = true;
-    // Lambert: la nebbia prende la luce del cielo (di notte si scurisce da sola)
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(CEM.x1 - CEM.x0, CEM.z1 - CEM.z0), new THREE.MeshLambertMaterial({
-      map: t, color: 0x9aa6b4, transparent: true, opacity: op, depthWrite: false, fog: true,
-    }));
-    m.rotation.x = -Math.PI / 2;
-    m.position.set((CEM.x0 + CEM.x1) / 2, y, (CEM.z0 + CEM.z1) / 2);
-    m.renderOrder = 4;
-    m.userData.sp = sp;
-    m.visible = false;
-    scene.add(m);
-    fog.push(m);
-  }
+  // la nebbia bassa non è più fatta di piani: la calcolano i materiali (world/lowfog.js)
 }
 
-/** A ogni frame: la nebbia c'è solo quando la telecamera è vicina al cimitero, e scorre piano. */
+/** A ogni frame: la nebbia bassa c'è solo quando la telecamera è vicina al cimitero (e all'aperto). */
 export function updateCemetery(dt) {
-  const near = camera.position.z > CEM.z0 - 30;
-  for (const m of fog) {
-    m.visible = near;
-    if (near) { const t = m.material.map; t.offset.x += dt * 0.006 * m.userData.sp; t.offset.y += dt * 0.004; }
-  }
+  const want = graves.length && camera.position.z > CEM.z0 - 30 && camera.position.y > -1 ? 1 : 0;
+  updateLowFog(dt, want, scene.fog.color, worldMat.uniforms.dayTint.value);
 }
 
 /* ============================ Zombi dalle tombe ============================ */

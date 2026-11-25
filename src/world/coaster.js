@@ -97,8 +97,9 @@ function postBase(x, z, noPost) {
   if (x > -44.6 && x < -15.4) {
     // parcheggio: sul tetto, lontano dalle auto, dai lampioni e dal buco della rampa
     if (x < -39.2 || x > -20.8) return null;
-    if ([[-36, -24], [-24, -6], [-36, 12], [-24, 28]].some(([lx, lz]) => Math.hypot(x - lx, z - lz) < 1.5)) return null;
+    if ([[-36, -24], [-24, -2], [-36, 12], [-24, 28]].some(([lx, lz]) => Math.hypot(x - lx, z - lz) < 1.5)) return null;
     if (x > -32.6 && x < -27.4 && z > 6.4 && z < 16.6) return null;
+    if (x > -27.1 && x < -21.9 && z > -16.6 && z < -6.4) return null; // seconda rampa (fase 16)
     return { y: 7, solid: true };
   }
   if (x > 33.4 && x < 62.6) return { y: 3.5, solid: false }; // sopra il soffitto delle backrooms
@@ -144,7 +145,7 @@ export function buildCoaster(b, ctx, rng, noPost = []) {
       if (base && top - base.y > 1.4) {
         nextPost = s0 + 5;
         const x = A.x, z = A.z;
-        b.box(x - 0.16, base.y, z - 0.16, x + 0.16, top, z + 0.16, POST, { collide: base.solid, nav: base.solid, skip: SKIP.BOTTOM, surface: 'metal' });
+        b.box(x - 0.16, base.y, z - 0.16, x + 0.16, top, z + 0.16, POST, { collide: base.solid, nav: base.solid, skip: SKIP.BOTTOM, surface: 'metal', noStand: true });
         b.box(x - 0.35, base.y, z - 0.35, x + 0.35, base.y + 0.3, z + 0.35, 0x8a8d93, { collide: false, skip: SKIP.BOTTOM });
       }
     }
@@ -155,9 +156,10 @@ export function buildCoaster(b, ctx, rng, noPost = []) {
   b.box(P0, 0, ZP0, P1, 0.25, ZP1, 0xa9acb1, { skip: SKIP.BOTTOM });
   b.box(P0, 0.25, ZP0, P1, 0.27, ZP0 + 0.25, YEL, { collide: false, ao: false });
   for (const x of [P0 + 0.3, (P0 + P1) / 2, P1 - 0.3]) {
-    for (const z of [ZT - 1.4, ZP1 - 0.2]) b.box(x - 0.12, 0, z - 0.12, x + 0.12, 3.2, z + 0.12, DARK, { skip: SKIP.BOTTOM, surface: 'metal' });
+    for (const z of [ZT - 1.4, ZP1 - 0.2]) b.box(x - 0.12, 0, z - 0.12, x + 0.12, 3.2, z + 0.12, DARK, { skip: SKIP.BOTTOM, surface: 'metal', noStand: true });
   }
-  b.box(P0 - 0.3, 3.2, ZT - 1.7, P1 + 0.3, 3.4, ZP1 + 0.2, 0xb45cff, { surface: 'metal' });
+  // pensilina: non calpestabile (fase 16)
+  b.box(P0 - 0.3, 3.2, ZT - 1.7, P1 + 0.3, 3.4, ZP1 + 0.2, 0xb45cff, { surface: 'metal', noStand: true });
   for (let x = P0; x < P1; x += 1.2) b.box(x, 3.0, ZP1 + 0.15, x + 0.6, 3.2, ZP1 + 0.3, x % 2.4 < 1.2 ? 0xffffff : 0xb45cff, { collide: false });
   for (let x = P0 + 0.4; x < P1; x += 0.8) b.box(x - 0.07, 2.95, ZP1 + 0.32, x + 0.07, 3.09, ZP1 + 0.46, x % 1.6 < 0.8 ? 0xfff1a8 : 0xff7a59, { collide: false, glow: true });
   (ctx.signs || (ctx.signs = [])).push(
@@ -167,10 +169,10 @@ export function buildCoaster(b, ctx, rng, noPost = []) {
 
   // cabina di comando a est della banchina, rivolta verso +z
   const bx = 27.6, bz = -24.9;
-  b.box(bx - 1.1, 0, bz - 1.9, bx + 1.1, 2.5, bz - 1.75, 0xf2efe6, { skip: SKIP.BOTTOM, surface: 'wood' });
-  b.box(bx - 1.1, 0, bz - 1.75, bx - 0.95, 2.5, bz, 0xf2efe6, { skip: SKIP.BOTTOM, surface: 'wood' });
-  b.box(bx + 0.95, 0, bz - 1.75, bx + 1.1, 2.5, bz, 0xf2efe6, { skip: SKIP.BOTTOM, surface: 'wood' });
-  b.box(bx - 1.25, 2.5, bz - 2.05, bx + 1.25, 2.7, bz + 0.35, 0xb45cff, { surface: 'wood' });
+  b.box(bx - 1.1, 0, bz - 1.9, bx + 1.1, 2.5, bz - 1.75, 0xf2efe6, { skip: SKIP.BOTTOM, surface: 'wood', noStand: true });
+  b.box(bx - 1.1, 0, bz - 1.75, bx - 0.95, 2.5, bz, 0xf2efe6, { skip: SKIP.BOTTOM, surface: 'wood', noStand: true });
+  b.box(bx + 0.95, 0, bz - 1.75, bx + 1.1, 2.5, bz, 0xf2efe6, { skip: SKIP.BOTTOM, surface: 'wood', noStand: true });
+  b.box(bx - 1.25, 2.5, bz - 2.05, bx + 1.25, 2.7, bz + 0.35, 0xb45cff, { surface: 'wood', noStand: true });
   b.box(bx - 0.95, 0, bz - 0.55, bx + 0.95, 1.0, bz, DARK, { skip: SKIP.BOTTOM, surface: 'metal' });
   b.box(bx - 0.95, 1.0, bz - 0.6, bx + 0.95, 1.06, bz + 0.05, 0x5a6273, { surface: 'metal' });
   b.box(bx - 0.7, 1.06, bz - 0.35, bx - 0.4, 1.12, bz - 0.15, 0x2fbf71, { collide: false, glow: true });

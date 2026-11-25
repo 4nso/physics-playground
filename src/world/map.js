@@ -40,6 +40,8 @@ export let wreckAnchor = null;
 export const staticSurface = new Map();
 /** Collider statici invisibili (barriere, piattaforme nascoste): niente fori dei proiettili sopra. */
 export const hiddenColliders = new Set();
+/** Collider (handle) su cui non si sta in piedi → { x, z } centro: chi ci sale scivola giù (fase 16). */
+export const slipColliders = new Map();
 
 /** Strisce d'ombra morbida (si vedono solo in qualità Media e Alta, vedi setWorldAO). */
 let aoMesh = null, aoOn = true;
@@ -56,6 +58,7 @@ function clearWorld() {
   staticBody = wreckAnchor = null;
   staticSurface.clear();
   hiddenColliders.clear();
+  slipColliders.clear();
   clearSigns();
   clearDecals();
   clearRideVisuals();
@@ -127,6 +130,7 @@ export function buildWorld(seed) {
     const col = world.createCollider(d, staticBody);
     staticSurface.set(col.handle, c.surface);
     if (c.hidden) hiddenColliders.add(col.handle);
+    if (c.noStand) slipColliders.set(col.handle, { x: c.x, z: c.z });
   }
   const w = map.wreck;
   if (w) wreckAnchor = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(w.ax, w.ay, w.az));

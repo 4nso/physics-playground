@@ -16,6 +16,7 @@ import { loadFaceMaterials, faceBuffers, facesFromBuffers, appendFaces, playerFa
 import { initMyFace, showMyFace, myFacePayload } from '../faces/myface.js';
 import { pickupSnapshot, applyPickupSnapshot } from '../game/pickups.js';
 import { exitNet, serverOpen, exitSnapshot, applyExitSnapshot } from '../game/exitgate.js';
+import { antiCampHit } from '../game/anticamp.js';
 import { coffinNet, serverTake, coffinSnapshot, applyCoffinSnapshot, setGrantHook, gotRaygun } from '../game/coffins.js';
 import { game, team, gameNet, startGame, gameOver, toMenu, applyPick, syncLocalMember, removeMember, announce, noteFriendKill, noteKilledBy } from '../game/game.js';
 import { net, on, createRoom, joinRoom, broadcast, sendTo, sendHost, leaveRoom, setAccepting } from './net.js';
@@ -406,6 +407,7 @@ on('pick', (msg) => applyPick(msg.k));
 on('msg', (msg) => hud.flash(msg.text, msg.s));
 on('fkill', (msg) => { if (typeof msg.n === 'string') noteFriendKill(msg.n.slice(0, 14)); });
 on('hurt', (msg) => {
+  antiCampHit();
   if (typeof msg.n === 'string') noteKilledBy(msg.n.slice(0, 14));
   hud.hurt(msg.d / 20);
   player.shake = Math.max(player.shake, 0.06);

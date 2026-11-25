@@ -56,6 +56,8 @@ export function killProxy(id, dx, dz, force) {
 }
 
 export function proxyCount() { return proxies.size; }
+/** fn(x, piediY, z) per ogni nemico visto da questo client (anti-campeggio, game/anticamp.js). */
+export function forEachProxyFeet(fn) { for (const p of proxies.values()) fn(p.x, p.y, p.z); }
 
 export function updateProxies(dt) {
   updateDebris(dt);

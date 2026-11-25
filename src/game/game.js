@@ -25,6 +25,7 @@ import { dev, devLog } from '../core/devmode.js';
 import { resetExit, exitHooks, bossDied } from './exitgate.js';
 import { resetCoffins, hitCoffin, blastCoffins } from './coffins.js';
 import { projHooks } from '../weapons/projectiles.js';
+import { antiCampHit } from './anticamp.js';
 
 const $ = (id) => document.getElementById(id);
 const BREAK_TIME = 12;
@@ -202,6 +203,7 @@ enemyHooks.onPlayerHit = (damage, ex, ez, targetId, enemy) => {
   const p = posOf(m);
   const dx = p.x - ex, dz = p.z - ez, d = Math.hypot(dx, dz) || 1;
   if (m.local) {
+    antiCampHit();
     hud.hurt(damage / 20);
     player.shake = Math.max(player.shake, 0.06);
     pushPlayer((dx / d) * 4, 1.5, (dz / d) * 4);

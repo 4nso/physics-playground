@@ -84,10 +84,11 @@ export function buildWheel(b, ctx, cx, cz) {
   // cabina di comando: casetta con il banco dei comandi, rivolta verso +z
   const bx = cx + 4.2, bz = cz + 5.2;
   b.box(bx - 1.1, 0, bz - 1.8, bx + 1.1, 0.08, bz, 0x2c3e66, { collide: false, skip: SKIP.BOTTOM });
-  b.box(bx - 1.1, 0, bz - 1.9, bx + 1.1, 2.5, bz - 1.75, STEEL, { skip: SKIP.BOTTOM, surface: 'wood' });
-  b.box(bx - 1.1, 0, bz - 1.75, bx - 0.95, 2.5, bz, STEEL, { skip: SKIP.BOTTOM, surface: 'wood' });
-  b.box(bx + 0.95, 0, bz - 1.75, bx + 1.1, 2.5, bz, STEEL, { skip: SKIP.BOTTOM, surface: 'wood' });
-  b.box(bx - 1.25, 2.5, bz - 2.05, bx + 1.25, 2.7, bz + 0.35, 0x3d8bff, { surface: 'wood' });
+  // pareti e tetto della cabina: sopra non ci si sta in piedi (fase 16)
+  b.box(bx - 1.1, 0, bz - 1.9, bx + 1.1, 2.5, bz - 1.75, STEEL, { skip: SKIP.BOTTOM, surface: 'wood', noStand: true });
+  b.box(bx - 1.1, 0, bz - 1.75, bx - 0.95, 2.5, bz, STEEL, { skip: SKIP.BOTTOM, surface: 'wood', noStand: true });
+  b.box(bx + 0.95, 0, bz - 1.75, bx + 1.1, 2.5, bz, STEEL, { skip: SKIP.BOTTOM, surface: 'wood', noStand: true });
+  b.box(bx - 1.25, 2.5, bz - 2.05, bx + 1.25, 2.7, bz + 0.35, 0x3d8bff, { surface: 'wood', noStand: true });
   b.box(bx - 0.95, 0, bz - 0.55, bx + 0.95, 1.0, bz, DARK, { skip: SKIP.BOTTOM, surface: 'metal' });
   b.box(bx - 0.95, 1.0, bz - 0.6, bx + 0.95, 1.06, bz + 0.05, 0x5a6273, { surface: 'metal' });
   b.box(bx - 0.7, 1.06, bz - 0.35, bx - 0.4, 1.12, bz - 0.15, 0x2fbf71, { collide: false, glow: true });

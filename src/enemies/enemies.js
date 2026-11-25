@@ -3,7 +3,8 @@ import * as THREE from 'three';
 import { scene, camera } from '../core/renderer.js';
 import { world, RAPIER, GROUPS, onBeforeStep, contactHandlers, prevSpeed } from '../core/physics.js';
 import { pickables } from '../world/arena.js';
-import { updateFields, nodeAt, steer, findSpawn } from '../world/nav.js';
+import { updateFields, nodeAt, steer, findSpawn, CLIMB, nav, lineClear } from '../world/nav.js';
+import { PARK_ACCESS_FEET } from '../world/zones.js';
 import { VARIANTS, modelTop, fitHead, buildEnemyModel, animateModel, flashModel, disposeModel, zombieView, setZombie } from './model.js';
 import { impact } from '../weapons/effects.js';
 import { crumbleModel, updateDebris, clearDebris } from './debris.js';
@@ -44,10 +45,28 @@ export function makeBar() {
 
 /* ---------- Comparsa ---------- */
 let lastTargets = [];
+/**
+ * Fase 16: se qualcuno sta ai piani alti del parcheggio, metà dei nemici arriva dai piedi delle rampe
+ * e delle scale (scelti a caso, non in vista e non troppo vicini): così arrivano da più direzioni.
+ */
+function parkingSpawn(alive) {
+  if (!alive.some((t) => t.x > -45 && t.x < -15 && t.y - 0.85 > 2) || Math.random() < 0.5) return null;
+  const feet = [...PARK_ACCESS_FEET].sort(() => Math.random() - 0.5);
+  for (const f of feet) {
+    const n = nodeAt(f.x + (Math.random() - 0.5) * 2, f.y, f.z + (Math.random() - 0.5) * 2);
+    if (n < 0 || !nav.alive[n]) continue;
+    const x = nav.x[n], y = nav.y[n], z = nav.z[n];
+    if (alive.some((t) => Math.hypot(x - t.x, z - t.z) < 8)) continue;
+    if (alive.some((t) => lineClear(t.x, t.y + 0.75, t.z, x, y + 1.2, z))) continue;
+    return { x, y, z };
+  }
+  return null;
+}
+
 /** Punto lontano dai giocatori e fuori dalla loro vista (vedi world/nav.js). */
 function spawnPoint() {
   const alive = lastTargets.filter((t) => t.alive);
-  const p = findSpawn(alive.length ? alive : lastTargets);
+  const p = parkingSpawn(alive) || findSpawn(alive.length ? alive : lastTargets);
   return p || { x: 0, y: 0, z: 0 };
 }
 
@@ -90,6 +109,7 @@ export function spawnEnemy(variant, opts, at = null) {
     attackT: 0, attackCd: 0.5, hitDone: false,
     stun: 0, flash: 0, spawnT: 0,
     stuckT: 0, detourT: 0, detourSide: 1,
+    climbT: 0, climbCd: 0,       // arrampicata su un ostacolo basso (fase 16)
     prev: { x: sp.x, y: sp.y + centerY, z: sp.z },
     bar: makeBar(),
     dead: false,
@@ -187,6 +207,18 @@ export function clearEnemies() {
   clearDebris();
 }
 
+/* ---------- Arrampicata (fase 16) ---------- */
+const CLIMB_TIME = 0.5;
+/** Posa dell'arrampicata: braccia in alto ad aggrapparsi, busto in avanti, una gamba che sale. k = 0..1. */
+function climbPose(m, k) {
+  const a = Math.sin(Math.min(1, k * 1.3) * Math.PI);  // va e torna
+  m.pivots.shL.rotation.x = -2.7 + k * 1.2;
+  m.pivots.shR.rotation.x = -2.5 + k * 1.1;
+  m.pivots.hipL.rotation.x = -1.1 * a;
+  m.pivots.hipR.rotation.x = 0.3 * a;
+  m.inner.rotation.x = 0.15 + 0.4 * a;
+}
+
 /* ---------- Intelligenza ---------- */
 const pos = [];
 /**
@@ -231,7 +263,31 @@ export function updateEnemies(dt, alpha, active, targets) {
 
     if (active) {
       e.attackCd -= dt;
-      if (e.stun > 0) e.stun -= dt;
+      e.climbCd -= dt;
+      // arrampicata (fase 16): il prossimo passo del percorso è su un ostacolo più alto (cassa, banco,
+      // cofano, piattaforma fino a ~1,3 m): un balzo verso l'alto aggrappandosi, poi si continua
+      const feet = t.y - e.centerY;
+      if (way && e.stun <= 0 && e.climbT <= 0 && e.climbCd <= 0 && Math.abs(v.y) < 0.6) {
+        const up = way.ny - feet, hd = Math.hypot(way.nx - t.x, way.nz - t.z);
+        // arrampicata (più in alto) o scavalcamento (ostacolo basso tra due punti alla stessa altezza)
+        const lift = way.jump === 2 ? CLIMB + 0.1 : up > 0.62 && up < CLIMB + 0.2 ? up : 0;
+        if (lift > 0 && hd < 1.5) {
+          e.climbT = CLIMB_TIME;
+          e.climbCd = 0.9;
+          e.climbX = way.nx; e.climbZ = way.nz;
+          v.y = Math.sqrt(2 * 9.82 * (lift + 0.4));
+        }
+      }
+      if (e.climbT > 0) {
+        // durante il balzo va dritto verso il bordo (niente separazione né aggiramenti)
+        e.climbT -= dt;
+        const cx = e.climbX - t.x, cz = e.climbZ - t.z, cl = Math.hypot(cx, cz) || 1;
+        const sp = Math.max(1.6, e.speed * 0.8);
+        v.x = (cx / cl) * sp; v.z = (cz / cl) * sp;
+        e.body.setLinvel(v, true);
+        e.stuckT = 0;
+        walk = 0.4;
+      } else if (e.stun > 0) e.stun -= dt;
       else {
         let mx = 0, mz = 0;
         if (dist > reach * 0.8 && pp.alive) {
@@ -322,6 +378,7 @@ export function updateEnemies(dt, alpha, active, targets) {
     if (e.model.zombie !== zombieView.on) setZombie(e.model, zombieView.on);
     e.walk = walk;
     animateModel(e.model, e.phase, walk, e.attackT, dt, e.health / e.maxHealth);
+    if (e.climbT > 0) climbPose(e.model, 1 - e.climbT / CLIMB_TIME);
     fitHead(e.model, g.position.x, g.position.y, g.position.z, dt);
 
     // barra della vita (solo se ferito)

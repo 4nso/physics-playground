@@ -89,7 +89,7 @@ function stall(b, ctx, x, z, facing, color, text) {
   box(-1.3, 0, -2.0, 1.3, 2.6, -1.8, WHITE, { skip: SKIP.BOTTOM, surface: 'wood' });         // fondo
   box(-1.3, 0, -1.8, -1.15, 2.6, -0.5, WHITE, { skip: SKIP.BOTTOM, surface: 'wood' });       // lati
   box(1.15, 0, -1.8, 1.3, 2.6, -0.5, WHITE, { skip: SKIP.BOTTOM, surface: 'wood' });
-  box(-1.4, 2.6, -2.1, 1.4, 2.75, 0, color, { surface: 'wood' });                            // tetto
+  box(-1.4, 2.6, -2.1, 1.4, 2.75, 0, color, { surface: 'wood', noStand: true });             // tetto (non calpestabile)
   for (let i = 0; i < 6; i++) {
     const u0 = -1.4 + i * (2.8 / 6);
     box(u0, 2.35, 0.0, u0 + 2.8 / 6, 2.5, 0.75, i % 2 ? WHITE : color, { collide: false }); // tenda

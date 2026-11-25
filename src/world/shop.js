@@ -56,7 +56,7 @@ export function buildShop(b, ctx, x, z, facing = '+z') {
     }
   }
   // tetto con tenda a strisce rosse e bianche che sporge davanti
-  box(-3.7, H, -4.7, 3.7, H + 0.2, -0.1, TRIM, { surface: 'wood' });
+  box(-3.7, H, -4.7, 3.7, H + 0.2, -0.1, TRIM, { surface: 'wood', noStand: true }); // tettoia: non calpestabile
   for (let i = 0; i < 8; i++) {
     const u0 = -3.7 + i * (7.4 / 8);
     box(u0, H - 0.25, -0.05, u0 + 7.4 / 8, H + 0.12, 1.1, i % 2 ? WHITE : RED, { collide: false });

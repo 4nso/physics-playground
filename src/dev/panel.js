@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import './panel.css';
 import { dev, devHooks, setDevMode } from '../core/devmode.js';
 import { camera, scene, renderer, setShadows, setFog, fogEnabled } from '../core/renderer.js';
+import { setLowFogDev, lowFogOn } from '../world/lowfog.js';
 import { quality, setQualitySetting, LEVEL_NAMES } from '../core/quality.js';
 import { prof } from '../core/prof.js';
 import { settings } from '../ui/settings.js';
@@ -82,6 +83,7 @@ function shutdown() {
   clearOverlays();
   scene.overrideMaterial = null;
   setFog(true);
+  setLowFogDev(false);
   if (ui.built) $('devBtn').classList.add('hidden');
   $('pauseDev').classList.add('hidden');
 }
@@ -364,7 +366,7 @@ function tabGraphics() {
     row(`Qualità (${settings.quality === 'auto' ? 'automatica' : 'scelta a mano'})`, [['auto', 'Auto'], ['low', 'Bassa'], ['medium', 'Media'], ['high', 'Alta']].map(([q, l]) => btn('quality', q, l, settings.quality === q)).join(''),
       'Solo per ora: non cambia le Impostazioni salvate'),
     row('Effetti (verde = acceso)', on('gPost', '✨ Effetti di schermo', !dev.noPost) + on('gBloom', '💡 Bloom', !dev.noBloom) + on('gShadow', '🌗 Ombre', renderer.shadowMap.enabled)
-      + on('gFog', '🌫 Nebbia', fogEnabled()) + on('gWire', '🕸 Fil di ferro', scene.overrideMaterial === wireMat),
+      + on('gFog', '🌫 Nebbia', fogEnabled()) + on('gLowFog', '🌫 Nebbia bassa (cimitero)', lowFogOn()) + on('gWire', '🕸 Fil di ferro', scene.overrideMaterial === wireMat),
       'Effetti di schermo e bloom ci sono solo in Media e Alta; le ombre solo in Alta (cambiando qualità tornano come prima)'),
   ].join('');
 }
@@ -461,6 +463,7 @@ function run(a, v) {
     case 'gBloom': dev.noBloom = !dev.noBloom; break;
     case 'gShadow': setShadows(!renderer.shadowMap.enabled); break;
     case 'gFog': setFog(!fogEnabled()); break;
+    case 'gLowFog': setLowFogDev(lowFogOn()); break;
     case 'gWire': scene.overrideMaterial = scene.overrideMaterial === wireMat ? null : wireMat; break;
     /* Volti */
     case 'faces': makeTestFaces(+v); break;

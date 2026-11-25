@@ -540,15 +540,46 @@ Idea in forse (non fare ora): torcia sulle armi negli ultimi 5 round con notte p
 
 ## Fase 16 – Correzioni e anti-campeggio
 Dettagli in `docs/DESIGN.md`, sezione "Correzioni e regole anti-campeggio (fase 16)".
-- [ ] Zombi che salgono su ostacoli bassi (~1,3 m) e navigazione aggiornata
-- [ ] Sicurezza anti-campeggio: dopo ~4 s irraggiungibile, spinta dell'oggetto o del giocatore
-- [ ] Tetti, bracci e sostegni delle giostre e tettoie non calpestabili
-- [ ] Parcheggio: almeno 3 accessi per piano (seconda rampa, scale negli angoli), più aperture
+- [x] Zombi che salgono su ostacoli bassi (~1,3 m) e navigazione aggiornata
+- [x] Sicurezza anti-campeggio: dopo ~4 s irraggiungibile, spinta dell'oggetto o del giocatore
+- [x] Tetti, bracci e sostegni delle giostre e tettoie non calpestabili
+- [x] Parcheggio: almeno 3 accessi per piano (seconda rampa, scale negli angoli), più aperture
       al piano terra, spawn da più direzioni
-- [ ] Controllo di tutta la mappa: nessun punto a imbuto o irraggiungibile (test headless: il
+- [x] Controllo di tutta la mappa: nessun punto a imbuto o irraggiungibile (test headless: il
       giocatore va in cima a ogni oggetto e piano, gli zombi devono arrivarci o farlo scendere)
-- [ ] Bare rotte: via subito corpo fisico e hitbox, anche in multiplayer
-- [ ] Nebbia bassa più naturale e leggera (≤ ~1 ms su iPhone in Media), spenta in qualità Bassa
+- [x] Bare rotte: via subito corpo fisico e hitbox, anche in multiplayer
+- [x] Nebbia bassa più naturale e leggera (≤ ~1 ms su iPhone in Media), spenta in qualità Bassa
+- [ ] Costo della nebbia misurato sull'iPhone (modalità sviluppatore → Grafica → "🌫 Nebbia bassa")
+- [ ] Provato su iPad
+
+Note: **zombi e ostacoli** (`world/nav.js`, `enemies/enemies.js`): la griglia ha due nuovi tipi di
+collegamento, "arrampicata" (dislivello tra 0,6 e 1,35 m: casse fisse, banconi, cofani, piattaforme dei giochi)
+e "scavalcamento" (ostacolo basso e sottile tra due punti alla stessa altezza: recinti, ringhiere), ~1 700 e ~500
+sul seed di prova; costano qualche passo in più, così se c'è un giro corto gli zombi fanno quello. Lo zombi fa
+un balzo con le braccia in alto e una gamba che sale (mezzo secondo). **Anti-campeggio** (`game/anticamp.js`):
+ogni dispositivo controlla il suo giocatore; se i piedi non sono su un punto raggiungibile della griglia, ci
+sono zombi entro 7 m e nessuno lo colpisce da 2,5 s, dopo 4 s chi comanda scuote la cassa su cui sta (cade) e il
+giocatore viene spinto giù verso il punto raggiungibile più vicino (con un saltello se è alla stessa altezza),
+messaggio "🧟 Gli zombi ti fanno scendere!". Seduti sulle giostre e nella zona sicura non vale. **Non
+calpestabili** (opzione `noStand` del Builder, `player.js`): tetti e pareti delle cabine di comando, pensilina
+della stazione, sostegni delle montagne russe, tetti delle bancarelle e tettoia del negozio: chi ci sale scivola
+giù verso fuori (vagoni e cabine in movimento non hanno collider: lì non si sale già). **Parcheggio**
+(`world/zones.js`): ogni salto di piano ha due rampe delle auto (la seconda nel corsello accanto, all'altra
+estremità) e due vani scala pedonali negli angoli nord-ovest e sud-est (cartello blu "scale", ringhiere blu);
+piano 1 e piano 2 hanno 4 accessi ciascuno (più quelli dal piano di sotto), al piano terra i varchi verso il
+luna park passano da 3 a 5 (all'esterno c'è il muro di confine della mappa). Con qualcuno ai piani alti metà
+dei nemici nasce ai piedi di rampe e scale non in vista (test: nemici arrivati da tre direzioni diverse).
+**Controllo della mappa** (headless): confronto tra i punti dove il giocatore può arrivare saltando e quelli
+raggiungibili dagli zombi; restano solo tetti non calpestabili, l'interno delle cabine e delle bancarelle (sotto
+un tetto basso: non ci entra nessuno), cime di lapidi singole (coperte dall'anti-campeggio). Test: giocatore in
+cima alla piramide di casse con 4 zombi intorno → buttato giù dopo ~4 s; zombi che sale sulla base di 1 m e
+colpisce. **Bare** (`game/coffins.js`): quando si rompono si toglie subito il collider e i colpi non prendono
+più la bara (anche sul client, che la rompe quando arriva lo stato dall'host); coperchio e schegge spariscono
+dopo 14 s. **Nebbia** (`world/lowfog.js`): niente più piani trasparenti; la nebbia si calcola nello shader dei
+materiali (mondo, lapidi, bare, zombi): fitta a terra, sparisce salendo con un bordo morbido, a banchi che si
+muovono piano, sfumata ai bordi del cimitero e sotto terra; il rumore è una texture 64×64 (due letture per
+pixel, solo nel cimitero e sotto 1,65 m). Spenta in qualità Bassa. Host + client con server PeerJS locale:
+nessun errore.
 
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano

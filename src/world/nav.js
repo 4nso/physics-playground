@@ -7,6 +7,9 @@
 
 const CLEAR = 1.75;   // altezza libera minima sopra un nodo
 const STEP = 0.6;     // dislivello massimo tra due nodi vicini (rampe e gradini)
+/** Fase 16: gli zombi si arrampicano su ostacoli bassi (casse, banchi, cofani, piattaforme) fino a questo dislivello. */
+export const CLIMB = 1.35;
+const CLIMB_COST = 3;  // arrampicarsi costa come qualche passo in più (se c'è un giro corto si fa quello)
 const BUCKET = 4;     // griglia di appoggio per cercare le forme vicine
 
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
@@ -167,6 +170,17 @@ export function buildNav(shapeList, area, start, gateLine = Infinity) {
     }
     return best;
   };
+  /** Nodo nella colonna vicina raggiungibile solo arrampicandosi (o saltando giù): dislivello tra STEP e CLIMB. */
+  const climbTo = (a, ci, cj) => {
+    if (ci < 0 || cj < 0 || ci >= nav.cols || cj >= nav.rows) return -1;
+    const c = cj * nav.cols + ci;
+    let best = -1, bd = CLIMB;
+    for (let b = colStart[c]; b < colStart[c + 1]; b++) {
+      const d = Math.abs(nav.y[b] - nav.y[a]);
+      if (d > STEP && d <= bd) { bd = d; best = b; }
+    }
+    return best;
+  };
   const colOf = (a) => [Math.floor(nav.x[a] - nav.minX), Math.floor(nav.z[a] - nav.minZ)];
   const edgeCost = (a, b, diag) => (diag ? 1.414 : 1) * (nav.near[b] ? 2.4 : 1) + Math.abs(nav.y[b] - nav.y[a]) * 0.5;
   for (let a = 0; a < N; a++) {
@@ -181,6 +195,48 @@ export function buildNav(shapeList, area, start, gateLine = Infinity) {
       nav.cost[a * 8 + d] = edgeCost(a, b, false);
     }
   }
+  // 2a. arrampicate (fase 16): solo nelle 4 direzioni diritte e solo dove non c'è già un passaggio normale
+  nav.jump = new Uint8Array(N * 8); // 1 = arrampicata (o salto giù), 2 = scavalcamento di un ostacolo basso
+  let climbs = 0, vaults = 0;
+  for (let a = 0; a < N; a++) {
+    const [ci, cj] = colOf(a);
+    for (let d = 0; d < 4; d++) {
+      if (nav.nbr[a * 8 + d] >= 0) continue;
+      const b = climbTo(a, ci + DIRS[d][0], cj + DIRS[d][1]);
+      if (b < 0) continue;
+      const lo = Math.min(nav.y[a], nav.y[b]), h = Math.max(nav.y[a], nav.y[b]);
+      // spazio per passare: sopra il bordo e, dal lato basso, fino a sopra il bordo
+      if (segBlocked(nav.x[a], h + 0.5, nav.z[a], nav.x[b], h + 0.5, nav.z[b])) continue;
+      if (segBlocked(nav.x[a], h + 1.3, nav.z[a], nav.x[b], h + 1.3, nav.z[b])) continue;
+      const low = nav.y[a] < nav.y[b] ? a : b;
+      if (columnBlocked(nav.x[low], nav.z[low], lo + 0.05, h + 1.6)) continue;
+      nav.nbr[a * 8 + d] = b;
+      nav.cost[a * 8 + d] = edgeCost(a, b, false) + CLIMB_COST;
+      nav.jump[a * 8 + d] = 1;
+      climbs++;
+    }
+  }
+  // 2b. scavalcamenti (fase 16): due nodi alla stessa altezza separati da qualcosa di basso e sottile
+  // (bancone, recinto, ringhiera): si passa se sopra l'ostacolo (fino a CLIMB) c'è spazio libero
+  for (let a = 0; a < N; a++) {
+    const [ci, cj] = colOf(a);
+    for (let d = 0; d < 4; d++) {
+      if (nav.nbr[a * 8 + d] >= 0) continue;
+      const b = linkTo(a, ci + DIRS[d][0], cj + DIRS[d][1]);
+      if (b < 0) continue;
+      const h = Math.max(nav.y[a], nav.y[b]);
+      if (!segBlocked(nav.x[a], h + 0.5, nav.z[a], nav.x[b], h + 0.5, nav.z[b])) continue; // non c'era ostacolo: era un'altra cosa
+      if (segBlocked(nav.x[a], h + CLIMB + 0.15, nav.z[a], nav.x[b], h + CLIMB + 0.15, nav.z[b])) continue;
+      if (segBlocked(nav.x[a], h + CLIMB + 1.0, nav.z[a], nav.x[b], h + CLIMB + 1.0, nav.z[b])) continue;
+      if (columnBlocked(nav.x[a], nav.z[a], nav.y[a] + 0.05, h + CLIMB + 1.2) || columnBlocked(nav.x[b], nav.z[b], nav.y[b] + 0.05, h + CLIMB + 1.2)) continue;
+      nav.nbr[a * 8 + d] = b;
+      nav.cost[a * 8 + d] = edgeCost(a, b, false) + CLIMB_COST;
+      nav.jump[a * 8 + d] = 2;
+      vaults++;
+    }
+  }
+  nav.climbs = climbs;
+  nav.vaults = vaults;
   const hasLink = (a, b) => { for (let d = 0; d < 4; d++) if (nav.nbr[a * 8 + d] === b) return true; return false; };
   for (let a = 0; a < N; a++) {
     const [ci, cj] = colOf(a);
@@ -393,7 +449,7 @@ export function updateFields(dt, targets) {
  * Per un nemico nel nodo `from`: il campo (bersaglio) più vicino lungo il percorso e il punto
  * verso cui camminare. Restituisce null se nessun bersaglio è raggiungibile.
  */
-const steerOut = { x: 0, y: 0, z: 0, dist: 0, id: null };
+const steerOut = { x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 0, jump: 0, dist: 0, id: null };
 export function steer(from) {
   if (from < 0 || !fields.length) return null;
   let best = null, bd = Infinity;
@@ -405,6 +461,10 @@ export function steer(from) {
   // guarda due passi avanti lungo il percorso: il movimento è più morbido
   let w = best.next[from];
   if (w < 0) w = from;
+  // primo passo (per capire se bisogna arrampicarsi o scavalcare: vedi enemies.js)
+  steerOut.nx = nav.x[w]; steerOut.ny = nav.y[w]; steerOut.nz = nav.z[w];
+  steerOut.jump = 0;
+  for (let d = 0; d < 4; d++) if (nav.nbr[from * 8 + d] === w) { steerOut.jump = nav.jump[from * 8 + d]; break; }
   const w2 = best.next[w];
   if (w2 >= 0) w = w2;
   steerOut.x = nav.x[w]; steerOut.y = nav.y[w]; steerOut.z = nav.z[w];

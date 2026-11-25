@@ -9,6 +9,7 @@ import { setGlow } from './glow.js';
 import { setWorldAO } from '../world/map.js';
 import { setSkyDome } from './sky.js';
 import { setDust } from '../world/dust.js';
+import { setLowFog } from '../world/lowfog.js';
 
 export const LEVELS = ['low', 'medium', 'high'];
 export const LEVEL_NAMES = { low: 'Bassa', medium: 'Media', high: 'Alta' };
@@ -72,6 +73,7 @@ function apply(level) {
   applyRes();
   setGlow(setPost(p.post));
   setWorldAO(p.ao);
+  setLowFog(level !== 'low'); // nebbia bassa del cimitero: spenta in Bassa
   setSkyDome(p.post !== 'off');
   setDust(p.post !== 'off');
   setShadows(p.shadows);

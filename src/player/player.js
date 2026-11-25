@@ -2,7 +2,7 @@
 import { camera, view } from '../core/renderer.js';
 import { world, RAPIER, GROUPS, onBeforeStep } from '../core/physics.js';
 import { input } from '../core/input.js';
-import { map } from '../world/map.js';
+import { map, slipColliders } from '../world/map.js';
 import { dev } from '../core/devmode.js';
 
 const RADIUS = 0.4, HALF = 0.4;        // capsula alta 1.6 m
@@ -41,6 +41,10 @@ export const player = {
   aiming: false,
   /** Sta chiedendo di correre mentre si muove (la corsa interrompe la mira). */
   wantsRun: false,
+  /** Collider su cui poggiano i piedi (o null): per le superfici non calpestabili e l'anti-campeggio. */
+  groundCol: null,
+  /** Spinta anti-campeggio in corso (fase 16, game/anticamp.js): { x, z, t } velocità e secondi rimasti. */
+  shove: null,
 };
 const prev = { x: SPAWN.x, y: SPAWN.y, z: SPAWN.z };
 
@@ -86,6 +90,7 @@ export function resetPlayer(slot = 0) {
   player.pitch = -0.08;
   player.recoil = player.recoilTarget = player.recoilYaw = player.recoilYawTarget = 0;
   player.shake = 0;
+  player.shove = null;
   player.health = MAX_HEALTH;
   player.alive = true;
 }
@@ -145,8 +150,9 @@ function checkGrounded() {
   for (const [ox, oz] of OFFS) {
     ray.origin.x = p.x + ox; ray.origin.y = p.y; ray.origin.z = p.z + oz;
     const hit = world.castRay(ray, HALF + RADIUS + 0.12, true, undefined, undefined, player.collider, player.body);
-    if (hit) return true;
+    if (hit) { player.groundCol = hit.collider; return true; }
   }
+  player.groundCol = null;
   return false;
 }
 
@@ -205,6 +211,24 @@ export function updatePlayer(dt) {
   v.z += (vz - v.z) * a;
   if (player.jumpReq && player.grounded && v.y < 3) v.y = 6.2;
   player.jumpReq = false;
+  // fase 16: sopra tetti e sostegni delle giostre e sulle tettoie non ci si sta: si scivola giù verso fuori
+  const slip = player.grounded && player.groundCol && slipColliders.get(player.groundCol.handle);
+  if (slip) {
+    const p = player.body.translation();
+    let dx = p.x - slip.x, dz = p.z - slip.z;
+    const l = Math.hypot(dx, dz);
+    if (l < 0.05) { dx = Math.sin(player.yaw); dz = Math.cos(player.yaw); } else { dx /= l; dz /= l; }
+    v.x = v.x * 0.35 + dx * 4.2;
+    v.z = v.z * 0.35 + dz * 4.2;
+    if (v.y < 0.5) v.y = 0.5;
+  }
+  // anti-campeggio (game/anticamp.js): una spinta che dura qualche istante e vince sui comandi
+  if (player.shove) {
+    const s = player.shove;
+    v.x = s.x; v.z = s.z;
+    s.t -= dt;
+    if (s.t <= 0) player.shove = null;
+  }
   player.body.setLinvel(v, true);
   player.speed = Math.hypot(v.x, v.z);
 

@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { worldGlow } from '../core/glow.js';
 import { sun } from '../core/renderer.js';
+import { lowFogU, LOW_FOG_GLSL } from './lowfog.js';
 
 const sunDir = new THREE.Vector3();
 
@@ -57,6 +58,7 @@ export const worldMat = new THREE.ShaderMaterial({
     uniform float shadowDark;
     varying vec3 vCol;
     varying vec3 vWorld;
+    ${LOW_FOG_GLSL}
     void main() {
       vec3 c = vCol;
       #ifdef USE_SHADOWMAP
@@ -69,10 +71,12 @@ export const worldMat = new THREE.ShaderMaterial({
       #endif
       gl_FragColor = vec4(c, 1.0);
       #include <colorspace_fragment>
+      gl_FragColor.rgb = lowFog(gl_FragColor.rgb, vWorld); // nebbia bassa del cimitero (world/lowfog.js)
       #include <fog_fragment>
     }`,
 });
 worldMat.uniforms.glowBoost = worldGlow;
+Object.assign(worldMat.uniforms, lowFogU); // stesse uniform di tutti i materiali con la nebbia bassa
 
 /** A ogni frame (solo con le ombre accese): direzione del sole e centro dell'area con le ombre. */
 export function updateWorldMat(x, z) {

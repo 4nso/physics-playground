@@ -57,7 +57,8 @@ export class Builder {
 
   /**
    * Scatola allineata agli assi da (x0,y0,z0) a (x1,y1,z1).
-   * o = { collide: true, visible: true, surface: 'stone', glow: false (true o un numero: quanto brilla col bloom), skip: 0, nav: true, ao: true, groups }
+   * o = { collide: true, visible: true, surface: 'stone', glow: false (true o un numero: quanto brilla col bloom), skip: 0, nav: true, ao: true, groups, noStand }
+   * (noStand = sopra non ci si sta in piedi: tetti e sostegni delle giostre, tettoie; fase 16, vedi player.js)
    * (groups = gruppi di collisione speciali, ad esempio la barriera che ferma solo i nemici)
    */
   box(x0, y0, z0, x1, y1, z1, color, o = {}) {
@@ -80,7 +81,7 @@ export class Builder {
       }
     }
     if (o.collide !== false) {
-      this.colliders.push({ hx, hy, hz, x: cx, y: cy, z: cz, q: null, surface: o.surface || 'stone', groups: o.groups, hidden: o.visible === false });
+      this.colliders.push({ hx, hy, hz, x: cx, y: cy, z: cz, q: null, surface: o.surface || 'stone', groups: o.groups, hidden: o.visible === false, noStand: !!o.noStand });
       if (o.nav !== false) this.shapes.push({ k: 0, x0, y0, z0, x1, y1, z1 });
     }
   }

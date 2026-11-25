@@ -21,6 +21,7 @@ import { updateSafeZones } from './game/safezone.js';
 import { updateExit, exitAction, exitActionButton } from './game/exitgate.js';
 import { updateUnderground } from './world/underground.js';
 import { updateCoffins, coffinAction, coffinActionButton } from './game/coffins.js';
+import { updateAntiCamp, antiCamp } from './game/anticamp.js';
 import { updateCemetery, inCemetery, graveSpawn } from './world/cemetery.js';
 import { zombieView } from './enemies/model.js';
 import { enemyHooks } from './enemies/enemies.js';
@@ -186,6 +187,7 @@ function loop(now) {
   updateUnderground(gdt, underMe, playing && player.alive);
   updateCemetery(dt);
   updateCoffins(gdt, playing && player.alive);
+  updateAntiCamp(gdt, playing && !game.overlay && game.phase !== 'dead', authority && !dev.freeze);
   zombieView.on = game.state !== 'menu' && inCemetery(underMe.x, underMe.y, underMe.z); // nel cimitero i nemici sono zombi
   netUpdate(dt);
   mark('negozio/rete');
@@ -306,8 +308,9 @@ async function start() {
 
 // Solo in sviluppo (npm run dev): oggetti utili per i test automatici. Non finisce nel sito pubblicato.
 if (import.meta.env.DEV) {
-  Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js'), import('./game/game.js'), import('./game/rides.js')]).then(([m, v, g, r]) => {
-    window.__pp = { dev, game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team, map, renderer, nav, rides: r, quality, prof, scene, spawnEnemy: m.spawnEnemy };
+  Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js'), import('./game/game.js'), import('./game/rides.js'), import('./player/player.js'), import('./game/coffins.js'), import('./world/lowfog.js'), import('./world/raycast.js')]).then(([m, v, g, r, pl, cf, lf, rc]) => {
+    window.__pp = { dev, game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team, map, renderer, nav, rides: r, quality, prof, scene, spawnEnemy: m.spawnEnemy,
+      teleport: pl.teleportPlayer, antiCamp, coffins: cf, lowFog: lf, castWorld: rc.castWorld };
   });
 }
 

@@ -23,6 +23,7 @@ import { player } from '../player/player.js';
 import { hud } from '../ui/hud.js';
 import { devLog } from '../core/devmode.js';
 import { exitHooks } from './exitgate.js';
+import { addLowFog } from '../world/lowfog.js';
 
 export const RAYGUN = WEAPONS.findIndex((w) => w.id === 'raygun');
 const HP = 400;            // vita di una bara (pistola 26 a colpo, pompa 9×15, esplosione: subito)
@@ -72,8 +73,8 @@ const GEO_CLOSED = merge([prism(1, 0, 0.42, WOOD), ...lidParts().map((g) => g.tr
 const GEO_OPEN = merge([prism(1, 0, 0.42, WOOD), prism(0.86, 0.42, 0.425, INSIDE)]);
 const GEO_LID = merge(lidParts());
 const GEO_PLANK = new THREE.BoxGeometry(0.1, 0.06, 0.7);
-const woodMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-const plankMat = new THREE.MeshLambertMaterial({ color: 0x5e3a22, flatShading: true });
+const woodMat = addLowFog(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+const plankMat = addLowFog(new THREE.MeshLambertMaterial({ color: 0x5e3a22, flatShading: true }));
 
 /* ---------- Stato ---------- */
 let list = [];            // { x, y, z, along, ray, hp, broken, taken, col, lid, planks, gun }
@@ -89,7 +90,7 @@ function placeMatrix(c) {
 /** Toglie tutto (bare, coperchi, schegge, raygun). */
 function clearCoffins() {
   for (const c of list) {
-    for (const b of [c.lid, ...(c.planks || [])]) if (b) { scene.remove(b.mesh); world.removeRigidBody(b.body); }
+    dropDebris(c);
     if (c.gun) scene.remove(c.gun);
   }
   list = [];
@@ -99,8 +100,15 @@ function clearCoffins() {
   body = null;
 }
 
-function addCollider(c, low) {
-  const hx = 0.33, hz = 0.97, hy = low ? 0.21 : 0.24;
+/** Secondi dopo cui coperchio e schegge spariscono (l'ultimo mezzo secondo si rimpiccioliscono). */
+const DEBRIS_LIFE = 14;
+function dropDebris(c) {
+  for (const b of [c.lid, ...(c.planks || [])]) if (b) { scene.remove(b.mesh); world.removeRigidBody(b.body); }
+  c.lid = null; c.planks = [];
+}
+
+function addCollider(c) {
+  const hx = 0.33, hz = 0.97, hy = 0.24;
   const d = RAPIER.ColliderDesc.cuboid(c.along === 'x' ? hz : hx, hy, c.along === 'x' ? hx : hz).setTranslation(c.x, c.y + hy, c.z);
   const col = world.createCollider(d, body);
   staticSurface.set(col.handle, 'wood');
@@ -117,12 +125,19 @@ export function resetCoffins() {
   open = new THREE.InstancedMesh(GEO_OPEN, woodMat, data.length);
   closed.userData.coffin = true;     // i colpi la riconoscono (weapons.js → onCoffinHit)
   closed.userData.surface = 'wood';
+  // fase 16: una bara rotta non si colpisce più (prima la sua istanza "a scala zero" prendeva ancora i colpi)
+  const baseRay = THREE.InstancedMesh.prototype.raycast;
+  closed.raycast = function (rc, out) {
+    const n = out.length;
+    baseRay.call(this, rc, out);
+    for (let k = out.length - 1; k >= n; k--) { const c = list[out[k].instanceId]; if (!c || c.broken) out.splice(k, 1); }
+  };
   list = data.map((d, i) => {
     const c = { ...d, hp: HP, broken: false, taken: null, flash: 0 };
     closed.setMatrixAt(i, placeMatrix(c));
     closed.setColorAt(i, c3.setRGB(1, 1, 1));
     open.setMatrixAt(i, ZERO);
-    c.col = addCollider(c, false);
+    c.col = addCollider(c);
     return c;
   });
   for (const m of [closed, open]) { m.castShadow = true; m.computeBoundingSphere(); scene.add(m); }
@@ -173,8 +188,10 @@ function breakCoffin(i, dir = null) {
   closed.instanceMatrix.needsUpdate = true;
   open.setMatrixAt(i, placeMatrix(c));
   open.instanceMatrix.needsUpdate = true;
-  world.removeCollider(c.col, false);
-  c.col = addCollider(c, true);
+  // fase 16: via subito il corpo fisico (e la hitbox, vedi raycast in resetCoffins): la bara aperta è solo decorazione
+  if (c.col) world.removeCollider(c.col, false);
+  c.col = null;
+  c.debrisT = DEBRIS_LIFE;
   // il coperchio vola via nella direzione del colpo, le schegge saltano intorno
   const l = dir ? Math.hypot(dir.x, dir.z) || 1 : 1;
   const dx = dir ? dir.x / l : Math.random() - 0.5, dz = dir ? dir.z / l : Math.random() - 0.5;
@@ -303,6 +320,11 @@ export function updateCoffins(dt, playing) {
       const k = 0.55 + 0.45 * (c.hp / HP); // più si rovina, più è scura
       closed.setColorAt(i, c.flash > 0 ? c3.setRGB(1.6, 1.4, 1.2) : c3.setRGB(k, k, k));
       dirty = true;
+    }
+    if (c.debrisT > 0) {
+      c.debrisT -= dt;
+      if (c.debrisT <= 0) dropDebris(c);
+      else if (c.debrisT < 0.5) for (const b of [c.lid, ...c.planks]) if (b) b.mesh.scale.setScalar(c.debrisT * 2);
     }
     for (const b of [c.lid, ...(c.planks || [])]) {
       if (!b || b.body.isSleeping()) continue;
