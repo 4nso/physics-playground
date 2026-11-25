@@ -538,6 +538,18 @@ chiamate di disegno nel cimitero con la visuale lunga; host + client con server 
 
 Idea in forse (non fare ora): torcia sulle armi negli ultimi 5 round con notte più scura.
 
+## Fase 16 – Correzioni e anti-campeggio
+Dettagli in `docs/DESIGN.md`, sezione "Correzioni e regole anti-campeggio (fase 16)".
+- [ ] Zombi che salgono su ostacoli bassi (~1,3 m) e navigazione aggiornata
+- [ ] Sicurezza anti-campeggio: dopo ~4 s irraggiungibile, spinta dell'oggetto o del giocatore
+- [ ] Tetti, bracci e sostegni delle giostre e tettoie non calpestabili
+- [ ] Parcheggio: almeno 3 accessi per piano (seconda rampa, scale negli angoli), più aperture
+      al piano terra, spawn da più direzioni
+- [ ] Controllo di tutta la mappa: nessun punto a imbuto o irraggiungibile (test headless: il
+      giocatore va in cima a ogni oggetto e piano, gli zombi devono arrivarci o farlo scendere)
+- [ ] Bare rotte: via subito corpo fisico e hitbox, anche in multiplayer
+- [ ] Nebbia bassa più naturale e leggera (≤ ~1 ms su iPhone in Media), spenta in qualità Bassa
+
 ## Idea futura – Mappa dell'università (da riprendere, non iniziare senza il proprietario)
 Ricostruire in low-poly l'edificio universitario del proprietario, su più piani: piano
 d'ingresso in salita dalla strada, piano terra a livello strada, poi secondo, terzo e quarto piano.

@@ -610,6 +610,51 @@ Una zona nuova che si sblocca a metà partita, con il percorso cancello → tunn
 - Dal 10 al 25 scurisce gradualmente fino alla notte piena
 - *In forse, da non fare ora*: torcia sulle armi negli ultimi 5 round, con notte più scura
 
+### Correzioni e regole anti-campeggio (fase 16)
+
+**Regola generale**: nessun punto della mappa deve rendere il giocatore irraggiungibile dai nemici.
+Se il giocatore è fermo in un posto dove gli zombi non arrivano, il gioco è rotto.
+
+**Oggetti e giostre**
+- Problema: saltando su casse, giochi o parti delle giostre (anche poco rialzate) gli zombi non
+  ci arrivano e restano sotto
+- Gli zombi sanno **salire su ostacoli bassi** (fino a ~1,3 m) con una piccola animazione di
+  arrampicata, e la griglia di navigazione li considera percorribili
+- Dove resta comunque un punto irraggiungibile: **sicurezza anti-campeggio**. Se un giocatore è
+  irraggiungibile per più di ~4 s, gli zombi vicini **spingono e scuotono** l'oggetto su cui sta
+  (le casse dinamiche cadono, il giocatore viene sbalzato giù) oppure, se l'oggetto è fisso, il
+  giocatore scivola giù con una spinta leggera
+- Le parti delle giostre che non servono per camminare (tetti dei vagoni, bracci, sostegni,
+  tettoie delle bancarelle) hanno sopra una superficie **non calpestabile** (inclinata o
+  scivolosa): non ci si può stare in piedi
+- Da seduti sulle giostre non vale: lì il giocatore è irraggiungibile per scelta, e la corsa finisce
+
+**Parcheggio**
+- Problema: ai piani alti si arriva da una sola rampa; il giocatore si mette lì, controlla
+  l'unico ingresso e vince troppo facilmente
+- Ogni piano deve avere **almeno 3 accessi**: la rampa delle auto, una **seconda rampa** sul lato
+  opposto e **due scale a chiocciola o vani scala** negli angoli (pedonali, usati anche dagli zombi)
+- Più **aperture al piano terra** verso l'esterno (oltre ai 3 varchi verso il luna park)
+- Gli zombi arrivano **da più direzioni** (spawn distribuiti anche vicino alle scale e alle rampe)
+- Nessun punto "a imbuto" con un solo ingresso in tutta la mappa (vale anche per torrette e fortini)
+
+**Bare del cimitero**
+- Problema: quando una bara si rompe, la sua "scatola dei colpi" (hitbox) resta: si vedono ancora
+  colpi e scintille su una bara che non c'è più
+- Quando la bara si rompe si toglie **subito** il suo corpo fisico e la sua hitbox; restano solo
+  i pezzi come decorazione (senza collisioni, oppure come piccoli oggetti fisici che spariscono dopo un po')
+- In multiplayer la rottura la decide l'host e gli altri tolgono la stessa hitbox
+
+**Nebbia**
+- Problema: la nebbia raso terra del cimitero sembra un "semi-muro" invisibile, con bordi netti
+  e innaturale
+- Va sostituita con una nebbia **più naturale e leggera**: banchi bassi morbidi, sfumati ai bordi,
+  che non tagliano gli oggetti con una linea dritta (ad esempio nebbia "in altezza" calcolata nello
+  shader dei materiali, oppure pochi piani sfumati con morbidezza dove toccano la geometria) e che si
+  muovono pianissimo
+- Va misurata: se costa più di ~1 ms per fotogramma su iPhone in qualità Media si usa una versione
+  più semplice, e in qualità Bassa la nebbia bassa è spenta. Meglio niente che un effetto brutto o pesante
+
 ### Mappa grande
 - Toccando o cliccando la **minimappa** si apre la **mappa grande** a tutto schermo: tutta la mappa
   vista dall'alto, ferma (il nord in alto), con la posizione e la direzione dei giocatori e i nomi
