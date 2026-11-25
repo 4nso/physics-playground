@@ -552,6 +552,39 @@ Dettagli in `docs/DESIGN.md`, sezione "Correzioni e regole anti-campeggio (fase 
 - [ ] Costo della nebbia misurato sull'iPhone (modalità sviluppatore → Grafica → "🌫 Nebbia bassa")
 - [ ] Provato su iPad
 
+Correzioni dopo la prova su iPad (regressioni segnalate: casse e palle a mezz'aria, nemici che passano nei
+muri delle backrooms e attraverso gli oggetti, colpi che sembrano fermarsi sul muro invece che sul nemico):
+- [x] **Causa principale: versioni diverse in multiplayer.** La fase 16 ha cambiato la costruzione del parcheggio
+      e quindi l'ordine dei numeri casuali: con lo stesso seed anche giochi del luna park, casse e labirinto delle
+      backrooms vengono diversi. Se un dispositivo ha la versione nuova e l'altro quella vecchia (ancora in memoria),
+      ognuno costruisce una mappa diversa: sul client le casse dell'host finiscono a mezz'aria o dentro i muri, i
+      nemici camminano dove l'host non ha muri e i colpi si fermano su muri che l'host non ha. Verificato in
+      headless (host nuovo + client vecchio: 13 oggetti sospesi e 16 dentro la geometria; stessa versione: nessuno).
+      Ora host e client si scambiano la versione del gioco quando ci si collega (`net/net.js`): se è diversa
+      (o il client è vecchio e non la manda) non si entra, con il messaggio "Questo dispositivo e l'host hanno due
+      versioni diverse del gioco. Ricaricate la pagina su tutti e due…"
+- [x] **Navigazione, punti sopra oggetti sottili** (`world/nav.js`): sopra recinti, ringhiere, parapetti, pali e
+      schienali (forme più strette di 45 cm) nascevano punti calpestabili; con l'arrampicata gli zombi ci salivano
+      e ricadevano dall'altra parte (ad esempio tutto il recinto della ruota, le ringhiere dei vani scala).
+      Ora lì non nasce nessun punto.
+- [x] **Navigazione, diagonali** (`world/nav.js`): i passaggi in diagonale si appoggiavano anche ad arrampicate e
+      scavalcamenti e diventavano passaggi "a piedi" che tagliavano lo spigolo di un ostacolo. Ora si appoggiano
+      solo a passaggi a piedi.
+- [x] **Scavalcamento solo per ostacoli bassi e sottili veri** (`world/nav.js`): ogni forma attraversata deve
+      finire entro 1,35 m sopra i piedi ed essere spessa meno di 60 cm; le rampe non si scavalcano. Arrampicate da
+      ~1 700 a ~1 100 e scavalcamenti da ~520 a ~230 sul seed di prova (restano cofani, banconi, piattaforme,
+      recinti e ringhiere).
+- [x] **Balzo che rispetta le collisioni** (`enemies/enemies.js`): prima sale quasi in verticale e va avanti solo
+      quando i piedi sono sopra il bordo; se non avanza o arriva in cima al salto senza superare il bordo
+      rinuncia; se viene colpito si interrompe. È sempre la fisica a muovere il corpo. Busto meno inclinato
+      nella posa (la testa non entra nei muri vicini).
+- [x] **Test headless** in `scripts/test-fase16.cjs` (`node scripts/test-fase16.cjs`, oppure `--veloce`):
+      oggetti fisici appoggiati dopo il caricamento (3 seed, 162 oggetti), 2 minuti di partita al round 8 con il
+      giocatore che si sposta tra backrooms, parcheggio e luna park senza nessun nemico dentro un muro o che ne
+      attraversa uno (controllo a ogni fotogramma), colpi che arrivano ai nemici nei corridoi delle backrooms
+      (40/40), client con versione diversa rifiutato. Tutti passati. Collider invisibili: nessuno nuovo (i tetti
+      non calpestabili sono oggetti visibili); nei corridoi nessun colpo si è fermato su un muro.
+
 Note: **zombi e ostacoli** (`world/nav.js`, `enemies/enemies.js`): la griglia ha due nuovi tipi di
 collegamento, "arrampicata" (dislivello tra 0,6 e 1,35 m: casse fisse, banconi, cofani, piattaforme dei giochi)
 e "scavalcamento" (ostacolo basso e sottile tra due punti alla stessa altezza: recinti, ringhiere), ~1 700 e ~500

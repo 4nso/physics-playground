@@ -216,7 +216,7 @@ function climbPose(m, k) {
   m.pivots.shR.rotation.x = -2.5 + k * 1.1;
   m.pivots.hipL.rotation.x = -1.1 * a;
   m.pivots.hipR.rotation.x = 0.3 * a;
-  m.inner.rotation.x = 0.15 + 0.4 * a;
+  m.inner.rotation.x = 0.1 + 0.2 * a;   // poco in avanti: la testa non entra nei muri vicini
 }
 
 /* ---------- Intelligenza ---------- */
@@ -275,15 +275,27 @@ export function updateEnemies(dt, alpha, active, targets) {
           e.climbT = CLIMB_TIME;
           e.climbCd = 0.9;
           e.climbX = way.nx; e.climbZ = way.nz;
+          e.climbTop = feet + lift;      // altezza da superare (bordo o ostacolo da scavalcare)
+          e.climbStuck = 0;
           v.y = Math.sqrt(2 * 9.82 * (lift + 0.4));
+          e.body.setLinvel(v, true);
         }
       }
+      if (e.climbT > 0 && e.stun > 0) e.climbT = 0; // colpito: il balzo finisce lì
       if (e.climbT > 0) {
-        // durante il balzo va dritto verso il bordo (niente separazione né aggiramenti)
+        // correzione fase 16: il balzo rispetta sempre le collisioni (è la fisica a muovere il corpo, mai
+        // un teletrasporto). Prima sale quasi in verticale; solo quando i piedi sono sopra il bordo va avanti.
+        // Se non avanza (qualcosa in mezzo) il balzo si interrompe e torna il movimento normale.
         e.climbT -= dt;
         const cx = e.climbX - t.x, cz = e.climbZ - t.z, cl = Math.hypot(cx, cz) || 1;
-        const sp = Math.max(1.6, e.speed * 0.8);
+        const above = feet > e.climbTop - 0.05;
+        const sp = above ? Math.max(1.6, e.speed * 0.8) : 0.5;
         v.x = (cx / cl) * sp; v.z = (cz / cl) * sp;
+        if (above) {
+          const moved = Math.hypot(t.x - e.prev.x, t.z - e.prev.z) * 60;
+          e.climbStuck = moved < sp * 0.25 ? e.climbStuck + dt : 0;
+          if (e.climbStuck > 0.15) e.climbT = 0;
+        } else if (v.y <= 0.2) e.climbT = 0;   // in cima al salto senza aver superato il bordo: rinuncia
         e.body.setLinvel(v, true);
         e.stuckT = 0;
         walk = 0.4;

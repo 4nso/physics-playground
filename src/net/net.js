@@ -6,6 +6,16 @@ import { Peer } from 'peerjs';
 const PREFIX = 'shoot-your-friends-';
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // niente 0/O, 1/I/L: si leggono male
 export const MAX_PLAYERS = 4;
+/* global __APP_VERSION__ */
+/**
+ * Versione del gioco (commit e data della build). Host e client devono avere la STESSA: la mappa nasce dal
+ * seed nel codice di ogni dispositivo, e versioni diverse costruiscono mappe diverse (correzione fase 16:
+ * con un dispositivo aggiornato e uno con la versione vecchia in memoria, oggetti a mezz'aria, nemici
+ * che passavano nei "muri" e colpi fermati da muri che l'host non aveva).
+ */
+const BUILD = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'sviluppo';
+const VERSION_MSG = 'Questo dispositivo e l\'host hanno due versioni diverse del gioco. Ricaricate la pagina su tutti e due '
+  + '(se il gioco è sulla schermata Home, chiudetelo del tutto e riapritelo), poi riprovate.';
 
 export const net = {
   mode: 'solo',      // 'solo' | 'host' | 'client'
@@ -15,6 +25,7 @@ export const net = {
   peer: null,
   hostConn: null,    // client: connessione verso l'host
   clients: new Map(),// host: peerId → { conn, slot, id }
+  build: BUILD,      // versione di questo dispositivo (i test possono cambiarla per provare il rifiuto)
 };
 
 const handlers = new Map();
@@ -114,6 +125,14 @@ function acceptClient(conn, events) {
     clearTimeout(timer);
     trying('');
     const slot = freeSlot();
+    const theirs = conn.metadata && conn.metadata.v;
+    if (theirs !== net.build) {
+      // versione diversa (o client vecchio, che la versione non la manda): non entra
+      conn.send({ t: 'refuse', why: VERSION_MSG, v: net.build });
+      setTimeout(() => conn.close(), 500);
+      if (events.onTrying) events.onTrying('Un giocatore ha una versione diversa del gioco: deve ricaricare la pagina.');
+      return;
+    }
     if (slot < 0 || !acceptingNew) {
       conn.send({ t: 'refuse', why: slot < 0 ? 'La stanza è piena (massimo 4 giocatori).' : 'La partita è già iniziata.' });
       setTimeout(() => conn.close(), 500);
@@ -121,7 +140,7 @@ function acceptClient(conn, events) {
     }
     const id = 'p' + slot;
     net.clients.set(conn.peer, { conn, slot, id });
-    conn.send({ t: 'welcome', id, slot });
+    conn.send({ t: 'welcome', id, slot, v: net.build });
     conn.on('data', (msg) => dispatch(msg, id));
     const leave = () => {
       if (!net.clients.has(conn.peer)) return;
@@ -180,7 +199,7 @@ export function joinRoom(code, events) {
     peer.on('open', () => {
       stage = 'ice';
       progress('Cerco la stanza e collego i dispositivi…');
-      conn = peer.connect(PREFIX + code, { reliable: true });
+      conn = peer.connect(PREFIX + code, { reliable: true, metadata: { v: net.build } });
       conn.on('iceStateChanged', (st) => {
         if (done) return;
         if (st === 'failed') fail(STAGE_MSG.ice, true);
@@ -190,6 +209,7 @@ export function joinRoom(code, events) {
       conn.on('data', (msg) => {
         if (!done) {
           if (msg.t === 'refuse') { fail(msg.why); return; }
+          if (msg.t === 'welcome' && msg.v !== net.build) { fail(VERSION_MSG); return; } // host di un'altra versione
           if (msg.t === 'welcome') {
             done = true;
             clearTimeout(timer);

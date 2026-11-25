@@ -11,6 +11,13 @@ const STEP = 0.6;     // dislivello massimo tra due nodi vicini (rampe e gradini
 export const CLIMB = 1.35;
 const CLIMB_COST = 3;  // arrampicarsi costa come qualche passo in più (se c'è un giro corto si fa quello)
 const BUCKET = 4;     // griglia di appoggio per cercare le forme vicine
+/**
+ * Correzione fase 16: sopra le forme più strette di così (recinti, ringhiere, parapetti, pali, schienali)
+ * non nasce nessun punto calpestabile. Prima ci nascevano e, con l'arrampicata, gli zombi ci salivano
+ * sopra e ricadevano dall'altra parte (sembrava che attraversassero gli oggetti).
+ */
+const MIN_TOP = 0.45;
+const thin = (s) => s.k === 0 && (s.x1 - s.x0 < MIN_TOP || s.z1 - s.z0 < MIN_TOP);
 
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 
@@ -105,6 +112,35 @@ function segBlocked(ax, ay, az, bx, by, bz) {
 }
 const segSeen = new Set();
 
+/**
+ * Tra i nodi a e b (vicini, stessa altezza h) c'è solo roba bassa e sottile? Ogni forma che il segmento
+ * attraversa deve finire sotto h + CLIMB ed essere spessa meno di 0,6 m nella direzione del passaggio.
+ */
+function lowThinBetween(a, b, h) {
+  const ax = nav.x[a], az = nav.z[a], bx = nav.x[b], bz = nav.z[b];
+  let ok = true, any = false;
+  bucketsAround(Math.min(ax, bx), Math.min(az, bz), Math.max(ax, bx), Math.max(az, bz), (list) => {
+    if (!ok) return;
+    for (const s of list) {
+      if (s.k !== 0) { // rampe: non si scavalcano
+        if (s.x1 >= Math.min(ax, bx) && s.x0 <= Math.max(ax, bx) && s.z1 >= Math.min(az, bz) && s.z0 <= Math.max(az, bz)) { ok = false; return; }
+        continue;
+      }
+      if (s.y1 <= h + 0.05 || s.y0 >= h + CLIMB + 1.9) continue;   // sotto i piedi o molto sopra la testa
+      // il segmento passa nella forma?
+      const alongX = ax !== bx;
+      const c = alongX ? az : ax;
+      if (alongX ? c < s.z0 || c > s.z1 : c < s.x0 || c > s.x1) continue;
+      const lo = alongX ? Math.min(ax, bx) : Math.min(az, bz), hi = alongX ? Math.max(ax, bx) : Math.max(az, bz);
+      const s0 = alongX ? s.x0 : s.z0, s1 = alongX ? s.x1 : s.z1;
+      if (s1 < lo || s0 > hi) continue;
+      any = true;
+      if (s.y1 > h + CLIMB || s1 - s0 > 0.6) { ok = false; return; }
+    }
+  });
+  return ok && any;
+}
+
 /** Vista libera tra due punti (per non far comparire i nemici sotto gli occhi del giocatore). */
 export function lineClear(ax, ay, az, bx, by, bz) { return !segBlocked(ax, ay, az, bx, by, bz); }
 
@@ -137,7 +173,7 @@ export function buildNav(shapeList, area, start, gateLine = Infinity) {
       const x = nav.minX + i + 0.5, z = nav.minZ + j + 0.5;
       tops.length = 0;
       bucketsAround(x, z, x, z, (list) => {
-        for (const s of list) if (inside(s, x, z)) tops.push(topOf(s, x, z));
+        for (const s of list) if (inside(s, x, z) && !thin(s)) tops.push(topOf(s, x, z));
       });
       tops.sort((a, b) => a - b);
       let lastY = -1e9;
@@ -226,6 +262,7 @@ export function buildNav(shapeList, area, start, gateLine = Infinity) {
       if (b < 0) continue;
       const h = Math.max(nav.y[a], nav.y[b]);
       if (!segBlocked(nav.x[a], h + 0.5, nav.z[a], nav.x[b], h + 0.5, nav.z[b])) continue; // non c'era ostacolo: era un'altra cosa
+      if (!lowThinBetween(a, b, h)) continue; // solo recinti, ringhiere, banconi: niente muri
       if (segBlocked(nav.x[a], h + CLIMB + 0.15, nav.z[a], nav.x[b], h + CLIMB + 0.15, nav.z[b])) continue;
       if (segBlocked(nav.x[a], h + CLIMB + 1.0, nav.z[a], nav.x[b], h + CLIMB + 1.0, nav.z[b])) continue;
       if (columnBlocked(nav.x[a], nav.z[a], nav.y[a] + 0.05, h + CLIMB + 1.2) || columnBlocked(nav.x[b], nav.z[b], nav.y[b] + 0.05, h + CLIMB + 1.2)) continue;
@@ -237,7 +274,9 @@ export function buildNav(shapeList, area, start, gateLine = Infinity) {
   }
   nav.climbs = climbs;
   nav.vaults = vaults;
-  const hasLink = (a, b) => { for (let d = 0; d < 4; d++) if (nav.nbr[a * 8 + d] === b) return true; return false; };
+  // le diagonali si appoggiano solo a passaggi a piedi (mai ad arrampicate o scavalcamenti:
+  // altrimenti diventerebbero un passaggio "a piedi" che taglia lo spigolo di un ostacolo)
+  const hasLink = (a, b) => { for (let d = 0; d < 4; d++) if (nav.nbr[a * 8 + d] === b && !nav.jump[a * 8 + d]) return true; return false; };
   for (let a = 0; a < N; a++) {
     const [ci, cj] = colOf(a);
     for (let d = 4; d < 8; d++) {

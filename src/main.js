@@ -308,9 +308,9 @@ async function start() {
 
 // Solo in sviluppo (npm run dev): oggetti utili per i test automatici. Non finisce nel sito pubblicato.
 if (import.meta.env.DEV) {
-  Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js'), import('./game/game.js'), import('./game/rides.js'), import('./player/player.js'), import('./game/coffins.js'), import('./world/lowfog.js'), import('./world/raycast.js')]).then(([m, v, g, r, pl, cf, lf, rc]) => {
+  Promise.all([import('./enemies/enemies.js'), import('./weapons/viewmodel.js'), import('./game/game.js'), import('./game/rides.js'), import('./player/player.js'), import('./game/coffins.js'), import('./world/lowfog.js'), import('./world/raycast.js'), import('./core/physics.js')]).then(([m, v, g, r, pl, cf, lf, rc, ph]) => {
     window.__pp = { dev, game, player, enemies: m.enemies, camera, models: v.models, net, team: g.team, map, renderer, nav, rides: r, quality, prof, scene, spawnEnemy: m.spawnEnemy,
-      teleport: pl.teleportPlayer, antiCamp, coffins: cf, lowFog: lf, castWorld: rc.castWorld };
+      teleport: pl.teleportPlayer, antiCamp, coffins: cf, lowFog: lf, castWorld: rc.castWorld, physics: ph };
   });
 }
 
